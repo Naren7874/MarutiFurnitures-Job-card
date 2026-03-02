@@ -1,0 +1,359 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* ============================================================
+   NEUE HAAS GROTESK DISPLAY PRO — Local Font Declarations
+   ============================================================ */
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayXXThin.ttf') format('truetype');
+    font-weight: 100;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayXXThinItalic.ttf') format('truetype');
+    font-weight: 100;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayXThin.ttf') format('truetype');
+    font-weight: 200;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayXThinItalic.ttf') format('truetype');
+    font-weight: 200;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayThin.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayThinItalic.ttf') format('truetype');
+    font-weight: 300;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayLight.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayLightItalic.ttf') format('truetype');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayRoman.ttf') format('truetype');
+    font-weight: 450;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayRomanItalic.ttf') format('truetype');
+    font-weight: 450;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayMediu.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayMediumItalic.ttf') format('truetype');
+    font-weight: 500;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayBold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayBoldItalic.ttf') format('truetype');
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayBlack.ttf') format('truetype');
+    font-weight: 900;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeueHaasDisplay';
+    src: url('/src/assets/fonts/NeueHaasDisplayBlackItalic.ttf') format('truetype');
+    font-weight: 900;
+    font-style: italic;
+    font-display: swap;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-sans: 'NeueHaasDisplay', system-ui, -apple-system, sans-serif;
+
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+    --radius-2xl: calc(var(--radius) + 8px);
+    --radius-3xl: calc(var(--radius) + 12px);
+    --radius-4xl: calc(var(--radius) + 16px);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ============================================================
+   LIGHT THEME — Blue / Gray palette from Style Guide
+   Blue: #1315E5 | Dark Blue: #03369D | Light Blue: #DFE9FF
+   Light: #F2F4F7 | White: #FFFFFF
+   Gray Light: #DBE1E8 | Gray: #767A8C | Gray Dark: #485666
+   Dark: #131415
+   ============================================================ */
+:root {
+    --radius: 0.75rem;
+
+    --background: #F2F4F7;
+    --foreground: #131415;
+
+    --card: #FFFFFF;
+    --card-foreground: #131415;
+
+    --popover: #FFFFFF;
+    --popover-foreground: #131415;
+
+    --primary: #1315E5;
+    --primary-foreground: #FFFFFF;
+
+    --secondary: #DFE9FF;
+    --secondary-foreground: #03369D;
+
+    --muted: #DBE1E8;
+    --muted-foreground: #767A8C;
+
+    --accent: #DFE9FF;
+    --accent-foreground: #03369D;
+
+    --destructive: #DC2626;
+    --destructive-foreground: #FFFFFF;
+
+    --border: #DBE1E8;
+    --input: #DBE1E8;
+    --ring: #1315E5;
+
+    --chart-1: #1315E5;
+    --chart-2: #03369D;
+    --chart-3: #F97316;
+    --chart-4: #10B981;
+    --chart-5: #8B5CF6;
+
+    --sidebar: #FFFFFF;
+    --sidebar-foreground: #131415;
+    --sidebar-primary: #1315E5;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #F2F4F7;
+    --sidebar-accent-foreground: #131415;
+    --sidebar-border: #DBE1E8;
+    --sidebar-ring: #1315E5;
+}
+
+/* ============================================================
+   DARK THEME — Orange / Black palette
+   Orange: #F97316 | Black: #0A0A0A | Dark Gray: #111111
+   ============================================================ */
+.dark {
+    --background: #0A0A0A;
+    --foreground: #F2F4F7;
+
+    --card: #111111;
+    --card-foreground: #F2F4F7;
+
+    --popover: #111111;
+    --popover-foreground: #F2F4F7;
+
+    --primary: #F97316;
+    --primary-foreground: #0A0A0A;
+
+    --secondary: #1C1C1C;
+    --secondary-foreground: #F2F4F7;
+
+    --muted: #1C1C1C;
+    --muted-foreground: #767A8C;
+
+    --accent: #291500;
+    --accent-foreground: #F97316;
+
+    --destructive: #EF4444;
+    --destructive-foreground: #FFFFFF;
+
+    --border: rgba(255, 255, 255, 0.08);
+    --input: rgba(255, 255, 255, 0.1);
+    --ring: #F97316;
+
+    --chart-1: #F97316;
+    --chart-2: #FB923C;
+    --chart-3: #1315E5;
+    --chart-4: #10B981;
+    --chart-5: #A78BFA;
+
+    --sidebar: #0D0D0D;
+    --sidebar-foreground: #F2F4F7;
+    --sidebar-primary: #F97316;
+    --sidebar-primary-foreground: #0A0A0A;
+    --sidebar-accent: #1C1C1C;
+    --sidebar-accent-foreground: #F2F4F7;
+    --sidebar-border: rgba(255, 255, 255, 0.06);
+    --sidebar-ring: #F97316;
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+
+    html {
+        font-family: 'NeueHaasDisplay', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        font-family: 'NeueHaasDisplay', system-ui, -apple-system, sans-serif;
+        font-weight: 450;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'NeueHaasDisplay', system-ui, -apple-system, sans-serif;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+}
+
+/* ============================================================
+   CUSTOM UTILITIES
+   ============================================================ */
+@utility glass {
+    background-color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(219, 225, 232, 0.8);
+    box-shadow: 0 4px 24px rgba(19, 21, 229, 0.06);
+}
+
+@utility glass-dark {
+    background-color: rgba(17, 17, 17, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+@utility glass-header {
+    background-color: rgba(242, 244, 247, 0.9);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+}
+
+@utility glass-header-dark {
+    background-color: rgba(10, 10, 10, 0.9);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@utility sub-menu-line {
+    position: absolute;
+    left: 1rem;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: var(--border);
+    margin-left: 11px;
+}
+
+@utility scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(19, 21, 229, 0.12);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
