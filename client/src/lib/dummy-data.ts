@@ -250,7 +250,7 @@ export const DUMMY_PURCHASE_ORDERS: PurchaseOrder[] = [
 // ============================================================
 export const DUMMY_WHATSAPP_LOGS: WhatsAppLogEntry[] = [
     { id: 'w1', message: 'JC-24-102 moved to Production stage. Marcus assigned.', recipient: 'DLUXE OFFICE', jobNumber: 'JC-24-102', time: '2m ago', status: 'read' },
-    { id: 'w2', message: 'Invoice INV-24-012 sent. ₹95,000 due by 24 Feb.', recipient: 'SHANTI DEVELOPERS', time: '1h ago', status: 'read' },
+    { id: 'w2', message: 'Job Card JC-24-012 update: Material received at store.', recipient: 'SHANTI DEVELOPERS', time: '1h ago', status: 'read' },
     { id: 'w3', message: 'Design sign-off requested for JC-24-105. Please review.', recipient: 'ROYAL HEIGHTS', jobNumber: 'JC-24-105', time: '3h ago', status: 'delivered' },
     { id: 'w4', message: 'JC-24-088 scheduled for delivery TOMORROW 10am–12pm.', recipient: 'SHANTI DEVELOPERS', jobNumber: 'JC-24-088', time: '5h ago', status: 'read' },
     { id: 'w5', message: 'QC passed for JC-24-112. Dispatch team notified.', recipient: 'GALAXY SHOWROOM', jobNumber: 'JC-24-112', time: '8h ago', status: 'delivered' },
@@ -372,20 +372,20 @@ export const NAV_MAIN = [
 // DASHBOARD COMPUTED STATS
 // ============================================================
 export const DASHBOARD_STATS = {
+    activeProjects: {
+        value: new Set(DUMMY_JOB_CARDS.filter(j => j.status !== 'CLOSED').map(j => j.clientId)).size,
+        change: 14.2,
+        label: 'Active Projects'
+    },
     activeJobs: {
-        value: DUMMY_JOB_CARDS.filter(j => !['CLOSED', 'ENQUIRY'].includes(j.status)).length,
+        value: DUMMY_JOB_CARDS.filter(j => j.status !== 'CLOSED').length,
         change: 12.5,
-        label: 'Active Jobs'
+        label: 'Active Job Cards'
     },
-    revenueMTD: {
-        value: 2480000,
-        change: 18.2,
-        label: 'Revenue MTD (₹)'
-    },
-    overdueInvoices: {
-        value: DUMMY_INVOICES.filter(i => i.status === 'OVERDUE').length,
-        change: -5.0,
-        label: 'Overdue Invoices'
+    pendingQuotations: {
+        value: DUMMY_QUOTATIONS.filter(q => ['SENT', 'DRAFT'].includes(q.status)).length,
+        change: -2.4,
+        label: 'Pending Quotations'
     },
     pendingQC: {
         value: DUMMY_JOB_CARDS.filter(j => j.status === 'QC').length,

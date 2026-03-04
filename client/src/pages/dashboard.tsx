@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import {
-    ClipboardCheck, IndianRupee, AlertCircle, ShieldCheck,
-    Package, CalendarDays, History
+    ClipboardCheck, ShieldCheck,
+    Package, CalendarDays, History, LayoutGrid, FileText
 } from "lucide-react"
 import { motion } from "motion/react"
 
@@ -11,12 +11,10 @@ import { StatusDistribution } from "@/components/dashboard/status-distribution"
 import { BottleneckAlert } from "@/components/dashboard/bottleneck-alert"
 import { UpcomingDeliveries } from "@/components/dashboard/upcoming-deliveries"
 import { WhatsAppLog } from "@/components/dashboard/whatsapp-log"
-import { OverdueInvoices } from "@/components/dashboard/overdue-invoices"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 
 import {
     DUMMY_JOB_CARDS,
-    DUMMY_INVOICES,
     DUMMY_WHATSAPP_LOGS,
     DUMMY_ACTIVITIES,
     DUMMY_DELIVERIES,
@@ -62,7 +60,6 @@ export default function Dashboard() {
                 priority: jc.priority as 'HIGH' | 'URGENT',
                 stage: jc.currentStage,
                 completionPercent: jc.completionPercent,
-                estimatedValue: jc.estimatedValue,
             }))
     })
 
@@ -84,17 +81,14 @@ export default function Dashboard() {
             }))
     })
 
-    const { data: overdueInvoices } = useQuery({
-        queryKey: ["overdue-invoices"],
-        queryFn: async () => DUMMY_INVOICES
-            .filter(inv => inv.status === 'OVERDUE')
-            .map(inv => ({
-                id: inv.id,
-                invoiceNumber: inv.invoiceNumber,
-                client: inv.clientName,
-                amount: inv.amount,
-                dueDate: inv.dueDate,
-            }))
+    const { data: activeProjectsCount } = useQuery({
+        queryKey: ["active-projects-count"],
+        queryFn: async () => DASHBOARD_STATS.activeProjects.value
+    })
+
+    const { data: pendingQuotationsCount } = useQuery({
+        queryKey: ["pending-quotations-count"],
+        queryFn: async () => DASHBOARD_STATS.pendingQuotations.value
     })
 
     const { data: deliveries } = useQuery({
@@ -156,16 +150,16 @@ export default function Dashboard() {
             {/* ── KPI Row — Summary Analytics ────────────────── */}
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
                 <motion.div variants={itemFade}>
-                    <KPICard title="Active Jobs" value={DASHBOARD_STATS.activeJobs.value} change={DASHBOARD_STATS.activeJobs.change} icon={ClipboardCheck} description="In-production flow" />
+                    <KPICard title="Active Projects" value={activeProjectsCount || 0} change={14.2} icon={LayoutGrid} description="Ongoing client mandates" />
                 </motion.div>
                 <motion.div variants={itemFade}>
-                    <KPICard title="Revenue MTD" value={DASHBOARD_STATS.revenueMTD.value} change={DASHBOARD_STATS.revenueMTD.change} icon={IndianRupee} accentColor="#10B981" description="Collections Feb 2024" />
+                    <KPICard title="Active Job Cards" value={DASHBOARD_STATS.activeJobs.value} change={DASHBOARD_STATS.activeJobs.change} icon={ClipboardCheck} accentColor="#1315E5" description="Total jobs in system" />
                 </motion.div>
                 <motion.div variants={itemFade}>
-                    <KPICard title="Overdue Invoices" value={DASHBOARD_STATS.overdueInvoices.value} change={DASHBOARD_STATS.overdueInvoices.change} icon={AlertCircle} accentColor="#DC2626" description="Awaiting payment" />
+                    <KPICard title="Pending Quotations" value={pendingQuotationsCount || 0} change={-2.4} icon={FileText} accentColor="#F59E0B" description="Awaiting client approval" />
                 </motion.div>
                 <motion.div variants={itemFade}>
-                    <KPICard title="QC Pending" value={DASHBOARD_STATS.pendingQC.value} change={DASHBOARD_STATS.pendingQC.change} icon={ShieldCheck} accentColor="#8B5CF6" description="Quality verification" />
+                    <KPICard title="QC Pending" value={DASHBOARD_STATS.pendingQC.value} change={DASHBOARD_STATS.pendingQC.change} icon={ShieldCheck} accentColor="#10B981" description="Quality verification" />
                 </motion.div>
             </div>
 
@@ -233,9 +227,6 @@ export default function Dashboard() {
 
                 {/* ─ Column C (4/12): LOGISTICS & AUDIT (The "Movement" Flow) ─ */}
                 <div className="xl:col-span-4 flex flex-col gap-5">
-                    <motion.div variants={itemFade}>
-                        <OverdueInvoices invoices={overdueInvoices || []} />
-                    </motion.div>
                     <motion.div variants={itemFade}>
                         <UpcomingDeliveries deliveries={(deliveries || []).map(d => ({
                             id: d.id,
