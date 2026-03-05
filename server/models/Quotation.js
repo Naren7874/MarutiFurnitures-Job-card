@@ -1,0 +1,187 @@
+import mongoose from "mongoose";
+
+/* 
+  QUOTATION is the entry point of the entire system.
+  Sales/Admin sits with client → captures requirements 
+  → adds items with photos, specs, pricing
+  → sends PDF to client for approval
+  → on approval → Project is created from this quotation
+*/
+
+const quotationItemSchema = new mongoose.Schema(
+  {
+    srNo:        { type: Number, required: true },
+    category:    { type: String },                       // "Reception Area", "Director's Cabin 1"
+    description: { type: String, required: true },       // "2 Seater Sofa"
+    photo:       { type: String },                       // Cloudinary URL — printed on PDF
+
+    specifications: {
+      size:     String,                                  // "L-59\" x D-30\""
+      polish:   String,                                  // "Natural Teak"
+      fabric:   String,
+      material: String,                                  // "BWR Ply 19mm"
+      finish:   String,
+      hardware: String,
+      notes:    String,                                  // "As per design"
+    },
+
+    qty:          { type: Number, required: true },
+    unit:         { type: String, default: "pcs" },
+    mrp:          { type: Number },                      // MRP per unit (optional display)
+    sellingPrice: { type: Number, required: true },      // actual selling price per unit
+    totalPrice:   { type: Number },                      // qty × sellingPrice — computed on save
+  },
+  { _id: true }
+);
+
+const quotationSchema = new mongoose.Schema(
+  {
+    companyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+    },
+
+    quotationNumber: { type: String, unique: true },     // Auto: MF-311025-01
+
+    // Client details
+    clientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Client",
+      required: true,
+    },
+
+    // Site / project info captured at quotation stage
+    projectName: { type: String, required: true },       // "GMP Office"
+    architect:   { type: String },                       // "Ar. Dreamscape"
+    siteAddress: {
+      line1:   String,
+      line2:   String,
+      city:    String,
+      state:   String,
+      pincode: String,
+    },
+
+    // Initial requirements + reference material
+    requirements:    { type: String },                   // free-text notes
+    referenceImages: [{ type: String }],                 // Cloudinary URLs
+
+    // Delivery
+    deliveryDays: { type: String },                      // "75 to 90 days"
+    validUntil:   { type: Date },
+
+    // Line items — exactly like your real Maruti quotation
+    items: [quotationItemSchema],
+
+    // Totals — auto-computed in pre-save
+    subtotal:            { type: Number, default: 0 },
+    discount:            { type: Number, default: 0 },
+    discountNote:        { type: String },               // "700 RS per mtr fabric, including"
+    amountAfterDiscount: { type: Number, default: 0 },
+
+    // GST — auto-detected from client GSTIN state vs company state
+    gstType: {
+      type: String,
+      enum: ["cgst_sgst", "igst"],
+    },
+    cgst:      { type: Number, default: 0 },
+    sgst:      { type: Number, default: 0 },
+    igst:      { type: Number, default: 0 },
+    gstAmount: { type: Number, default: 0 },
+    grandTotal:{ type: Number, default: 0 },
+
+    // Payment terms
+    advancePercent: { type: Number, default: 50 },
+    advanceAmount:  { type: Number, default: 0 },
+
+    // Terms & Conditions — array of lines like your real quotation
+    termsAndConditions: [{ type: String }],
+
+    // Quotation lifecycle
+    status: {
+      type: String,
+      enum: [
+        "draft",       // being built
+        "sent",        // PDF sent to client
+        "approved",    // client approved → project will be created
+        "rejected",    // client rejected
+        "revised",     // new version created from this one
+        "converted",   // project has been created from this quotation
+      ],
+      default: "draft",
+    },
+
+    // Revision tracking
+    revisionOf:     { type: mongoose.Schema.Types.ObjectId, ref: "Quotation" },
+    revisionNumber: { type: Number, default: 1 },
+
+    // Timestamps for each status change
+    sentAt:         { type: Date },
+    approvedAt:     { type: Date },
+    approvedBy:     { type: String },                    // client name / confirmation note
+    rejectedAt:     { type: Date },
+    rejectedReason: { type: String },
+    convertedAt:    { type: Date },                      // when project was created
+
+    // Project created from this quotation
+    projectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+    },
+
+    // Who handled this
+    handledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    // PDF
+    pdfURL: { type: String },                            // Cloudinary URL
+
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  },
+  { timestamps: true }
+);
+
+// Auto-compute all totals before save
+quotationSchema.pre("save", function (next) {
+  // Item totals
+  this.items.forEach((item) => {
+    item.totalPrice = +(item.qty * item.sellingPrice).toFixed(2);
+  });
+
+  // Subtotal
+  this.subtotal = +this.items
+    .reduce((sum, i) => sum + (i.totalPrice || 0), 0)
+    .toFixed(2);
+
+  // After discount
+  this.amountAfterDiscount = +(this.subtotal - (this.discount || 0)).toFixed(2);
+
+  // GST
+  if (this.gstType === "cgst_sgst") {
+    this.cgst      = +(this.amountAfterDiscount * 0.09).toFixed(2);
+    this.sgst      = +(this.amountAfterDiscount * 0.09).toFixed(2);
+    this.igst      = 0;
+    this.gstAmount = +(this.cgst + this.sgst).toFixed(2);
+  } else if (this.gstType === "igst") {
+    this.igst      = +(this.amountAfterDiscount * 0.18).toFixed(2);
+    this.cgst      = 0;
+    this.sgst      = 0;
+    this.gstAmount = this.igst;
+  }
+
+  // Grand total + advance
+  this.grandTotal    = +(this.amountAfterDiscount + (this.gstAmount || 0)).toFixed(2);
+  this.advanceAmount = +(this.grandTotal * (this.advancePercent / 100)).toFixed(2);
+
+  next();
+});
+
+quotationSchema.index({ companyId: 1, status: 1 });
+quotationSchema.index({ companyId: 1, clientId: 1 });
+
+export default mongoose.model("Quotation", quotationSchema);

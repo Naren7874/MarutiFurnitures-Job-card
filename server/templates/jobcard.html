@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    color: #1a1a1a;
+    background: #fff;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid #1a1a1a;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-left img { height: 55px; object-fit: contain; }
+  .company-name { font-size: 18px; font-weight: 800; }
+  .company-sub  { font-size: 9.5px; color: #555; margin-top: 2px; }
+  .company-contact { font-size: 9.5px; color: #333; text-align: right; line-height: 1.7; }
+
+  /* ── DOCUMENT TITLE ── */
+  .doc-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+  }
+
+  /* ── META TABLE ── */
+  .meta-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+    border: 1.5px solid #1a1a1a;
+  }
+  .meta-table td {
+    padding: 5px 8px;
+    border: 1px solid #bbb;
+    font-size: 10.5px;
+  }
+  .meta-table .label {
+    font-weight: 700;
+    background: #f0f0f0;
+    width: 130px;
+  }
+  .meta-table .value-bold { font-weight: 700; }
+
+  /* ── ITEMS TABLE ── */
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .items-table th {
+    background: #1a1a1a;
+    color: #fff;
+    font-weight: 700;
+    padding: 7px 10px;
+    border: 1px solid #333;
+    font-size: 11.5px;
+    letter-spacing: 1px;
+  }
+  .items-table td {
+    border: 1px solid #ccc;
+    padding: 10px;
+    vertical-align: top;
+  }
+  .items-table tr:nth-child(even) td { background: #fafafa; }
+
+  .col-no   { width: 35px; text-align: center; font-weight: 700; font-size: 13px; }
+  .col-item { }
+
+  /* Photos grid inside item cell */
+  .photo-grid {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .item-photo {
+    width: 130px;
+    height: 110px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+  }
+  .no-photo {
+    width: 130px; height: 110px;
+    background: #f0f0f0;
+    display: flex; align-items: center;
+    justify-content: center;
+    font-size: 9px; color: #aaa;
+    border-radius: 4px;
+    border: 1px dashed #ccc;
+  }
+
+  /* Item description block */
+  .item-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 5px;
+  }
+  .spec-line {
+    font-size: 10.5px;
+    color: #333;
+    line-height: 1.8;
+  }
+  .spec-line span { display: block; }
+  .spec-key { font-weight: 600; color: #1a1a1a; }
+
+  /* ── FOOTER ── */
+  .footer {
+    margin-top: 18px;
+    border-top: 2px solid #1a1a1a;
+    padding-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 9.5px;
+    color: #555;
+  }
+  .sign-box {
+    text-align: center;
+    border-top: 1px solid #333;
+    padding-top: 5px;
+    width: 150px;
+    font-size: 10px;
+    color: #1a1a1a;
+  }
+  .priority-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 3px;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+  .priority-low      { background: #e8f5e9; color: #2e7d32; }
+  .priority-medium   { background: #fff3e0; color: #e65100; }
+  .priority-high     { background: #fce4ec; color: #c62828; }
+  .priority-urgent   { background: #b71c1c; color: #fff; }
+</style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <% if (company.logo) { %>
+        <img src="<%= company.logo %>" alt="logo"/>
+      <% } %>
+      <div>
+        <div class="company-name"><%= company.name %></div>
+        <div class="company-sub"><%= company.tagline || '' %></div>
+        <div class="company-sub">
+          <%= company.phone %>
+          <% if(company.email) { %> &nbsp;|&nbsp; <%= company.email %><% } %>
+          <% if(company.website) { %> &nbsp;|&nbsp; <%= company.website %><% } %>
+        </div>
+      </div>
+    </div>
+    <div class="company-contact">
+      <%= company.address.line1 %><br/>
+      <% if(company.address.line2) { %><%= company.address.line2 %><br/><% } %>
+      <%= company.address.city %>, <%= company.address.state %><br/>
+      GSTIN: <%= company.gstin || '—' %>
+    </div>
+  </div>
+
+  <!-- DOCUMENT TITLE -->
+  <div class="doc-title">JOB CARD</div>
+
+  <!-- META INFO — exactly like your paper job card -->
+  <table class="meta-table">
+    <tr>
+      <td class="label">Job Card No.</td>
+      <td class="value-bold"><%= jobCard.jobCardNumber %></td>
+      <td class="label">Order Date</td>
+      <td><%= new Date(jobCard.orderDate).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'2-digit'}) %></td>
+    </tr>
+    <tr>
+      <td class="label">Name</td>
+      <td colspan="3"><%= client.name %><% if(client.firmName){ %> — <%= client.firmName %><% } %></td>
+    </tr>
+    <tr>
+      <td class="label">Contact Person</td>
+      <td><%= jobCard.salesperson.name || '—' %></td>
+      <td class="label">Salesperson Name</td>
+      <td><%= jobCard.salesperson.name || '—' %></td>
+    </tr>
+    <tr>
+      <td class="label">Location</td>
+      <td><%= client.address ? client.address.city : '—' %></td>
+      <td class="label">Delivery Date</td>
+      <td>
+        <strong>
+          <%= jobCard.expectedDelivery
+            ? new Date(jobCard.expectedDelivery).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'2-digit'})
+            : '—' %>
+        </strong>
+      </td>
+    </tr>
+    <tr>
+      <td class="label">Project</td>
+      <td><%= jobCard.title %></td>
+      <td class="label">Priority</td>
+      <td>
+        <span class="priority-badge priority-<%= jobCard.priority %>">
+          <%= jobCard.priority.toUpperCase() %>
+        </span>
+      </td>
+    </tr>
+  </table>
+
+  <!-- ITEMS TABLE — simple photo + specs, exactly like your paper JC -->
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th class="col-no">No.</th>
+        <th class="col-item">Item</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% jobCard.items.forEach(function(item) { %>
+        <tr>
+          <!-- SR NO -->
+          <td class="col-no"><%= item.srNo %></td>
+
+          <!-- ITEM DETAILS -->
+          <td class="col-item">
+
+            <!-- Photos — same as your paper job card (reference photo + fabric photo) -->
+            <div class="photo-grid">
+              <% if (item.photo) { %>
+                <img src="<%= item.photo %>" class="item-photo" alt="item photo"/>
+              <% } else { %>
+                <div class="no-photo">No Photo</div>
+              <% } %>
+            </div>
+
+            <!-- Description + specs — clean and readable for workshop -->
+            <div class="item-title"><%= item.description %></div>
+
+            <div class="spec-line">
+              <span>
+                <span class="spec-key">Qty:</span>
+                <%= item.qty %> <%= item.unit %>
+              </span>
+              <% if(item.specifications.size) { %>
+              <span>
+                <span class="spec-key">Size:</span>
+                <%= item.specifications.size %>
+              </span>
+              <% } %>
+              <% if(item.specifications.material) { %>
+              <span>
+                <span class="spec-key">Material:</span>
+                <%= item.specifications.material %>
+              </span>
+              <% } %>
+              <% if(item.specifications.polish) { %>
+              <span>
+                <span class="spec-key">Polish:</span>
+                <%= item.specifications.polish %>
+              </span>
+              <% } %>
+              <% if(item.specifications.fabric) { %>
+              <span>
+                <span class="spec-key">Fabric:</span>
+                <%= item.specifications.fabric %>
+              </span>
+              <% } %>
+              <% if(item.specifications.finish) { %>
+              <span>
+                <span class="spec-key">Finish:</span>
+                <%= item.specifications.finish %>
+              </span>
+              <% } %>
+              <% if(item.specifications.hardware) { %>
+              <span>
+                <span class="spec-key">Hardware:</span>
+                <%= item.specifications.hardware %>
+              </span>
+              <% } %>
+              <% if(item.specifications.notes) { %>
+              <span>
+                <span class="spec-key">Note:</span>
+                <%= item.specifications.notes %>
+              </span>
+              <% } %>
+            </div>
+
+          </td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div>
+      Generated: <%= new Date().toLocaleDateString('en-IN') %><br/>
+      Job Card: <strong><%= jobCard.jobCardNumber %></strong>
+    </div>
+    <div style="text-align:center; font-size:9px; color:#aaa;">
+      This is a computer-generated job card.<br/>
+      <%= company.name %> — <%= company.website || company.phone %>
+    </div>
+    <div class="sign-box">
+      Authorised By<br/>
+      <strong><%= company.name %></strong>
+    </div>
+  </div>
+
+</body>
+</html>

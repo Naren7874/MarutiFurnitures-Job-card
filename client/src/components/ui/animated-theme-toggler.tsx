@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react"
-import { Moon, Sun, Monitor } from "lucide-react"
+import { Moon, Sun } from "lucide-react"
 import { flushSync } from "react-dom"
 
 import { cn } from "@/lib/utils"
@@ -20,11 +20,8 @@ export const AnimatedThemeToggler = ({
   const toggleTheme = useCallback(async () => {
     if (!buttonRef.current) return
 
-    // 3-state toggle: light -> dark -> system
-    let nextTheme: Theme = "light"
-    if (theme === "light") nextTheme = "dark"
-    else if (theme === "dark") nextTheme = "system"
-    else nextTheme = "light"
+    // 2-state toggle: light -> dark
+    const nextTheme: Theme = theme === "light" ? "dark" : "light"
 
     // If browser supports startViewTransition, use it for the animation
     if (document.startViewTransition) {
@@ -84,12 +81,6 @@ export const AnimatedThemeToggler = ({
           className={cn(
             "absolute inset-0 h-full w-full transition-all duration-300",
             theme === "dark" ? "scale-100 rotate-0 opacity-100" : "scale-0 rotate-90 opacity-0"
-          )}
-        />
-        <Monitor
-          className={cn(
-            "absolute inset-0 h-full w-full transition-all duration-300",
-            theme === "system" ? "scale-100 rotate-0 opacity-100" : "scale-0 rotate-90 opacity-0"
           )}
         />
       </div>

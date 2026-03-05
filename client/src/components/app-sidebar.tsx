@@ -1,4 +1,4 @@
-import { ChevronRight, Plus, Search } from "lucide-react"
+import { ChevronRight, Plus } from "lucide-react"
 
 import {
     Sidebar,
@@ -15,7 +15,7 @@ import {
     SidebarMenuSubItem,
     useSidebar,
 } from "@/components/ui/sidebar"
-import { Input } from "@/components/ui/input"
+
 import {
     Collapsible,
     CollapsibleContent,

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    color: #1a1a1a;
+    background: #fff;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid #c8a84b;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-left img { height: 60px; object-fit: contain; }
+  .company-name { font-size: 20px; font-weight: 800; color: #1a1a1a; }
+  .company-sub  { font-size: 10px; color: #555; margin-top: 2px; }
+  .company-contact { font-size: 10px; color: #333; text-align: right; line-height: 1.7; }
+
+  /* ── META ROW ── */
+  .meta-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+    border: 1px solid #ddd;
+  }
+  .meta-table td {
+    padding: 5px 8px;
+    border: 1px solid #ddd;
+    font-size: 10.5px;
+  }
+  .meta-table .label { font-weight: 700; background: #f5f5f5; width: 130px; }
+
+  /* ── TITLE BAR ── */
+  .doc-title {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    background: #1a1a1a;
+    color: #c8a84b;
+    padding: 6px 0;
+    margin-bottom: 8px;
+  }
+
+  /* ── ITEMS TABLE ── */
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+  }
+  .items-table th {
+    background: #c8a84b;
+    color: #fff;
+    font-weight: 700;
+    padding: 6px 8px;
+    border: 1px solid #b8943b;
+    text-align: center;
+    font-size: 11px;
+  }
+  .items-table td {
+    border: 1px solid #ddd;
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+  .items-table tr:nth-child(even) td { background: #fafafa; }
+
+  /* category header row */
+  .category-row td {
+    background: #f0e8d0;
+    font-weight: 700;
+    font-size: 11px;
+    text-align: center;
+    color: #5a3e00;
+    padding: 4px 8px;
+  }
+
+  .item-photo {
+    width: 90px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+    display: block;
+  }
+  .no-photo {
+    width: 90px; height: 80px;
+    background: #f0f0f0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; color: #aaa; border-radius: 3px;
+  }
+
+  .specs { font-size: 9.5px; color: #444; line-height: 1.6; margin-top: 4px; }
+  .specs span { display: block; }
+
+  .col-no    { width: 28px;  text-align: center; }
+  .col-photo { width: 100px; text-align: center; }
+  .col-desc  { min-width: 160px; }
+  .col-qty   { width: 40px;  text-align: center; }
+  .col-mrp   { width: 65px;  text-align: right; }
+  .col-price { width: 75px;  text-align: right; font-weight: 700; }
+
+  /* ── TOTALS ── */
+  .totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .totals-table { width: 280px; border-collapse: collapse; }
+  .totals-table td {
+    padding: 5px 10px;
+    border: 1px solid #ddd;
+    font-size: 11px;
+  }
+  .totals-table .t-label  { background: #f5f5f5; font-weight: 600; }
+  .totals-table .t-value  { text-align: right; }
+  .totals-table .t-final  { background: #1a1a1a; color: #c8a84b; font-weight: 800; font-size: 12px; }
+  .totals-table .t-final .t-value { color: #c8a84b; }
+
+  .discount-note {
+    font-size: 9.5px; color: #888; text-align: right;
+    padding-right: 4px; margin-bottom: 6px;
+    font-style: italic;
+  }
+
+  /* ── TERMS ── */
+  .terms {
+    background: #fffde7;
+    border: 1px solid #f0d060;
+    border-radius: 3px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+  }
+  .terms-title {
+    font-weight: 800; font-size: 11px;
+    color: #5a3e00; margin-bottom: 5px;
+    text-align: center;
+  }
+  .terms ul { list-style: none; padding: 0; }
+  .terms ul li {
+    font-size: 10px; color: #333;
+    padding: 2px 0;
+    border-bottom: 1px dashed #f0d060;
+  }
+  .terms ul li:last-child { border-bottom: none; }
+  .terms ul li::before { content: "★ "; color: #c8a84b; font-size: 8px; }
+
+  /* ── FOOTER ── */
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 10px;
+    border-top: 2px solid #c8a84b;
+    padding-top: 8px;
+    font-size: 9.5px;
+    color: #555;
+  }
+  .sign-box {
+    text-align: center;
+    border-top: 1px solid #333;
+    padding-top: 4px;
+    width: 160px;
+    font-size: 10px;
+    color: #333;
+  }
+</style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <% if (company.logo) { %>
+        <img src="<%= company.logo %>" alt="logo"/>
+      <% } %>
+      <div>
+        <div class="company-name"><%= company.name %></div>
+        <div class="company-sub"><%= company.tagline || '' %></div>
+        <div class="company-sub"><%= company.website || '' %> &nbsp;|&nbsp; <%= company.phone %></div>
+      </div>
+    </div>
+    <div class="company-contact">
+      <%= company.address.line1 %><br/>
+      <%= company.address.city %>, <%= company.address.state %> - <%= company.address.pincode %><br/>
+      <%= company.email %><br/>
+      GSTIN: <%= company.gstin || '—' %>
+    </div>
+  </div>
+
+  <!-- DOCUMENT TITLE -->
+  <div class="doc-title">QUOTATION</div>
+
+  <!-- META INFO -->
+  <table class="meta-table">
+    <tr>
+      <td class="label">Quotation No.</td>
+      <td><strong><%= quotation.quotationNumber %></strong></td>
+      <td class="label">Date</td>
+      <td><%= new Date(quotation.createdAt).toLocaleDateString('en-IN') %></td>
+    </tr>
+    <tr>
+      <td class="label">Client Name</td>
+      <td><%= client.name %> <% if(client.firmName){ %> — <%= client.firmName %><% } %></td>
+      <td class="label">Delivery Time</td>
+      <td><%= quotation.deliveryDays || '—' %></td>
+    </tr>
+    <tr>
+      <td class="label">Site</td>
+      <td><%= quotation.projectName %></td>
+      <td class="label">Architect / Ref</td>
+      <td><%= quotation.architect || '—' %></td>
+    </tr>
+    <% if (client.phone) { %>
+    <tr>
+      <td class="label">Contact</td>
+      <td><%= client.phone %></td>
+      <td class="label">Valid Until</td>
+      <td><%= quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString('en-IN') : '—' %></td>
+    </tr>
+    <% } %>
+  </table>
+
+  <!-- ITEMS TABLE -->
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th class="col-no">No.</th>
+        <th class="col-photo">PHOTO</th>
+        <th class="col-desc">DESCRIPTION & SPECIFICATIONS</th>
+        <th class="col-qty">QTY</th>
+        <th class="col-mrp">MRP</th>
+        <th class="col-price">PRICE</th>
+      </tr>
+    </thead>
+    <tbody>
+      <%
+        let lastCategory = null;
+        quotation.items.forEach(function(item) {
+      %>
+        <!-- Category header row — only when category changes -->
+        <% if (item.category && item.category !== lastCategory) {
+             lastCategory = item.category; %>
+          <tr class="category-row">
+            <td colspan="6"><%= item.category %></td>
+          </tr>
+        <% } %>
+
+        <tr>
+          <td class="col-no"><%= item.srNo %></td>
+          <td class="col-photo">
+            <% if (item.photo) { %>
+              <img src="<%= item.photo %>" class="item-photo" alt="item"/>
+            <% } else { %>
+              <div class="no-photo">No Photo</div>
+            <% } %>
+          </td>
+          <td class="col-desc">
+            <strong><%= item.description %></strong>
+            <div class="specs">
+              <% if(item.specifications.size)     { %><span>Size: <%= item.specifications.size %></span><% } %>
+              <% if(item.specifications.polish)   { %><span>Polish: <%= item.specifications.polish %></span><% } %>
+              <% if(item.specifications.fabric)   { %><span>Fabric: <%= item.specifications.fabric %></span><% } %>
+              <% if(item.specifications.material) { %><span>Material: <%= item.specifications.material %></span><% } %>
+              <% if(item.specifications.finish)   { %><span>Finish: <%= item.specifications.finish %></span><% } %>
+              <% if(item.specifications.hardware) { %><span>Hardware: <%= item.specifications.hardware %></span><% } %>
+              <% if(item.specifications.notes)    { %><span>Note: <%= item.specifications.notes %></span><% } %>
+            </div>
+          </td>
+          <td class="col-qty"><%= item.qty %></td>
+          <td class="col-mrp">
+            <% if(item.mrp) { %>₹<%= item.mrp.toLocaleString('en-IN') %><% } else { %>—<% } %>
+          </td>
+          <td class="col-price">₹<%= (item.totalPrice || 0).toLocaleString('en-IN') %></td>
+        </tr>
+
+      <% }); %>
+    </tbody>
+  </table>
+
+  <!-- TOTALS -->
+  <% if (quotation.discountNote) { %>
+    <div class="discount-note"><%= quotation.discountNote %></div>
+  <% } %>
+
+  <div class="totals-wrap">
+    <table class="totals-table">
+      <tr>
+        <td class="t-label">TOTAL AMT</td>
+        <td class="t-value">₹<%= quotation.subtotal.toLocaleString('en-IN') %></td>
+      </tr>
+      <% if (quotation.discount > 0) { %>
+      <tr>
+        <td class="t-label">Discount</td>
+        <td class="t-value" style="color:#c0392b;">− ₹<%= quotation.discount.toLocaleString('en-IN') %></td>
+      </tr>
+      <% } %>
+      <% if (quotation.gstType) { %>
+        <% if (quotation.gstType === 'cgst_sgst') { %>
+        <tr>
+          <td class="t-label">CGST (9%)</td>
+          <td class="t-value">₹<%= quotation.cgst.toLocaleString('en-IN') %></td>
+        </tr>
+        <tr>
+          <td class="t-label">SGST (9%)</td>
+          <td class="t-value">₹<%= quotation.sgst.toLocaleString('en-IN') %></td>
+        </tr>
+        <% } else { %>
+        <tr>
+          <td class="t-label">IGST (18%)</td>
+          <td class="t-value">₹<%= quotation.igst.toLocaleString('en-IN') %></td>
+        </tr>
+        <% } %>
+      <% } %>
+      <tr class="t-final">
+        <td class="t-label t-final">FINAL AMT</td>
+        <td class="t-value t-final">₹<%= quotation.grandTotal.toLocaleString('en-IN') %></td>
+      </tr>
+      <% if (quotation.advanceAmount > 0) { %>
+      <tr>
+        <td class="t-label" style="font-size:10px; color:#888;">
+          Advance (<%= quotation.advancePercent %>%)
+        </td>
+        <td class="t-value" style="font-size:10px; color:#888;">
+          ₹<%= quotation.advanceAmount.toLocaleString('en-IN') %>
+        </td>
+      </tr>
+      <% } %>
+    </table>
+  </div>
+
+  <!-- TERMS & CONDITIONS -->
+  <% if (quotation.termsAndConditions && quotation.termsAndConditions.length > 0) { %>
+  <div class="terms">
+    <div class="terms-title">★ Terms & Conditions ★</div>
+    <ul>
+      <% quotation.termsAndConditions.forEach(function(t) { %>
+        <li><%= t %></li>
+      <% }); %>
+    </ul>
+  </div>
+  <% } %>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div>
+      <strong>Bank Details</strong><br/>
+      <% if(company.bankDetails) { %>
+        <%= company.bankDetails.bankName %> | A/C: <%= company.bankDetails.accountNumber %><br/>
+        IFSC: <%= company.bankDetails.ifsc %> | Branch: <%= company.bankDetails.branch %>
+      <% } %>
+    </div>
+    <div class="sign-box">
+      Authorised Signatory<br/>
+      <strong><%= company.name %></strong>
+    </div>
+  </div>
+
+</body>
+</html>

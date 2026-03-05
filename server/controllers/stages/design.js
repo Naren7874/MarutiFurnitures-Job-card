@@ -1,0 +1,135 @@
+import JobCard from '../../models/JobCard.js';
+import DesignRequest from '../../models/DesignRequest.js';
+import { StoreStage } from '../../models/StoreStage.js';
+import { uploadReqFiles } from '../../middleware/upload.js';
+import { sendWhatsApp, WA_TEMPLATES } from '../../utils/sendWhatsApp.js';
+
+/** GET /api/jobcards/:id/design */
+export const getDesign = async (req, res, next) => {
+  try {
+    const design = await DesignRequest.findOne({ jobCardId: req.params.id })
+      .populate('assignedTo', 'name role')
+      .lean();
+    if (!design) return res.status(404).json({ success: false, message: 'Design request not found' });
+    res.status(200).json({ success: true, data: design });
+  } catch (err) { next(err); }
+};
+
+/** POST /api/jobcards/:id/design — Create design request */
+export const createDesign = async (req, res, next) => {
+  try {
+    const jobCard = await JobCard.findOne({ _id: req.params.id, ...req.companyFilter });
+    if (!jobCard) return res.status(404).json({ success: false, message: 'Job card not found' });
+
+    if (jobCard.designRequestId) {
+      return res.status(400).json({ success: false, message: 'Design request already exists for this job card' });
+    }
+
+    const design = await DesignRequest.create({
+      companyId:  req.user.companyId,
+      jobCardId:  jobCard._id,
+      projectId:  jobCard.projectId,
+      clientId:   jobCard.clientId,
+      assignedTo: req.body.assignedTo || [],
+      items:      req.body.items || [],
+      createdBy:  req.user.userId,
+    });
+
+    // Link back to job card
+    jobCard.designRequestId = design._id;
+    await jobCard.save();
+
+    res.status(201).json({ success: true, data: design });
+  } catch (err) { next(err); }
+};
+
+/** PUT /api/jobcards/:id/design — Update measurements + materials */
+export const updateDesign = async (req, res, next) => {
+  try {
+    const PROTECTED = ['companyId', 'jobCardId', 'projectId', 'clientId', 'createdBy'];
+    PROTECTED.forEach((f) => delete req.body[f]);
+
+    const design = await DesignRequest.findOneAndUpdate(
+      { jobCardId: req.params.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!design) return res.status(404).json({ success: false, message: 'Design request not found' });
+    res.status(200).json({ success: true, data: design });
+  } catch (err) { next(err); }
+};
+
+/** POST /api/jobcards/:id/design/files — Upload CAD/render files */
+export const uploadDesignFiles = async (req, res, next) => {
+  try {
+    const uploaded = await uploadReqFiles(req, `${req.user.companyId}/design`);
+    const fileDocs = uploaded.map((u, i) => ({
+      title:      req.body.titles?.[i] || `File ${i + 1}`,
+      url:        u.url,
+      fileType:   req.body.fileTypes?.[i] || 'other',
+      uploadedBy: req.user.userId,
+    }));
+
+    const design = await DesignRequest.findOneAndUpdate(
+      { jobCardId: req.params.id },
+      { $push: { files: { $each: fileDocs } } },
+      { new: true }
+    );
+    if (!design) return res.status(404).json({ success: false, message: 'Design request not found' });
+    res.status(200).json({ success: true, data: design });
+  } catch (err) { next(err); }
+};
+
+/** POST /api/jobcards/:id/design/signoff — Send client sign-off link */
+export const sendSignoffLink = async (req, res, next) => {
+  try {
+    const { v4: uuidv4 } = await import('uuid');
+    const token = uuidv4();
+
+    const design = await DesignRequest.findOneAndUpdate(
+      { jobCardId: req.params.id },
+      { 'signoff.status': 'pending', 'signoff.sentAt': new Date(), signoffToken: token },
+      { new: true }
+    );
+    if (!design) return res.status(404).json({ success: false, message: 'Design request not found' });
+
+    const signoffUrl = `${process.env.FRONTEND_URL}/signoff/${token}`;
+
+    // Could also send via WhatsApp/email here
+    res.status(200).json({ success: true, signoffUrl, data: design });
+  } catch (err) { next(err); }
+};
+
+/** PATCH /api/jobcards/:id/design/ready — Mark design done → trigger Store stage */
+export const markDesignReady = async (req, res, next) => {
+  try {
+    const jobCard = await JobCard.findOne({ _id: req.params.id, ...req.companyFilter });
+    if (!jobCard) return res.status(404).json({ success: false, message: 'Job card not found' });
+
+    // Update design status
+    await DesignRequest.findOneAndUpdate(
+      { jobCardId: req.params.id },
+      { status: 'approved' }
+    );
+
+    // Create StoreStage document
+    const storeStage = await StoreStage.create({
+      companyId: req.user.companyId,
+      jobCardId: jobCard._id,
+      projectId: jobCard.projectId,
+      status:    'pending',
+    });
+
+    // Update job card
+    jobCard.status       = 'in_store';
+    jobCard.storeStageId = storeStage._id;
+    await jobCard.save();
+
+    // Activity log
+    await JobCard.findByIdAndUpdate(jobCard._id, {
+      $push: { activityLog: { action: 'design_ready', doneBy: req.user.userId, prevStatus: 'active', newStatus: 'in_store', timestamp: new Date() } },
+    });
+
+    res.status(200).json({ success: true, data: { jobCard, storeStage } });
+  } catch (err) { next(err); }
+};
