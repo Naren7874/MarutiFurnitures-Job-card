@@ -4,6 +4,7 @@ import { generateAndUploadPDF } from '../../utils/generatePDF.js';
 import { uploadReqFile } from '../../middleware/upload.js';
 import { sendWhatsApp, WA_TEMPLATES } from '../../utils/sendWhatsApp.js';
 import Client from '../../models/Client.js';
+import { auditLog } from '../../utils/auditLogger.js';
 
 /** GET /api/jobcards/:id/dispatch */
 export const getDispatch = async (req, res, next) => {
@@ -66,6 +67,15 @@ export const scheduleDispatch = async (req, res, next) => {
       $push: { activityLog: { action: 'dispatched', doneBy: req.user.userId, prevStatus: 'qc_passed', newStatus: 'dispatched', timestamp: new Date() } },
     });
 
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'JobCard',
+      resourceId: req.params.id,
+      resourceLabel: req.params.id,
+      changes: { status: { from: 'qc_passed', to: 'dispatched' } },
+      metadata: { action: 'dispatch_scheduled', scheduledDate, vehicle: vehicle?.number, driver: deliveryTeam?.[0]?.name, challanUrl },
+    });
+
     res.status(200).json({ success: true, data: stage, challanUrl });
   } catch (err) { next(err); }
 };
@@ -108,6 +118,15 @@ export const markDelivered = async (req, res, next) => {
     if (jobCard?.clientId?.whatsappNumber) {
       await sendWhatsApp(jobCard.clientId.whatsappNumber, WA_TEMPLATES.JOB_DELIVERED, [jobCard.jobCardNumber]);
     }
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'JobCard',
+      resourceId: req.params.id,
+      resourceLabel: jobCard?.jobCardNumber || req.params.id,
+      changes: { status: { from: 'dispatched', to: 'delivered' } },
+      metadata: { action: 'delivered', podPhoto: !!podPhotoUrl, gpsLocation: !!gpsLocation },
+    });
 
     res.status(200).json({ success: true, data: stage, message: 'Delivered! Admin: please proceed to billing.' });
   } catch (err) { next(err); }

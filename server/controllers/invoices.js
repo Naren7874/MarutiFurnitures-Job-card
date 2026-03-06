@@ -6,6 +6,7 @@ import { generateInvoiceNumber } from '../utils/autoNumber.js';
 import { generateAndUploadPDF } from '../utils/generatePDF.js';
 import { sendEmail, invoiceEmailHTML } from '../utils/sendEmail.js';
 import { determineGSTType } from '../utils/verifyGST.js';
+import { auditLog } from '../utils/auditLogger.js';
 
 // ── POST /api/invoices ───────────────────────────────────────────────────────
 
@@ -16,13 +17,11 @@ export const createInvoice = async (req, res, next) => {
     const company = await Company.findById(req.user.companyId).lean();
     const invoiceNumber = await generateInvoiceNumber(req.user.companyId, company.invoicePrefix);
 
-    // Fetch data needed for GST compliance
     const quotation = quotationId
       ? await Quotation.findById(quotationId).populate('clientId').lean()
       : null;
     const client = quotation?.clientId || await Client.findById(req.body.clientId).lean();
 
-    // Determine GST type at invoice time
     const gstType = determineGSTType(company.gstin, client?.gstin);
 
     const invoice = await Invoice.create({
@@ -30,12 +29,19 @@ export const createInvoice = async (req, res, next) => {
       companyId:    req.user.companyId,
       invoiceNumber,
       gstType,
-      // GST compliance — snapshot at invoice creation time
       placeOfSupply:        req.body.placeOfSupply || client?.gstState || company.address?.state,
       clientGstinSnapshot:  client?.gstin || '',
       companyGstinSnapshot: company.gstin || '',
       status:   'draft',
       createdBy: req.user.userId,
+    });
+
+    auditLog(req, {
+      action: 'create',
+      resourceType: 'Invoice',
+      resourceId: invoice._id,
+      resourceLabel: invoiceNumber,
+      metadata: { grandTotal: req.body.grandTotal, gstType, quotationId, projectId },
     });
 
     res.status(201).json({ success: true, data: invoice });
@@ -89,15 +95,30 @@ export const recordPayment = async (req, res, next) => {
     const invoice = await Invoice.findOne({ _id: req.params.id, ...req.companyFilter });
     if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
 
+    const prevBalanceDue = invoice.balanceDue;
+    const prevStatus     = invoice.status;
+
     invoice.payments.push({ amount, mode, reference, paidAt: new Date(), recordedBy: req.user.userId });
 
-    // Recalculate totals
     const totalPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
     invoice.advancePaid = totalPaid;
     invoice.balanceDue  = Math.max(0, invoice.grandTotal - totalPaid);
     invoice.status      = invoice.balanceDue <= 0 ? 'paid' : 'partially_paid';
 
     await invoice.save();
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Invoice',
+      resourceId: invoice._id,
+      resourceLabel: invoice.invoiceNumber,
+      changes: {
+        balanceDue: { from: prevBalanceDue, to: invoice.balanceDue },
+        status:     { from: prevStatus,     to: invoice.status },
+      },
+      metadata: { paymentAmount: amount, paymentMode: mode, reference },
+    });
+
     res.status(200).json({ success: true, data: invoice });
   } catch (err) { next(err); }
 };
@@ -139,6 +160,15 @@ export const sendInvoice = async (req, res, next) => {
         html:    invoiceEmailHTML(invoice.clientId.name, invoice.invoiceNumber, pdfUrl),
       });
     }
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Invoice',
+      resourceId: invoice._id,
+      resourceLabel: invoice.invoiceNumber,
+      changes: { status: { from: invoice.status, to: 'sent' } },
+      metadata: { sentViaEmail: !!invoice.clientId?.email, pdfUrl },
+    });
 
     res.status(200).json({ success: true, pdfUrl });
   } catch (err) { next(err); }

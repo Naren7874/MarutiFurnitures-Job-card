@@ -2,6 +2,7 @@ import Project from '../models/Project.js';
 import Quotation from '../models/Quotation.js';
 import Company from '../models/Company.js';
 import { generateProjectNumber } from '../utils/autoNumber.js';
+import { auditLog } from '../utils/auditLogger.js';
 
 // ── POST /api/projects ───────────────────────────────────────────────────────
 
@@ -9,7 +10,6 @@ export const createProject = async (req, res, next) => {
   try {
     const { quotationId, priority, expectedDelivery, assignedStaff } = req.body;
 
-    // Fetch approved quotation
     const quotation = await Quotation.findOne({
       _id:       quotationId,
       companyId: req.user.companyId,
@@ -17,10 +17,7 @@ export const createProject = async (req, res, next) => {
     }).populate('clientId', 'gstin name').lean();
 
     if (!quotation) {
-      return res.status(404).json({
-        success: false,
-        message: 'Approved quotation not found',
-      });
+      return res.status(404).json({ success: false, message: 'Approved quotation not found' });
     }
 
     const company = await Company.findById(req.user.companyId).lean();
@@ -31,13 +28,10 @@ export const createProject = async (req, res, next) => {
       projectNumber,
       clientId:     quotation.clientId._id,
       quotationId:  quotation._id,
-
-      // Copy from quotation — project stands alone even if quotation is revised later
       projectName:  quotation.projectName,
       architect:    quotation.architect,
       siteAddress:  quotation.siteAddress,
       clientGstin:  quotation.clientId?.gstin,
-
       priority:         priority || 'medium',
       expectedDelivery: expectedDelivery,
       assignedStaff:    assignedStaff || [],
@@ -47,6 +41,14 @@ export const createProject = async (req, res, next) => {
 
     // Mark quotation as converted
     await Quotation.findByIdAndUpdate(quotation._id, { status: 'converted', projectId: project._id });
+
+    auditLog(req, {
+      action: 'create',
+      resourceType: 'Project',
+      resourceId: project._id,
+      resourceLabel: `${projectNumber} — ${quotation.projectName}`,
+      metadata: { quotationId: quotation._id, priority, assignedStaff: assignedStaff?.length || 0 },
+    });
 
     res.status(201).json({ success: true, data: project });
   } catch (err) {
@@ -102,7 +104,6 @@ export const getProjectById = async (req, res, next) => {
 
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
-    // Attach job cards for this project
     const JobCard = (await import('../models/JobCard.js')).default;
     const jobCards = await JobCard.find({ projectId: project._id, companyId: req.user.companyId })
       .select('jobCardNumber title status priority expectedDelivery')
@@ -127,6 +128,15 @@ export const saveWhatsAppGroup = async (req, res, next) => {
     );
 
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Project',
+      resourceId: project._id,
+      resourceLabel: project.projectNumber,
+      metadata: { action: 'whatsapp_group_linked', groupName },
+    });
+
     res.status(200).json({ success: true, data: project });
   } catch (err) {
     next(err);
@@ -138,12 +148,23 @@ export const saveWhatsAppGroup = async (req, res, next) => {
 export const updateProjectStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
+    const prev = await Project.findOne({ _id: req.params.id, ...req.companyFilter }).lean();
+
     const project = await Project.findOneAndUpdate(
       { _id: req.params.id, ...req.companyFilter },
       { status },
       { new: true, runValidators: true }
     );
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Project',
+      resourceId: project._id,
+      resourceLabel: project.projectNumber,
+      changes: { status: { from: prev?.status, to: status } },
+    });
+
     res.status(200).json({ success: true, data: project });
   } catch (err) {
     next(err);
@@ -163,6 +184,14 @@ export const updateProject = async (req, res, next) => {
       { new: true, runValidators: true }
     );
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Project',
+      resourceId: project._id,
+      resourceLabel: project.projectNumber,
+    });
+
     res.status(200).json({ success: true, data: project });
   } catch (err) {
     next(err);

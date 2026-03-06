@@ -12,6 +12,7 @@ import JobCard from '../models/JobCard.js';
 import { Inventory } from '../models/Inventory.js';
 import { Invoice } from '../models/Invoice.js';
 import { enqueueNotification } from './notificationQueue.js';
+import { runExpiredOverridesCron } from './expiredOverrides.js';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -141,6 +142,12 @@ export const startCronJobs = () => {
     runPaymentOverdueChecker();
     setInterval(runPaymentOverdueChecker, RUN_EVERY);
   }, 60 * 60 * 1000); // 60 min after deadline check
+
+  // SRS §10 — expired permission overrides (runs daily at midnight)
+  setTimeout(() => {
+    runExpiredOverridesCron();
+    setInterval(runExpiredOverridesCron, RUN_EVERY);
+  }, 90 * 60 * 1000); // 90 min after deadline check (staggered)
 
   console.log('✅ Cron jobs scheduled');
 };

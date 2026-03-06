@@ -10,6 +10,8 @@ import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Mail, Lock } from 'lucide-react';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -106,96 +108,107 @@ export default function LoginPage() {
                     initial={{ opacity: 0, y: 20, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                    className="w-full bg-card/80 dark:bg-card/40 border border-border/50 rounded-[32px] p-8 md:p-12 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] backdrop-blur-2xl relative overflow-hidden"
+                    className="w-full"
                 >
-                    {/* Top glass reflection */}
-                    <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent" />
-                    <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-primary/0 via-primary to-primary/0 opacity-50" />
+                    <Card className="bg-card/80 dark:bg-card/40 border border-border/50 rounded-[32px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] backdrop-blur-2xl relative overflow-hidden p-0">
+                        {/* Top glass reflection */}
+                        <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent z-20" />
+                        <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-primary/0 via-primary to-primary/0 opacity-50 z-20" />
 
-                    <div className="mb-8">
-                        <h2 className="text-foreground text-3xl font-black tracking-tight mb-2">Welcome Back</h2>
-                        <p className="text-muted-foreground text-sm font-medium">Please enter your credentials to access the internal platform.</p>
-                    </div>
+                        <CardHeader className="p-8 md:p-12 pb-0">
+                            <CardTitle className="text-foreground text-3xl font-black tracking-tight mb-2">Welcome Back</CardTitle>
+                            <CardDescription className="text-muted-foreground text-sm font-medium">Please enter your credentials to access the internal platform.</CardDescription>
+                        </CardHeader>
 
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                        <div className="space-y-4">
-                            {/* Email */}
-                            <div className="space-y-2">
-                                <Label className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.15em] px-1 flex justify-between">
-                                    <span>Corporate Email</span>
-                                    {errors.email && <span className="text-destructive lowercase tracking-normal">! {errors.email.message}</span>}
-                                </Label>
-                                <div className="group relative">
-                                    <Input
-                                        {...register('email')}
-                                        type="email"
-                                        placeholder="admin@maruti.com"
-                                        className="bg-muted/30 border-border/60 text-foreground h-13 rounded-2xl focus:ring-2 focus:ring-primary/20 transition-all font-semibold px-4 placeholder:text-muted-foreground/30"
-                                    />
-                                    <div className="absolute inset-0 rounded-2xl border border-primary/20 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity" />
+                        <CardContent className="p-8 md:p-12 pt-8">
+                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                                <div className="space-y-4">
+                                    {/* Email */}
+                                    <div className="space-y-2">
+                                        <Label className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.15em] px-1 flex justify-between">
+                                            <span>Corporate Email</span>
+                                            {errors.email && <span className="text-destructive lowercase tracking-normal">! {errors.email.message}</span>}
+                                        </Label>
+                                        <div className="group relative">
+                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/30 group-focus-within:text-primary transition-colors z-10">
+                                                <Mail size={18} />
+                                            </div>
+                                            <Input
+                                                {...register('email')}
+                                                type="email"
+                                                placeholder="admin@maruti.com"
+                                                className="bg-muted/30 border-border/60 text-foreground h-13 rounded-2xl focus:ring-2 focus:ring-primary/20 transition-all font-semibold pl-12 pr-4 placeholder:text-muted-foreground/30"
+                                            />
+                                            <div className="absolute inset-0 rounded-2xl border border-primary/20 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity" />
+                                        </div>
+                                    </div>
+
+                                    {/* Password */}
+                                    <div className="space-y-2">
+                                        <Label className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.15em] px-1 flex justify-between">
+                                            <span>Member Password</span>
+                                            {errors.password && <span className="text-destructive lowercase tracking-normal">! {errors.password.message}</span>}
+                                        </Label>
+                                        <div className="relative group">
+                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/30 group-focus-within:text-primary transition-colors z-10">
+                                                <Lock size={18} />
+                                            </div>
+                                            <Input
+                                                {...register('password')}
+                                                type={showPass ? 'text' : 'password'}
+                                                placeholder="••••••••"
+                                                className="bg-muted/30 border-border/60 text-foreground h-13 rounded-2xl focus:ring-2 focus:ring-primary/20 transition-all font-semibold pl-12 pr-12 placeholder:text-muted-foreground/30"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPass(!showPass)}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-primary transition-colors cursor-pointer z-10"
+                                            >
+                                                {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                                            </button>
+                                            <div className="absolute inset-0 rounded-2xl border border-primary/20 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity" />
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Password */}
-                            <div className="space-y-2">
-                                <Label className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.15em] px-1 flex justify-between">
-                                    <span>Member Password</span>
-                                    {errors.password && <span className="text-destructive lowercase tracking-normal">! {errors.password.message}</span>}
-                                </Label>
-                                <div className="relative group">
-                                    <Input
-                                        {...register('password')}
-                                        type={showPass ? 'text' : 'password'}
-                                        placeholder="••••••••"
-                                        className="bg-muted/30 border-border/60 text-foreground h-13 rounded-2xl focus:ring-2 focus:ring-primary/20 transition-all font-semibold px-4 pr-12 placeholder:text-muted-foreground/30"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPass(!showPass)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-primary transition-colors cursor-pointer"
-                                    >
-                                        {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
-                                    </button>
-                                    <div className="absolute inset-0 rounded-2xl border border-primary/20 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity" />
-                                </div>
-                            </div>
-                        </div>
+                                <AnimatePresence mode="wait">
+                                    {apiError && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="bg-destructive/10 border border-destructive/20 rounded-2xl px-4 py-3 text-destructive text-sm font-bold flex items-center gap-2"
+                                        >
+                                            <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse shrink-0" />
+                                            <p>{apiError}</p>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
 
-                        <AnimatePresence mode="wait">
-                            {apiError && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="bg-destructive/10 border border-destructive/20 rounded-2xl px-4 py-3 text-destructive text-sm font-bold flex items-center gap-2"
+                                <Button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="w-full bg-primary text-primary-foreground h-14 rounded-2xl font-black text-lg shadow-[0_20px_40px_-10px_rgba(19,21,229,0.3)] hover:shadow-[0_25px_50px_-12px_rgba(19,21,229,0.4)] hover:scale-[1.01] active:scale-95 transition-all group overflow-hidden relative"
                                 >
-                                    <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse shrink-0" />
-                                    <p>{apiError}</p>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                                    <span className="relative z-10 flex items-center justify-center gap-2">
+                                        {isSubmitting ? (
+                                            <><Loader2 className="animate-spin" size={20} /> Verifying...</>
+                                        ) : (
+                                            <>Sign In to Vault <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" /></>
+                                        )}
+                                    </span>
+                                    <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                                </Button>
+                            </form>
+                        </CardContent>
 
-                        <Button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="w-full bg-primary text-primary-foreground h-14 rounded-2xl font-black text-lg shadow-[0_20px_40px_-10px_rgba(19,21,229,0.3)] hover:shadow-[0_25px_50px_-12px_rgba(19,21,229,0.4)] hover:scale-[1.01] active:scale-95 transition-all group overflow-hidden relative"
-                        >
-                            <span className="relative z-10 flex items-center justify-center gap-2">
-                                {isSubmitting ? (
-                                    <><Loader2 className="animate-spin" size={20} /> Verifying...</>
-                                ) : (
-                                    <>Sign In to Vault <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" /></>
-                                )}
-                            </span>
-                            <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                        </Button>
-                    </form>
-
-                    <div className="mt-10 pt-8 border-t border-border/40 flex flex-col items-center gap-4">
-                        <Link to="/forgot-password" title="Recover account" className="text-muted-foreground/60 hover:text-primary text-[10px] font-black uppercase tracking-[0.2em] transition-colors flex items-center gap-2">
-                            <ShieldCheck size={14} className="opacity-50" /> Forgot credentials?
-                        </Link>
-                    </div>
+                        <CardFooter className="p-8 md:p-12 pt-0 flex flex-col items-center gap-4">
+                            <div className="w-full h-px bg-border/40 mb-6" />
+                            <Link to="/forgot-password" title="Recover account" className="text-muted-foreground/60 hover:text-primary text-[10px] font-black uppercase tracking-[0.2em] transition-colors flex items-center gap-2">
+                                <ShieldCheck size={14} className="opacity-50" /> Forgot credentials?
+                            </Link>
+                        </CardFooter>
+                    </Card>
                 </motion.div>
 
                 {/* ── Footer ──────────────────────────────────────────── */}

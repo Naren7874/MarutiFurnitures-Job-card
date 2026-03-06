@@ -5,6 +5,7 @@ import Notification from '../models/Notification.js';
 import { generateJobCardNumber } from '../utils/autoNumber.js';
 import { generateAndUploadPDF } from '../utils/generatePDF.js';
 import { sendWhatsAppBulk, WA_TEMPLATES } from '../utils/sendWhatsApp.js';
+import { auditLog } from '../utils/auditLogger.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,15 @@ export const createJobCard = async (req, res, next) => {
     }
 
     res.status(201).json({ success: true, data: jobCard });
+
+    // Fire-and-forget audit log after response
+    auditLog(req, {
+      action: 'create',
+      resourceType: 'JobCard',
+      resourceId: jobCard._id,
+      resourceLabel: jobCardNumber,
+      metadata: { projectId: project._id, projectName: project.projectName, priority },
+    });
   } catch (err) {
     next(err);
   }
@@ -163,6 +173,15 @@ export const updateStatus = async (req, res, next) => {
       note:       note || 'Admin status override',
     });
 
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'JobCard',
+      resourceId: jobCard._id,
+      resourceLabel: jobCard.jobCardNumber,
+      changes: { status: { from: prevStatus, to: status } },
+      metadata: { action: 'admin_status_override', note },
+    });
+
     res.status(200).json({ success: true, data: jobCard });
   } catch (err) {
     next(err);
@@ -192,6 +211,15 @@ export const holdJobCard = async (req, res, next) => {
       note:      reason,
     });
 
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'JobCard',
+      resourceId: jobCard._id,
+      resourceLabel: jobCard.jobCardNumber,
+      changes: { status: { from: prevStatus, to: 'on_hold' } },
+      metadata: { reason },
+    });
+
     res.status(200).json({ success: true, data: jobCard });
   } catch (err) {
     next(err);
@@ -219,6 +247,15 @@ export const cancelJobCard = async (req, res, next) => {
       prevStatus,
       newStatus: 'cancelled',
       note:      reason,
+    });
+
+    auditLog(req, {
+      action: 'delete',
+      resourceType: 'JobCard',
+      resourceId: jobCard._id,
+      resourceLabel: jobCard.jobCardNumber,
+      changes: { status: { from: prevStatus, to: 'cancelled' } },
+      metadata: { reason },
     });
 
     res.status(200).json({ success: true, data: jobCard });
@@ -258,6 +295,15 @@ export const closeJobCard = async (req, res, next) => {
       prevStatus: 'delivered',
       newStatus:  'closed',
       note:      'Job card closed and archived',
+    });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'JobCard',
+      resourceId: jobCard._id,
+      resourceLabel: jobCard.jobCardNumber,
+      changes: { status: { from: 'delivered', to: 'closed' } },
+      metadata: { warrantyNotes: !!warrantyNotes, punchListItems: punchListItems?.length || 0 },
     });
 
     res.status(200).json({ success: true, data: jobCard });

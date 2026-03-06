@@ -5,6 +5,11 @@ import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Brand Colors from Style Guide / Dummy Data
 const BRAND_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -28,29 +33,27 @@ const StatCard = ({ icon: Icon, label, value, sub, colorClass, delay = 0 }: any)
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay }}
-        whileHover={{ y: -4, scale: 1.02 }}
-        className="bg-white dark:bg-card border border-border dark:border-transparent rounded-[24px] p-6 flex flex-col gap-4 hover:shadow-2xl hover:shadow-primary/5 transition-all group relative overflow-hidden shadow-sm"
     >
-        <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-bl from-primary/5 to-transparent rounded-bl-[100px] opacity-0 group-hover:opacity-100 transition-opacity" />
-
-        <div className="flex items-center justify-between">
-            <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-6", colorClass)}>
-                <Icon size={22} strokeWidth={2.5} />
-            </div>
-            {sub && (
-                <div className="bg-muted/50 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                    {sub}
+        <Card className="group hover:shadow-2xl hover:shadow-primary/5 transition-all relative overflow-hidden shadow-sm border-border/50 dark:border-white/5 rounded-[24px]">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-bl from-primary/5 to-transparent rounded-bl-[100px] opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-6", colorClass)}>
+                    <Icon size={22} strokeWidth={2.5} />
                 </div>
-            )}
-        </div>
-
-        <div>
-            <p className="text-muted-foreground/50 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{label}</p>
-            <div className="flex items-baseline gap-2">
-                <p className="text-foreground text-3xl font-black tracking-tight">{value ?? '0'}</p>
-                <div className="h-1.5 w-1.5 rounded-full bg-primary/20" />
-            </div>
-        </div>
+                {sub && (
+                    <Badge variant="outline" className="bg-muted/50 border-none text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 rounded-full h-6">
+                        {sub}
+                    </Badge>
+                )}
+            </CardHeader>
+            <CardContent>
+                <CardDescription className="text-muted-foreground/50 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{label}</CardDescription>
+                <div className="flex items-baseline gap-2">
+                    <p className="text-foreground text-3xl font-black tracking-tight">{value ?? '0'}</p>
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary/20" />
+                </div>
+            </CardContent>
+        </Card>
     </motion.div>
 );
 
@@ -160,29 +163,29 @@ export default function DashboardPage() {
                     {isLoading ? (
                         <div className="space-y-4">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className="h-20 bg-muted/40 rounded-3xl animate-pulse border border-border/50" />
+                                <Skeleton key={i} className="h-20 w-full rounded-3xl" />
                             ))}
                         </div>
                     ) : (
-                        <div className="bg-white/80 dark:bg-card/50 border border-border dark:border-border/60 rounded-[32px] overflow-hidden shadow-2xl shadow-black/5 backdrop-blur-xl">
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-border/40 bg-muted/20">
-                                            <th className="text-left px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Job Identity</th>
-                                            <th className="text-left px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden sm:table-cell">Primary Client</th>
-                                            <th className="text-left px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden md:table-cell">Timeline</th>
-                                            <th className="text-center px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Progress Stage</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-border/30">
+                        <Card className="border-border/50 dark:border-white/5 rounded-[32px] overflow-hidden shadow-2xl shadow-black/5 backdrop-blur-xl bg-white/80 dark:bg-card/50">
+                            <ScrollArea className="w-full">
+                                <Table>
+                                    <TableHeader className="bg-muted/20">
+                                        <TableRow className="hover:bg-transparent border-border/40">
+                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Job Identity</TableHead>
+                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden sm:table-cell">Primary Client</TableHead>
+                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden md:table-cell">Timeline</TableHead>
+                                            <TableHead className="text-center px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Progress Stage</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
                                         {jobCards.slice(0, 10).map((jc) => {
                                             const statusKey = jc.status?.toUpperCase();
                                             const cfg = BRAND_COLORS[statusKey] || BRAND_COLORS[jc.status] || BRAND_COLORS.ENQUIRY;
 
                                             return (
-                                                <tr key={jc._id} className="group hover:bg-muted/30 transition-all cursor-pointer">
-                                                    <td className="px-6 py-5">
+                                                <TableRow key={jc._id} className="group hover:bg-muted/30 transition-all cursor-pointer border-border/30">
+                                                    <TableCell className="px-6 py-5">
                                                         <div className="flex items-center gap-4">
                                                             <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs group-hover:scale-110 transition-transform", cfg.bg, cfg.text)}>
                                                                 <ClipboardList size={18} />
@@ -192,45 +195,45 @@ export default function DashboardPage() {
                                                                 <p className="text-muted-foreground/60 text-[10px] font-black uppercase tracking-tighter truncate max-w-[150px]">{jc.title}</p>
                                                             </div>
                                                         </div>
-                                                    </td>
-                                                    <td className="px-6 py-5 hidden sm:table-cell">
+                                                    </TableCell>
+                                                    <TableCell className="px-6 py-5 hidden sm:table-cell">
                                                         <p className="text-foreground/80 font-bold text-xs">{jc.clientId?.name || 'N/A'}</p>
                                                         <p className="text-muted-foreground/40 text-[10px] font-semibold">{jc.clientId?.city || 'Corporate'}</p>
-                                                    </td>
-                                                    <td className="px-6 py-5 hidden md:table-cell">
+                                                    </TableCell>
+                                                    <TableCell className="px-6 py-5 hidden md:table-cell">
                                                         <div className="flex items-center gap-2">
                                                             <Clock size={12} className="text-muted-foreground/40" />
                                                             <span className="text-muted-foreground/60 text-[11px] font-black">
                                                                 {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'}
                                                             </span>
                                                         </div>
-                                                    </td>
-                                                    <td className="px-6 py-5 text-center">
-                                                        <span className={cn(
-                                                            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-xs transition-colors",
+                                                    </TableCell>
+                                                    <TableCell className="px-6 py-5 text-center">
+                                                        <Badge variant="outline" className={cn(
+                                                            "gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-xs transition-colors",
                                                             cfg.bg, cfg.text, cfg.border
                                                         )}>
                                                             <div className={cn("size-1.5 rounded-full animate-pulse", cfg.text.replace('text-', 'bg-'))} />
                                                             {jc.status?.replace(/_/g, ' ')}
-                                                        </span>
-                                                    </td>
-                                                </tr>
+                                                        </Badge>
+                                                    </TableCell>
+                                                </TableRow>
                                             );
                                         })}
                                         {jobCards.length === 0 && (
-                                            <tr>
-                                                <td colSpan={4} className="px-6 py-20 text-center">
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="h-40 text-center">
                                                     <div className="flex flex-col items-center gap-3">
                                                         <Layers size={40} className="text-muted-foreground/20" />
                                                         <p className="text-muted-foreground/40 text-sm font-black uppercase tracking-widest italic">No Job Cards Found</p>
                                                     </div>
-                                                </td>
-                                            </tr>
+                                                </TableCell>
+                                            </TableRow>
                                         )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                                    </TableBody>
+                                </Table>
+                            </ScrollArea>
+                        </Card>
                     )}
                 </motion.div>
 
@@ -244,7 +247,7 @@ export default function DashboardPage() {
                     <div className="bg-linear-to-br from-primary to-blue-700 rounded-[32px] p-8 text-white shadow-2xl shadow-primary/20 relative overflow-hidden group">
                         <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                             <div>
-                                <h3 className="text-white/60 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Target Completion</h3>
+                                <CardDescription className="text-white/60 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Target Completion</CardDescription>
                                 <p className="text-4xl font-black tracking-tighter mb-2">94.2%</p>
                                 <p className="text-white/70 text-xs font-medium leading-relaxed">Your team is performing 12% better than last month. Keep it up!</p>
                             </div>
@@ -257,22 +260,26 @@ export default function DashboardPage() {
                         <div className="absolute -top-10 -left-10 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
                     </div>
 
-                    <div className="bg-white dark:bg-card border border-border/80 rounded-[32px] p-8 shadow-sm">
-                        <h3 className="text-foreground font-black text-xs uppercase tracking-widest mb-6">Quick Actions</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            {[
-                                { label: 'New Job', icon: ClipboardList, color: 'text-blue-500' },
-                                { label: 'Invoice', icon: Receipt, color: 'text-violet-500' },
-                                { label: 'QC Check', icon: CheckCircle2, color: 'text-emerald-500' },
-                                { label: 'Report', icon: TrendingUp, color: 'text-amber-500' },
-                            ].map((action) => (
-                                <button key={action.label} className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/40 hover:bg-primary/5 hover:border-primary/20 transition-all group">
-                                    <action.icon className={cn("size-6 group-hover:scale-110 transition-transform", action.color)} />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{action.label}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    <Card className="border-border/80 rounded-[32px] p-8 shadow-sm overflow-hidden">
+                        <CardHeader className="p-0 mb-6">
+                            <CardTitle className="text-foreground font-black text-xs uppercase tracking-widest">Quick Actions</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="grid grid-cols-2 gap-3">
+                                {[
+                                    { label: 'New Job', icon: ClipboardList, color: 'text-blue-500' },
+                                    { label: 'Invoice', icon: Receipt, color: 'text-violet-500' },
+                                    { label: 'QC Check', icon: CheckCircle2, color: 'text-emerald-500' },
+                                    { label: 'Report', icon: TrendingUp, color: 'text-amber-500' },
+                                ].map((action) => (
+                                    <button key={action.label} className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/40 hover:bg-primary/5 hover:border-primary/20 transition-all group">
+                                        <action.icon className={cn("size-6 group-hover:scale-110 transition-transform", action.color)} />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{action.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
                 </motion.div>
             </div>
         </div>

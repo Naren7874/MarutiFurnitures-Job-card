@@ -12,6 +12,7 @@
     font-style: normal;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayXXThinItalic.ttf') format('truetype');
@@ -19,6 +20,7 @@
     font-style: italic;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayXThin.ttf') format('truetype');
@@ -26,6 +28,7 @@
     font-style: normal;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayXThinItalic.ttf') format('truetype');
@@ -33,6 +36,7 @@
     font-style: italic;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayThin.ttf') format('truetype');
@@ -40,6 +44,7 @@
     font-style: normal;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayThinItalic.ttf') format('truetype');
@@ -47,6 +52,7 @@
     font-style: italic;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayLight.ttf') format('truetype');
@@ -54,6 +60,7 @@
     font-style: normal;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayLightItalic.ttf') format('truetype');
@@ -61,6 +68,7 @@
     font-style: italic;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayRoman.ttf') format('truetype');
@@ -68,6 +76,7 @@
     font-style: normal;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayRomanItalic.ttf') format('truetype');
@@ -75,6 +84,7 @@
     font-style: italic;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayMediu.ttf') format('truetype');
@@ -82,6 +92,7 @@
     font-style: normal;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayMediumItalic.ttf') format('truetype');
@@ -89,6 +100,7 @@
     font-style: italic;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayBold.ttf') format('truetype');
@@ -96,6 +108,7 @@
     font-style: normal;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayBoldItalic.ttf') format('truetype');
@@ -103,6 +116,7 @@
     font-style: italic;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayBlack.ttf') format('truetype');
@@ -110,6 +124,7 @@
     font-style: normal;
     font-display: swap;
 }
+
 @font-face {
     font-family: 'NeueHaasDisplay';
     src: url('/src/assets/fonts/NeueHaasDisplayBlackItalic.ttf') format('truetype');
@@ -165,56 +180,68 @@
 }
 
 /* ============================================================
-   LIGHT THEME — Blue / Gray palette from Style Guide
-   Blue: #1315E5 | Dark Blue: #03369D | Light Blue: #DFE9FF
-   Light: #F2F4F7 | White: #FFFFFF
-   Gray Light: #DBE1E8 | Gray: #767A8C | Gray Dark: #485666
-   Dark: #131415
+   LIGHT THEME — Premium Ink-on-Pearl palette
+   Inspired by Linear / Vercel / Notion professional SaaS
    ============================================================ */
 :root {
     --radius: 0.75rem;
 
-    --background: #F2F4F7;
-    --foreground: #131415;
+    /* Surfaces */
+    --background: #ECEEF3;
+    /* Cool slate canvas — not stark white */
+    --foreground: #0A0C10;
+    /* Deep ink — near-black for max contrast */
 
     --card: #FFFFFF;
-    --card-foreground: #131415;
+    /* Pure white cards float above bg */
+    --card-foreground: #0A0C10;
 
     --popover: #FFFFFF;
-    --popover-foreground: #131415;
+    --popover-foreground: #0A0C10;
 
+    /* Brand */
     --primary: #1315E5;
     --primary-foreground: #FFFFFF;
 
-    --secondary: #DFE9FF;
-    --secondary-foreground: #03369D;
+    /* Secondary surfaces */
+    --secondary: #E0E8FF;
+    --secondary-foreground: #0B2FA8;
 
-    --muted: #DBE1E8;
-    --muted-foreground: #767A8C;
+    /* Muted — subtle fills & readable secondary text */
+    --muted: #D3D9E4;
+    /* Darker fill for tags/badges */
+    --muted-foreground: #374151;
+    /* Dark slate — WCAG AA on white & bg */
 
-    --accent: #DFE9FF;
-    --accent-foreground: #03369D;
+    /* Accent (hover, selection highlight) */
+    --accent: #E0E8FF;
+    --accent-foreground: #0B2FA8;
 
+    /* Destructive */
     --destructive: #DC2626;
     --destructive-foreground: #FFFFFF;
 
-    --border: #DBE1E8;
-    --input: #DBE1E8;
+    /* Structure */
+    --border: #B8C4D0;
+    /* Clearly visible dividers */
+    --input: #D3D9E4;
     --ring: #1315E5;
 
+    /* Charts */
     --chart-1: #1315E5;
     --chart-2: #03369D;
     --chart-3: #F97316;
     --chart-4: #10B981;
     --chart-5: #8B5CF6;
 
-    --sidebar: #FFFFFF;
-    --sidebar-foreground: #131415;
+    /* Sidebar */
+    --sidebar: #F5F7FA;
+    --sidebar-foreground: #0A0C10;
     --sidebar-primary: #1315E5;
     --sidebar-primary-foreground: #FFFFFF;
-    --sidebar-accent: #F2F4F7;
-    --sidebar-accent-foreground: #131415;
-    --sidebar-border: #DBE1E8;
+    --sidebar-accent: #ECEEF3;
+    --sidebar-accent-foreground: #0A0C10;
+    --sidebar-border: #C4CDD8;
     --sidebar-ring: #1315E5;
 }
 
@@ -285,11 +312,22 @@
         transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
     }
 
-
-    h1, h2, h3, h4, h5, h6 {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
         font-family: 'NeueHaasDisplay', system-ui, -apple-system, sans-serif;
         font-weight: 700;
         letter-spacing: -0.02em;
+    }
+
+    /* Premium card depth in light mode */
+    :root .card,
+    :root [class*="rounded"][class*="border"],
+    :root [class*="Card"] {
+        box-shadow: 0 1px 3px rgba(10, 12, 16, 0.08), 0 4px 12px rgba(10, 12, 16, 0.06);
     }
 }
 
@@ -297,11 +335,11 @@
    CUSTOM UTILITIES
    ============================================================ */
 @utility glass {
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.88);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(219, 225, 232, 0.8);
-    box-shadow: 0 4px 24px rgba(19, 21, 229, 0.06);
+    border: 1px solid rgba(184, 196, 208, 0.9);
+    box-shadow: 0 4px 24px rgba(10, 12, 16, 0.1), 0 1px 3px rgba(10, 12, 16, 0.08);
 }
 
 @utility glass-dark {
@@ -349,9 +387,33 @@
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.card-hover:hover {
+.dark .card-hover:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 32px rgba(19, 21, 229, 0.12);
+}
+
+/* Light mode card-hover — subtle lift with brand glow */
+:root .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(10, 12, 16, 0.14), 0 2px 6px rgba(19, 21, 229, 0.1);
+}
+
+/* Light mode — cards and bordered panels get a premium multi-layer shadow */
+:root [data-slot="card"],
+:root .card-shadow {
+    box-shadow:
+        0 0 0 1px rgba(10, 12, 16, 0.04),
+        0 1px 2px rgba(10, 12, 16, 0.07),
+        0 4px 16px rgba(10, 12, 16, 0.07);
+}
+
+/* Light mode — dropdowns / popovers get deeper shadow */
+:root [role="listbox"],
+:root [data-radix-popper-content-wrapper] {
+    box-shadow:
+        0 0 0 1px rgba(10, 12, 16, 0.06),
+        0 8px 32px rgba(10, 12, 16, 0.14),
+        0 2px 8px rgba(10, 12, 16, 0.08) !important;
 }
 
 ::view-transition-old(root),

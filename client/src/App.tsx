@@ -52,6 +52,7 @@ const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrdersPage'));
 // Users & Roles
 const UsersPage = lazy(() => import('./pages/UsersPage'));
 const RolesPage = lazy(() => import('./pages/RolesPage'));
+const UserDetailPage = lazy(() => import('./pages/UserDetailPage'));
 
 // Settings
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
@@ -129,6 +130,7 @@ export default function App() {
 
                     {/* Users & Roles */}
                     <Route path="users" element={<UsersPage />} />
+                    <Route path="users/:id" element={<UserDetailPage />} />
                     <Route path="roles" element={<RolesPage />} />
 
                     {/* Settings */}

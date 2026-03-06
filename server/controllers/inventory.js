@@ -1,10 +1,20 @@
 import { Inventory } from '../models/Inventory.js';
+import { auditLog } from '../utils/auditLogger.js';
 
 // ── POST /api/inventory ──────────────────────────────────────────────────────
 
 export const createItem = async (req, res, next) => {
   try {
     const item = await Inventory.create({ ...req.body, companyId: req.user.companyId, updatedBy: req.user.userId });
+
+    auditLog(req, {
+      action: 'create',
+      resourceType: 'Inventory',
+      resourceId: item._id,
+      resourceLabel: item.itemName,
+      metadata: { category: item.category, initialStock: item.currentStock },
+    });
+
     res.status(201).json({ success: true, data: item });
   } catch (err) { next(err); }
 };
@@ -41,6 +51,8 @@ export const getItemById = async (req, res, next) => {
 
 export const updateItem = async (req, res, next) => {
   try {
+    const prev = await Inventory.findOne({ _id: req.params.id, ...req.companyFilter }).lean();
+
     const item = await Inventory.findOneAndUpdate(
       { _id: req.params.id, ...req.companyFilter },
       { ...req.body, updatedBy: req.user.userId },
@@ -53,6 +65,19 @@ export const updateItem = async (req, res, next) => {
       await Inventory.findByIdAndUpdate(item._id, { lowStockAlert: true });
     }
 
+    const changes = {};
+    ['itemName', 'category', 'currentStock', 'minStock', 'pricePerUnit'].forEach(f => {
+      if (prev && String(prev[f]) !== String(item[f])) changes[f] = { from: prev[f], to: item[f] };
+    });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Inventory',
+      resourceId: item._id,
+      resourceLabel: item.itemName,
+      changes: Object.keys(changes).length ? changes : undefined,
+    });
+
     res.status(200).json({ success: true, data: item });
   } catch (err) { next(err); }
 };
@@ -62,6 +87,8 @@ export const updateItem = async (req, res, next) => {
 export const restockItem = async (req, res, next) => {
   try {
     const { qty } = req.body;
+    const prev = await Inventory.findOne({ _id: req.params.id, ...req.companyFilter }).lean();
+
     const item = await Inventory.findOneAndUpdate(
       { _id: req.params.id, ...req.companyFilter },
       { $inc: { currentStock: qty }, lowStockAlert: false, updatedBy: req.user.userId },
@@ -73,6 +100,15 @@ export const restockItem = async (req, res, next) => {
     if (item.currentStock <= item.minStock) {
       await Inventory.findByIdAndUpdate(item._id, { lowStockAlert: true });
     }
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Inventory',
+      resourceId: item._id,
+      resourceLabel: item.itemName,
+      changes: { currentStock: { from: prev?.currentStock, to: item.currentStock } },
+      metadata: { restockedQty: qty },
+    });
 
     res.status(200).json({ success: true, data: item });
   } catch (err) { next(err); }

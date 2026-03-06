@@ -1,6 +1,7 @@
 import { ProductionStage } from '../../models/ProductionStage.js';
 import { QcStage } from '../../models/QcStage.js';
 import JobCard from '../../models/JobCard.js';
+import { auditLog } from '../../utils/auditLogger.js';
 
 /** GET /api/jobcards/:id/production */
 export const getProduction = async (req, res, next) => {
@@ -31,6 +32,15 @@ export const updateSubstage = async (req, res, next) => {
     );
     if (!stage) return res.status(404).json({ success: false, message: 'Production stage or substage not found' });
 
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'ProductionStage',
+      resourceId: stage._id,
+      resourceLabel: req.params.id,
+      changes: { [`substage.${name}.status`]: { from: undefined, to: status } },
+      metadata: { substageName: name, workerName },
+    });
+
     res.status(200).json({ success: true, data: stage });
   } catch (err) { next(err); }
 };
@@ -58,7 +68,15 @@ export const flagShortage = async (req, res, next) => {
       { new: true }
     );
     if (!stage) return res.status(404).json({ success: false, message: 'Production stage not found' });
-    // TODO: notify store + admin
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'ProductionStage',
+      resourceId: stage._id,
+      resourceLabel: req.params.id,
+      metadata: { action: 'material_shortage_flagged', shortageNote: req.body.shortageNote },
+    });
+
     res.status(200).json({ success: true, data: stage });
   } catch (err) { next(err); }
 };
@@ -94,6 +112,15 @@ export const markProductionDone = async (req, res, next) => {
 
     await JobCard.findByIdAndUpdate(stage.jobCardId, {
       $push: { activityLog: { action: 'production_done', doneBy: req.user.userId, prevStatus: 'in_production', newStatus: 'qc_pending', timestamp: new Date() } },
+    });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'JobCard',
+      resourceId: stage.jobCardId,
+      resourceLabel: req.params.id,
+      changes: { status: { from: 'in_production', to: 'qc_pending' } },
+      metadata: { action: 'production_done_qc_created', qcStageId: qcStage._id },
     });
 
     res.status(200).json({ success: true, data: { stage, qcStage } });

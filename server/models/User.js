@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     lastLogin: { type: Date },
 
+    // JWT invalidation — bump this number to invalidate ALL existing tokens for this user
+    // (used on deactivate so old tokens are rejected immediately without a blacklist)
+    tokenVersion: { type: Number, default: 0 },
+
     // Password reset
     resetPasswordToken:   { type: String },
     resetPasswordExpires: { type: Date },

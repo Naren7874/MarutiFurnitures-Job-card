@@ -1,18 +1,32 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
     Users, Plus, Search, Mail, Phone, ShieldCheck,
     KeyRound, UserX, UserCheck, Edit2, X, Eye, EyeOff, Loader2,
-    CheckCircle2, AlertCircle
+    CheckCircle2, AlertCircle, Building2, Filter, MoreVertical, Shield
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Separator } from '@/components/ui/separator'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import api from '@/lib/axios'
+import { SearchableSelect } from '@/components/ui/searchable-select'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -44,16 +58,16 @@ interface UserFormData {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const ROLES: { value: UserRole; label: string; color: string }[] = [
-    { value: 'super_admin', label: 'Super Admin', color: '#EF4444' },
-    { value: 'sales', label: 'Sales', color: '#8B5CF6' },
-    { value: 'design', label: 'Design', color: '#6366F1' },
-    { value: 'store', label: 'Store', color: '#F59E0B' },
-    { value: 'production', label: 'Production', color: '#1315E5' },
-    { value: 'qc', label: 'Quality Control', color: '#10B981' },
-    { value: 'dispatch', label: 'Dispatch', color: '#F97316' },
-    { value: 'accountant', label: 'Accountant', color: '#EC4899' },
-    { value: 'client', label: 'Client', color: '#64748B' },
+const ROLES: { value: UserRole; label: string; color: string; bg: string }[] = [
+    { value: 'super_admin', label: 'Super Admin', color: '#EF4444', bg: '#EF444415' },
+    { value: 'sales', label: 'Sales', color: '#8B5CF6', bg: '#8B5CF615' },
+    { value: 'design', label: 'Design', color: '#6366F1', bg: '#6366F115' },
+    { value: 'store', label: 'Store', color: '#F59E0B', bg: '#F59E0B15' },
+    { value: 'production', label: 'Production', color: '#1315E5', bg: '#1315E515' },
+    { value: 'qc', label: 'Quality Control', color: '#10B981', bg: '#10B98115' },
+    { value: 'dispatch', label: 'Dispatch', color: '#F97316', bg: '#F9731615' },
+    { value: 'accountant', label: 'Accountant', color: '#EC4899', bg: '#EC489915' },
+    { value: 'client', label: 'Client', color: '#64748B', bg: '#64748B15' },
 ]
 
 const DEPARTMENTS: Dept[] = ['sales', 'design', 'store', 'production', 'qc', 'dispatch', 'accounts', 'management']
@@ -80,7 +94,7 @@ const updateUser = async ({ id, body }: { id: string; body: Partial<AppUser> }) 
 }
 
 const deactivateUser = async (id: string) => {
-    const { data } = await api.delete(`/users/${id}`)
+    const { data } = await api.patch(`/users/${id}/deactivate`)
     return data
 }
 
@@ -89,14 +103,36 @@ const resetPassword = async ({ id, newPassword }: { id: string; newPassword: str
     return data
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function getRoleCfg(role: UserRole) {
+    return ROLES.find(r => r.value === role) ?? { color: '#767A8C', bg: '#767A8C15', label: role }
+}
+
+function getInitials(name: string) {
+    return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+}
+
+function timeAgo(dateStr?: string) {
+    if (!dateStr) return 'Never'
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return 'Just now'
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    const days = Math.floor(hrs / 24)
+    if (days < 30) return `${days}d ago`
+    return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+}
+
 // ── Role badge ────────────────────────────────────────────────────────────────
 function RoleBadge({ role }: { role: UserRole }) {
-    const cfg = ROLES.find(r => r.value === role)
-    if (!cfg) return null
+    const cfg = getRoleCfg(role)
     return (
         <span
-            className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border"
-            style={{ color: cfg.color, borderColor: `${cfg.color}30`, backgroundColor: `${cfg.color}10` }}
+            className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border"
+            style={{ color: cfg.color, borderColor: `${cfg.color}40`, backgroundColor: cfg.bg }}
         >
             {cfg.label}
         </span>
@@ -110,15 +146,15 @@ function UserDrawer({
     open: boolean
     onClose: () => void
     editUser: AppUser | null
-    onSuccess: () => void
+    onSuccess: (msg: string) => void
 }) {
     const qc = useQueryClient()
     const [form, setForm] = useState<UserFormData>(EMPTY_FORM)
     const [showPass, setShowPass] = useState(false)
     const [error, setError] = useState('')
 
-    // Pre-fill when editing
-    useState(() => {
+    // Pre-fill when editing — re-runs whenever drawer opens or target user changes
+    useEffect(() => {
         if (editUser) {
             setForm({
                 name: editUser.name,
@@ -133,36 +169,45 @@ function UserDrawer({
             setForm(EMPTY_FORM)
         }
         setError('')
-    })
+        setShowPass(false)
+    }, [open, editUser])
 
     const createMut = useMutation({
         mutationFn: createUser,
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); onSuccess(); onClose() },
+        onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); onSuccess('User created successfully'); onClose() },
         onError: (e: any) => setError(e.response?.data?.message || 'Failed to create user'),
     })
 
     const updateMut = useMutation({
         mutationFn: updateUser,
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); onSuccess(); onClose() },
+        onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); onSuccess('User updated successfully'); onClose() },
         onError: (e: any) => setError(e.response?.data?.message || 'Failed to update user'),
     })
 
     const isPending = createMut.isPending || updateMut.isPending
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
+    const handleSubmit = (e?: React.FormEvent) => {
+        e?.preventDefault()
         setError('')
         if (!form.name || !form.email || (!editUser && !form.password) || !form.role) {
             setError('Name, email, role and (for new users) password are required')
             return
         }
         if (editUser) {
-            const body: any = { name: form.name, role: form.role, department: form.department || undefined, phone: form.phone || undefined, whatsappNumber: form.whatsappNumber || undefined }
+            const body: any = {
+                name: form.name,
+                role: form.role,
+                department: form.department || undefined,
+                phone: form.phone || undefined,
+                whatsappNumber: form.whatsappNumber || undefined,
+            }
             updateMut.mutate({ id: editUser._id, body })
         } else {
             createMut.mutate({ ...form, department: form.department || undefined })
         }
     }
+
+    const selectedRole = ROLES.find(r => r.value === form.role)
 
     return (
         <AnimatePresence>
@@ -176,31 +221,46 @@ function UserDrawer({
                     {/* Backdrop */}
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
-                    {/* Drawer */}
+                    {/* Drawer — h-screen ensures ScrollArea works */}
                     <motion.aside
                         initial={{ x: '100%' }}
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-                        className="relative z-10 w-full max-w-md bg-card border-l border-border shadow-2xl flex flex-col"
+                        className="relative z-10 w-full max-w-md bg-card border-l border-border shadow-2xl flex flex-col h-screen"
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
-                            <div>
-                                <h2 className="font-black text-lg text-foreground tracking-tight">
-                                    {editUser ? 'Edit User' : 'Add New User'}
-                                </h2>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                    {editUser ? 'Update user details and role' : 'Create a new team member account'}
-                                </p>
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
+                            <div className="flex items-center gap-3">
+                                {editUser && (
+                                    <Avatar className="size-9">
+                                        <AvatarFallback
+                                            className="text-sm font-black"
+                                            style={{
+                                                backgroundColor: selectedRole?.bg || '#767A8C15',
+                                                color: selectedRole?.color || '#767A8C',
+                                            }}
+                                        >
+                                            {getInitials(editUser.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                )}
+                                <div>
+                                    <h2 className="font-black text-lg text-foreground tracking-tight">
+                                        {editUser ? 'Edit User' : 'Add New User'}
+                                    </h2>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        {editUser ? `Updating ${editUser.name}` : 'Create a new team member account'}
+                                    </p>
+                                </div>
                             </div>
-                            <Button size="icon" variant="ghost" onClick={onClose} className="rounded-xl">
+                            <Button size="icon" variant="ghost" onClick={onClose} className="rounded-xl shrink-0">
                                 <X className="size-4" />
                             </Button>
                         </div>
 
-                        {/* Form */}
-                        <ScrollArea className="flex-1">
+                        {/* Scrollable form */}
+                        <ScrollArea className="flex-1 min-h-0">
                             <form onSubmit={handleSubmit} className="p-6 space-y-5">
                                 {/* Error */}
                                 <AnimatePresence>
@@ -217,33 +277,82 @@ function UserDrawer({
 
                                 {/* Name */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Full Name *</Label>
-                                    <Input id="name" placeholder="Rajesh Patel" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="rounded-xl h-11" />
+                                    <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                        Full Name *
+                                    </Label>
+                                    <Input
+                                        id="name"
+                                        placeholder="e.g. Rajesh Patel"
+                                        value={form.name}
+                                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                                        className="rounded-xl h-11"
+                                        autoFocus={!editUser}
+                                    />
                                 </div>
 
                                 {/* Email */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email Address *</Label>
-                                    <Input id="email" type="email" placeholder="rajesh@maruti.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} disabled={!!editUser} className="rounded-xl h-11 disabled:opacity-60" />
-                                    {editUser && <p className="text-[10px] text-muted-foreground">Email cannot be changed after creation</p>}
+                                    <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                        Email Address *
+                                    </Label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            placeholder="rajesh@maruti.com"
+                                            value={form.email}
+                                            onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                                            disabled={!!editUser}
+                                            className="rounded-xl h-11 pl-9 disabled:opacity-60"
+                                        />
+                                    </div>
+                                    {editUser && (
+                                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                            <ShieldCheck className="size-3" />
+                                            Email cannot be changed after creation
+                                        </p>
+                                    )}
                                 </div>
 
-                                {/* Password (only for new user) */}
+                                {/* Password — new users only */}
                                 {!editUser && (
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Password *</Label>
+                                        <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                            Password *
+                                        </Label>
                                         <div className="relative">
-                                            <Input id="password" type={showPass ? 'text' : 'password'} placeholder="Min 6 characters" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} className="rounded-xl h-11 pr-10" />
-                                            <button type="button" onClick={() => setShowPass(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                                            <Input
+                                                id="password"
+                                                type={showPass ? 'text' : 'password'}
+                                                placeholder="Min 6 characters"
+                                                value={form.password}
+                                                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                                                className="rounded-xl h-11 pr-10"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPass(v => !v)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                            >
                                                 {showPass ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                                             </button>
                                         </div>
                                     </div>
                                 )}
 
+                                <Separator />
+
                                 {/* Role */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Role *</Label>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                        Role *
+                                        {form.role && (
+                                            <span className="ml-2 normal-case font-normal text-foreground" style={{ color: selectedRole?.color }}>
+                                                — {selectedRole?.label}
+                                            </span>
+                                        )}
+                                    </Label>
                                     <div className="grid grid-cols-2 gap-2">
                                         {ROLES.filter(r => r.value !== 'super_admin').map(r => (
                                             <button
@@ -253,12 +362,18 @@ function UserDrawer({
                                                 className={cn(
                                                     'flex items-center gap-2 p-3 rounded-xl border text-xs font-bold text-left transition-all',
                                                     form.role === r.value
-                                                        ? 'border-current'
-                                                        : 'border-border hover:border-muted-foreground/40'
+                                                        ? 'border-current shadow-sm scale-[1.01]'
+                                                        : 'border-border hover:border-muted-foreground/40 bg-transparent'
                                                 )}
-                                                style={form.role === r.value ? { color: r.color, backgroundColor: `${r.color}10`, borderColor: `${r.color}40` } : {}}
+                                                style={form.role === r.value
+                                                    ? { color: r.color, backgroundColor: r.bg, borderColor: `${r.color}50` }
+                                                    : {}
+                                                }
                                             >
-                                                <ShieldCheck className="size-3.5" style={{ color: r.color }} />
+                                                <div
+                                                    className="size-2 rounded-full shrink-0"
+                                                    style={{ backgroundColor: r.color }}
+                                                />
                                                 {r.label}
                                             </button>
                                         ))}
@@ -268,36 +383,68 @@ function UserDrawer({
                                 {/* Department */}
                                 <div className="space-y-1.5">
                                     <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Department</Label>
-                                    <select
+                                    <SearchableSelect
+                                        options={[
+                                            { value: '', label: '— No department —' },
+                                            ...DEPARTMENTS.map(d => ({
+                                                value: d,
+                                                label: d.charAt(0).toUpperCase() + d.slice(1)
+                                            }))
+                                        ]}
                                         value={form.department}
-                                        onChange={e => setForm(f => ({ ...f, department: e.target.value as Dept | '' }))}
-                                        className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                                    >
-                                        <option value="">— No department —</option>
-                                        {DEPARTMENTS.map(d => (
-                                            <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>
-                                        ))}
-                                    </select>
+                                        onChange={(val: string) => setForm(f => ({ ...f, department: val as Dept | '' }))}
+                                        placeholder="— No department —"
+                                        searchPlaceholder="Search departments…"
+                                    />
                                 </div>
+
+                                <Separator />
 
                                 {/* Phone */}
                                 <div className="space-y-1.5">
                                     <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Phone</Label>
-                                    <Input id="phone" placeholder="+91 98765 43210" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="rounded-xl h-11" />
+                                    <div className="relative">
+                                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                                        <Input
+                                            id="phone"
+                                            placeholder="+91 98765 43210"
+                                            value={form.phone}
+                                            onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                                            className="rounded-xl h-11 pl-9"
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* WhatsApp */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="wa" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">WhatsApp Number</Label>
-                                    <Input id="wa" placeholder="+91 98765 43210 (if different)" value={form.whatsappNumber} onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))} className="rounded-xl h-11" />
+                                    <Label htmlFor="wa" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                        WhatsApp Number
+                                        <span className="ml-1 text-muted-foreground/50 font-normal normal-case">(if different)</span>
+                                    </Label>
+                                    <div className="relative">
+                                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-emerald-500" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                                        </svg>
+                                        <Input
+                                            id="wa"
+                                            placeholder="+91 98765 43210"
+                                            value={form.whatsappNumber}
+                                            onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))}
+                                            className="rounded-xl h-11 pl-9"
+                                        />
+                                    </div>
                                 </div>
                             </form>
                         </ScrollArea>
 
                         {/* Footer */}
-                        <div className="border-t border-border px-6 py-4 flex gap-3">
+                        <div className="border-t border-border px-6 py-4 flex gap-3 shrink-0 bg-card">
                             <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl h-11">Cancel</Button>
-                            <Button onClick={handleSubmit as any} disabled={isPending} className="flex-1 rounded-xl h-11 font-bold">
+                            <Button
+                                onClick={() => handleSubmit()}
+                                disabled={isPending}
+                                className="flex-1 rounded-xl h-11 font-bold"
+                            >
                                 {isPending && <Loader2 className="size-4 mr-2 animate-spin" />}
                                 {editUser ? 'Save Changes' : 'Create User'}
                             </Button>
@@ -310,7 +457,9 @@ function UserDrawer({
 }
 
 // ── Password Reset Modal ──────────────────────────────────────────────────────
-function ResetPasswordModal({ user, onClose }: { user: AppUser; onClose: () => void }) {
+function ResetPasswordModal({ user, onClose, onSuccess }: {
+    user: AppUser; onClose: () => void; onSuccess: (msg: string) => void
+}) {
     const [newPassword, setNewPassword] = useState('')
     const [showPass, setShowPass] = useState(false)
     const [success, setSuccess] = useState(false)
@@ -318,7 +467,7 @@ function ResetPasswordModal({ user, onClose }: { user: AppUser; onClose: () => v
 
     const mut = useMutation({
         mutationFn: resetPassword,
-        onSuccess: () => setSuccess(true),
+        onSuccess: () => { setSuccess(true); setTimeout(() => { onClose(); onSuccess('Password reset successfully') }, 1200) },
         onError: (e: any) => setError(e.response?.data?.message || 'Failed to reset password'),
     })
 
@@ -330,7 +479,7 @@ function ResetPasswordModal({ user, onClose }: { user: AppUser; onClose: () => v
                 className="relative z-10 w-full max-w-sm bg-card border border-border rounded-2xl shadow-2xl p-6"
             >
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-xl bg-amber-500/10">
+                    <div className="p-2.5 rounded-xl bg-amber-500/10">
                         <KeyRound className="size-5 text-amber-500" />
                     </div>
                     <div>
@@ -341,30 +490,46 @@ function ResetPasswordModal({ user, onClose }: { user: AppUser; onClose: () => v
 
                 {success ? (
                     <div className="flex flex-col items-center gap-3 py-4">
-                        <CheckCircle2 className="size-10 text-emerald-500" />
+                        <div className="p-3 rounded-full bg-emerald-500/10">
+                            <CheckCircle2 className="size-8 text-emerald-500" />
+                        </div>
                         <p className="text-sm font-bold text-foreground">Password reset successfully</p>
-                        <Button onClick={onClose} className="w-full rounded-xl">Done</Button>
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {error && <p className="text-xs text-red-500">{error}</p>}
+                        {error && (
+                            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+                                <AlertCircle className="size-4 shrink-0" />
+                                <span>{error}</span>
+                            </div>
+                        )}
                         <div className="relative">
                             <Input
                                 type={showPass ? 'text' : 'password'}
                                 placeholder="New password (min 6 chars)"
                                 value={newPassword}
                                 onChange={e => setNewPassword(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && mut.mutate({ id: user._id, newPassword })}
                                 className="rounded-xl h-11 pr-10"
+                                autoFocus
                             />
-                            <button type="button" onClick={() => setShowPass(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            <button
+                                type="button"
+                                onClick={() => setShowPass(v => !v)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
                                 {showPass ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                             </button>
                         </div>
                         <div className="flex gap-2">
                             <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
-                            <Button onClick={() => mut.mutate({ id: user._id, newPassword })} disabled={mut.isPending} className="flex-1 rounded-xl">
+                            <Button
+                                onClick={() => mut.mutate({ id: user._id, newPassword })}
+                                disabled={mut.isPending || newPassword.length < 6}
+                                className="flex-1 rounded-xl font-bold"
+                            >
                                 {mut.isPending && <Loader2 className="size-4 mr-2 animate-spin" />}
-                                Reset
+                                Reset Password
                             </Button>
                         </div>
                     </div>
@@ -377,11 +542,13 @@ function ResetPasswordModal({ user, onClose }: { user: AppUser; onClose: () => v
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function UsersPage() {
     const qc = useQueryClient()
+    const navigate = useNavigate()
     const [search, setSearch] = useState('')
+    const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all')
     const [drawerOpen, setDrawerOpen] = useState(false)
     const [editTarget, setEditTarget] = useState<AppUser | null>(null)
     const [resetTarget, setResetTarget] = useState<AppUser | null>(null)
-    const [toast, setToast] = useState<string | null>(null)
+    const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
     const { data: users = [], isLoading, error: loadError } = useQuery<AppUser[]>({
         queryKey: ['users'],
@@ -391,166 +558,315 @@ export default function UsersPage() {
     const deactivateMut = useMutation({
         mutationFn: deactivateUser,
         onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); showToast('User deactivated') },
-        onError: (e: any) => showToast(e.response?.data?.message || 'Error'),
+        onError: (e: any) => showToast(e.response?.data?.message || 'Error', 'error'),
     })
 
     const activateMut = useMutation({
-        mutationFn: ({ id }: { id: string }) => updateUser({ id, body: { isActive: true } }),
+        mutationFn: ({ id }: { id: string }) => api.patch(`/users/${id}/activate`).then(r => r.data),
         onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); showToast('User activated') },
-        onError: (e: any) => showToast(e.response?.data?.message || 'Error'),
+        onError: (e: any) => showToast(e.response?.data?.message || 'Error', 'error'),
     })
 
-    function showToast(msg: string) {
-        setToast(msg)
+    function showToast(msg: string, type: 'success' | 'error' = 'success') {
+        setToast({ msg, type })
         setTimeout(() => setToast(null), 3000)
     }
 
-    const filtered = users.filter(u =>
-        u.name.toLowerCase().includes(search.toLowerCase()) ||
-        u.email.toLowerCase().includes(search.toLowerCase()) ||
-        u.role.toLowerCase().includes(search.toLowerCase())
-    )
+    const filtered = users.filter(u => {
+        const matchesSearch =
+            u.name.toLowerCase().includes(search.toLowerCase()) ||
+            u.email.toLowerCase().includes(search.toLowerCase()) ||
+            u.role.toLowerCase().includes(search.toLowerCase()) ||
+            (u.department || '').toLowerCase().includes(search.toLowerCase())
+        const matchesRole = roleFilter === 'all' || u.role === roleFilter
+        return matchesSearch && matchesRole
+    })
+
+    const activeCount = users.filter(u => u.isActive).length
+    const inactiveCount = users.length - activeCount
 
     const openCreate = () => { setEditTarget(null); setDrawerOpen(true) }
     const openEdit = (u: AppUser) => { setEditTarget(u); setDrawerOpen(true) }
 
     return (
-        <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-primary/10">
-                            <Users className="size-6 text-primary" />
+        <TooltipProvider>
+            <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-primary/10">
+                                <Users className="size-6 text-primary" />
+                            </div>
+                            User Management
+                        </h1>
+                        <div className="flex items-center gap-3 mt-1.5">
+                            <span className="text-sm text-muted-foreground">{users.length} team members</span>
+                            <span className="flex items-center gap-1 text-xs font-semibold text-emerald-500">
+                                <span className="size-1.5 rounded-full bg-emerald-500 inline-block" />
+                                {activeCount} active
+                            </span>
+                            {inactiveCount > 0 && (
+                                <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+                                    <span className="size-1.5 rounded-full bg-muted-foreground/40 inline-block" />
+                                    {inactiveCount} inactive
+                                </span>
+                            )}
                         </div>
-                        User Management
-                    </h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        {users.length} team member{users.length !== 1 ? 's' : ''} •{' '}
-                        {users.filter(u => u.isActive).length} active
-                    </p>
+                    </div>
+                    <Button onClick={openCreate} className="rounded-xl h-11 px-6 font-bold gap-2 shrink-0">
+                        <Plus className="size-4" /> Add User
+                    </Button>
                 </div>
-                <Button onClick={openCreate} className="rounded-xl h-11 px-6 font-bold gap-2">
-                    <Plus className="size-4" /> Add User
-                </Button>
-            </div>
 
-            {/* Search */}
-            <div className="relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                <Input
-                    placeholder="Search users…"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="pl-9 rounded-xl h-10"
-                />
-            </div>
+                {/* Filters */}
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search users…"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="pl-9 rounded-xl h-10 w-64"
+                        />
+                    </div>
 
-            {/* Content */}
-            {isLoading ? (
-                <div className="flex items-center justify-center h-48">
-                    <Loader2 className="size-6 animate-spin text-primary" />
-                </div>
-            ) : loadError ? (
-                <div className="flex flex-col items-center justify-center h-48 gap-3 text-red-500">
-                    <AlertCircle className="size-8" />
-                    <p className="font-bold text-sm">Failed to load users. Make sure the backend server is running.</p>
-                </div>
-            ) : (
-                <div className="grid gap-3">
-                    {filtered.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-muted rounded-2xl gap-3">
-                            <Users className="size-8 text-muted-foreground/30" />
-                            <p className="text-sm text-muted-foreground font-medium">No users found</p>
-                            <Button variant="outline" onClick={openCreate} className="rounded-xl text-xs">+ Add First User</Button>
-                        </div>
-                    ) : (
-                        filtered.map((user, i) => (
-                            <motion.div
-                                key={user._id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.04 }}
+                    {/* Role filter chips */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <Filter className="size-3.5 text-muted-foreground shrink-0" />
+                        <button
+                            onClick={() => setRoleFilter('all')}
+                            className={cn(
+                                'px-3 py-1.5 rounded-lg text-xs font-bold border transition-all',
+                                roleFilter === 'all'
+                                    ? 'border-primary/40 bg-primary/10 text-primary'
+                                    : 'border-border text-muted-foreground hover:border-muted-foreground/40'
+                            )}
+                        >
+                            All
+                        </button>
+                        {ROLES.filter(r => users.some(u => u.role === r.value)).map(r => (
+                            <button
+                                key={r.value}
+                                onClick={() => setRoleFilter(roleFilter === r.value ? 'all' : r.value)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
+                                style={roleFilter === r.value
+                                    ? { color: r.color, backgroundColor: r.bg, borderColor: `${r.color}40` }
+                                    : { borderColor: 'var(--border)', color: 'var(--muted-foreground)' }
+                                }
                             >
-                                <Card className="border-border bg-card hover:shadow-sm transition-shadow">
-                                    <CardContent className="p-4 flex items-center gap-4">
-                                        {/* Avatar */}
-                                        <div className="size-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-lg shrink-0">
-                                            {user.name.charAt(0).toUpperCase()}
-                                        </div>
-
-                                        {/* Info */}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="font-bold text-foreground text-sm">{user.name}</span>
-                                                <RoleBadge role={user.role} />
-                                                {!user.isActive && (
-                                                    <span className="px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-[10px] font-bold uppercase tracking-wider">Inactive</span>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                                                <span className="flex items-center gap-1"><Mail className="size-3" />{user.email}</span>
-                                                {user.phone && <span className="flex items-center gap-1"><Phone className="size-3" />{user.phone}</span>}
-                                                {user.department && <span className="capitalize">{user.department}</span>}
-                                            </div>
-                                        </div>
-
-                                        {/* Status dot */}
-                                        <div className={cn('size-2.5 rounded-full shrink-0', user.isActive ? 'bg-emerald-500' : 'bg-muted-foreground/30')} />
-
-                                        {/* Actions */}
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            <Button size="icon" variant="ghost" onClick={() => openEdit(user)} title="Edit user" className="size-8 rounded-lg text-muted-foreground hover:text-foreground">
-                                                <Edit2 className="size-3.5" />
-                                            </Button>
-                                            <Button size="icon" variant="ghost" onClick={() => setResetTarget(user)} title="Reset password" className="size-8 rounded-lg text-muted-foreground hover:text-amber-500">
-                                                <KeyRound className="size-3.5" />
-                                            </Button>
-                                            {user.isActive ? (
-                                                <Button size="icon" variant="ghost" onClick={() => deactivateMut.mutate(user._id)} title="Deactivate user" className="size-8 rounded-lg text-muted-foreground hover:text-red-500">
-                                                    <UserX className="size-3.5" />
-                                                </Button>
-                                            ) : (
-                                                <Button size="icon" variant="ghost" onClick={() => activateMut.mutate({ id: user._id })} title="Activate user" className="size-8 rounded-lg text-muted-foreground hover:text-emerald-500">
-                                                    <UserCheck className="size-3.5" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </motion.div>
-                        ))
-                    )}
+                                {r.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            )}
 
-            {/* Add/Edit Drawer */}
-            <UserDrawer
-                open={drawerOpen}
-                onClose={() => setDrawerOpen(false)}
-                editUser={editTarget}
-                onSuccess={() => showToast(editTarget ? 'User updated successfully' : 'User created successfully')}
-            />
+                {/* Content */}
+                {isLoading ? (
+                    <div className="space-y-3">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <Card key={i} className="border-border">
+                                <CardContent className="p-4 flex items-center gap-4">
+                                    <Skeleton className="size-12 rounded-xl" />
+                                    <div className="flex-1 space-y-2">
+                                        <Skeleton className="h-4 w-40" />
+                                        <Skeleton className="h-3 w-56" />
+                                    </div>
+                                    <div className="flex gap-1">
+                                        {Array.from({ length: 4 }).map((_, j) => <Skeleton key={j} className="size-8 rounded-lg" />)}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                ) : loadError ? (
+                    <div className="flex flex-col items-center justify-center h-48 gap-3 text-red-500">
+                        <AlertCircle className="size-8" />
+                        <p className="font-bold text-sm">Failed to load users. Make sure the backend server is running.</p>
+                    </div>
+                ) : filtered.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-muted rounded-2xl gap-3">
+                        <Users className="size-10 text-muted-foreground/30" />
+                        <p className="text-sm text-muted-foreground font-medium">
+                            {search || roleFilter !== 'all' ? 'No users matching your filters' : 'No users yet'}
+                        </p>
+                        {!search && roleFilter === 'all' && (
+                            <Button variant="outline" onClick={openCreate} className="rounded-xl text-xs">
+                                + Add First User
+                            </Button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="grid gap-3">
+                        {filtered.map((user, i) => {
+                            const roleCfg = getRoleCfg(user.role)
+                            return (
+                                <motion.div
+                                    key={user._id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: i * 0.04 }}
+                                >
+                                    <Card className={cn(
+                                        'border-border bg-card hover:shadow-sm transition-all group cursor-pointer relative overflow-hidden',
+                                        !user.isActive && 'opacity-60'
+                                    )}
+                                        onClick={() => navigate(`/users/${user._id}`)}
+                                    >
+                                        {/* Accent left bar */}
+                                        <div
+                                            className="absolute left-0 top-0 bottom-0 w-0.5 transition-all"
+                                            style={{ backgroundColor: roleCfg.color, opacity: user.isActive ? 1 : 0.3 }}
+                                        />
 
-            {/* Reset Password Modal */}
-            {resetTarget && (
-                <ResetPasswordModal user={resetTarget} onClose={() => setResetTarget(null)} />
-            )}
+                                        <CardContent className="p-4 pl-5 flex items-center gap-4">
+                                            {/* Avatar */}
+                                            <Avatar className="size-11 shrink-0">
+                                                <AvatarFallback
+                                                    className="text-sm font-black"
+                                                    style={{ backgroundColor: roleCfg.bg, color: roleCfg.color }}
+                                                >
+                                                    {getInitials(user.name)}
+                                                </AvatarFallback>
+                                            </Avatar>
 
-            {/* Toast */}
-            <AnimatePresence>
-                {toast && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                        className="fixed bottom-6 right-6 z-50 bg-card border border-border shadow-xl rounded-2xl px-5 py-3 flex items-center gap-2"
-                    >
-                        <CheckCircle2 className="size-4 text-emerald-500" />
-                        <span className="text-sm font-bold text-foreground">{toast}</span>
-                    </motion.div>
+                                            {/* Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="font-bold text-foreground text-sm">{user.name}</span>
+                                                    <RoleBadge role={user.role} />
+                                                    {!user.isActive && (
+                                                        <Badge variant="secondary" className="text-[9px] uppercase tracking-wider">Inactive</Badge>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                                                    <span className="flex items-center gap-1">
+                                                        <Mail className="size-3" />
+                                                        {user.email}
+                                                    </span>
+                                                    {user.phone && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Phone className="size-3" />
+                                                            {user.phone}
+                                                        </span>
+                                                    )}
+                                                    {user.department && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Building2 className="size-3" />
+                                                            <span className="capitalize">{user.department}</span>
+                                                        </span>
+                                                    )}
+                                                    {user.lastLogin && (
+                                                        <span className="text-muted-foreground/60">
+                                                            Login: {timeAgo(user.lastLogin)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Status dot */}
+                                            <Tooltip>
+                                                <TooltipTrigger>
+                                                    <div className={cn(
+                                                        'size-2.5 rounded-full shrink-0',
+                                                        user.isActive ? 'bg-emerald-500 shadow shadow-emerald-500/50' : 'bg-muted-foreground/30'
+                                                    )} />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{user.isActive ? 'Active' : 'Inactive'}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+
+                                            {/* Actions */}
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="size-8 rounded-lg">
+                                                            <MoreVertical className="size-4 text-muted-foreground" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-48 rounded-xl p-1.5">
+                                                        <DropdownMenuItem onClick={e => { e.stopPropagation(); navigate(`/users/${user._id}`) }} className="rounded-lg gap-2 cursor-pointer">
+                                                            <Shield className="size-3.5 text-primary" />
+                                                            <span>View Permissions</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={e => { e.stopPropagation(); openEdit(user) }} className="rounded-lg gap-2 cursor-pointer">
+                                                            <Edit2 className="size-3.5" />
+                                                            <span>Edit Details</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={e => { e.stopPropagation(); setResetTarget(user) }} className="rounded-lg gap-2 cursor-pointer">
+                                                            <KeyRound className="size-3.5 text-amber-500" />
+                                                            <span>Reset Password</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        {user.isActive ? (
+                                                            <DropdownMenuItem
+                                                                onClick={e => { e.stopPropagation(); deactivateMut.mutate(user._id) }}
+                                                                className="rounded-lg gap-2 cursor-pointer text-red-500 focus:text-red-500"
+                                                            >
+                                                                <UserX className="size-3.5" />
+                                                                <span>Deactivate User</span>
+                                                            </DropdownMenuItem>
+                                                        ) : (
+                                                            <DropdownMenuItem
+                                                                onClick={e => { e.stopPropagation(); activateMut.mutate({ id: user._id }) }}
+                                                                className="rounded-lg gap-2 cursor-pointer text-emerald-500 focus:text-emerald-500"
+                                                            >
+                                                                <UserCheck className="size-3.5" />
+                                                                <span>Activate User</span>
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            )
+                        })}
+                    </div>
                 )}
-            </AnimatePresence>
-        </div>
+
+                {/* Add/Edit Drawer */}
+                <UserDrawer
+                    open={drawerOpen}
+                    onClose={() => { setDrawerOpen(false); setEditTarget(null) }}
+                    editUser={editTarget}
+                    onSuccess={showToast}
+                />
+
+                {/* Reset Password Modal */}
+                {resetTarget && (
+                    <ResetPasswordModal
+                        user={resetTarget}
+                        onClose={() => setResetTarget(null)}
+                        onSuccess={showToast}
+                    />
+                )}
+
+                {/* Toast */}
+                <AnimatePresence>
+                    {toast && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                            className={cn(
+                                'fixed bottom-6 right-6 z-50 border shadow-xl rounded-2xl px-5 py-3 flex items-center gap-2',
+                                toast.type === 'error'
+                                    ? 'bg-red-500/10 border-red-500/20'
+                                    : 'bg-card border-border'
+                            )}
+                        >
+                            {toast.type === 'error'
+                                ? <AlertCircle className="size-4 text-red-500" />
+                                : <CheckCircle2 className="size-4 text-emerald-500" />
+                            }
+                            <span className="text-sm font-bold text-foreground">{toast.msg}</span>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </TooltipProvider>
     )
 }

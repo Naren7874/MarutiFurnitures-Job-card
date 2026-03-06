@@ -195,3 +195,58 @@ export const resetUserPassword = async (req, res, next) => {
     next(err);
   }
 };
+
+// ── PATCH /api/users/:id/role ─────────────────────────────────────────────────
+export const changeUserRole = async (req, res, next) => {
+  try {
+    const { role } = req.body;
+    if (!role) return res.status(400).json({ success: false, message: 'Role is required' });
+
+    const user = await User.findOneAndUpdate(
+      { _id: req.params.id, companyId: req.user.companyId },
+      { role },
+      { new: true }
+    ).select('-password');
+
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    res.status(200).json({ success: true, data: user, message: 'Role updated' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ── PATCH /api/users/:id/deactivate ──────────────────────────────────────────
+export const deactivateUser = async (req, res, next) => {
+  try {
+    if (req.params.id === req.user.userId.toString()) {
+      return res.status(400).json({ success: false, message: 'You cannot deactivate yourself' });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { _id: req.params.id, companyId: req.user.companyId },
+      { isActive: false },
+      { new: true }
+    ).select('-password');
+
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    res.status(200).json({ success: true, message: 'User deactivated' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ── PATCH /api/users/:id/activate ────────────────────────────────────────────
+export const activateUser = async (req, res, next) => {
+  try {
+    const user = await User.findOneAndUpdate(
+      { _id: req.params.id, companyId: req.user.companyId },
+      { isActive: true },
+      { new: true }
+    ).select('-password');
+
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    res.status(200).json({ success: true, message: 'User activated' });
+  } catch (err) {
+    next(err);
+  }
+};

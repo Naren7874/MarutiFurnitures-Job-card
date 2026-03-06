@@ -3,6 +3,7 @@ import { DispatchStage } from '../../models/DispatchStage.js';
 import JobCard from '../../models/JobCard.js';
 import { generateAndUploadPDF } from '../../utils/generatePDF.js';
 import { uploadReqFiles } from '../../middleware/upload.js';
+import { auditLog } from '../../utils/auditLogger.js';
 
 /** GET /api/jobcards/:id/qc */
 export const getQC = async (req, res, next) => {
@@ -83,6 +84,15 @@ export const passQC = async (req, res, next) => {
       $push: { activityLog: { action: 'qc_passed', doneBy: req.user.userId, prevStatus: 'qc_pending', newStatus: 'qc_passed', timestamp: new Date() } },
     });
 
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'JobCard',
+      resourceId: stage.jobCardId,
+      resourceLabel: req.params.id,
+      changes: { status: { from: 'qc_pending', to: 'qc_passed' } },
+      metadata: { action: 'qc_passed_dispatch_created', dispatchStageId: dispatchStage._id, certificateURL: stage.certificateURL },
+    });
+
     res.status(200).json({ success: true, data: { stage, dispatchStage } });
   } catch (err) { next(err); }
 };
@@ -111,6 +121,15 @@ export const failQC = async (req, res, next) => {
 
     await JobCard.findByIdAndUpdate(stage.jobCardId, {
       $push: { activityLog: { action: 'qc_failed', doneBy: req.user.userId, prevStatus, newStatus: 'in_production', note: `Rework #${stage.reworkCount}: ${failReason}`, timestamp: new Date() } },
+    });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'JobCard',
+      resourceId: stage.jobCardId,
+      resourceLabel: req.params.id,
+      changes: { status: { from: prevStatus, to: 'in_production' } },
+      metadata: { action: 'qc_failed_sent_to_rework', reworkCount: stage.reworkCount, failReason, escalated: stage.escalated },
     });
 
     res.status(200).json({

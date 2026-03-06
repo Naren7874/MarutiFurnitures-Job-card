@@ -5,6 +5,7 @@ import { generateQuotationNumber } from '../utils/autoNumber.js';
 import { generateAndUploadPDF } from '../utils/generatePDF.js';
 import { sendEmail, quotationEmailHTML } from '../utils/sendEmail.js';
 import { sendWhatsApp, WA_TEMPLATES } from '../utils/sendWhatsApp.js';
+import { auditLog } from '../utils/auditLogger.js';
 
 // ── POST /api/quotations ─────────────────────────────────────────────────────
 
@@ -21,10 +22,17 @@ export const createQuotation = async (req, res, next) => {
       revisionNumber:  1,
       handledBy:       req.user.userId,
       createdBy:       req.user.userId,
-      // Set default T&C from company if not provided
       termsAndConditions: req.body.termsAndConditions?.length
         ? req.body.termsAndConditions
         : company.defaultTermsAndConditions,
+    });
+
+    auditLog(req, {
+      action: 'create',
+      resourceType: 'Quotation',
+      resourceId: quotation._id,
+      resourceLabel: quotationNumber,
+      metadata: { clientId: req.body.clientId, grandTotal: req.body.grandTotal },
     });
 
     res.status(201).json({ success: true, data: quotation });
@@ -103,6 +111,14 @@ export const updateQuotation = async (req, res, next) => {
       });
     }
 
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Quotation',
+      resourceId: quotation._id,
+      resourceLabel: quotation.quotationNumber,
+      metadata: { grandTotal: quotation.grandTotal },
+    });
+
     res.status(200).json({ success: true, data: quotation });
   } catch (err) {
     next(err);
@@ -121,7 +137,6 @@ export const sendQuotationPDF = async (req, res, next) => {
 
     const company = await Company.findById(req.user.companyId).lean();
 
-    // Generate PDF and upload to Cloudinary
     const pdfUrl = await generateAndUploadPDF(
       'quotation',
       { ...flattenForTemplate(quotation, company) },
@@ -129,15 +144,10 @@ export const sendQuotationPDF = async (req, res, next) => {
       quotation.quotationNumber
     );
 
-    // Update quotation with PDF URL + status
-    await Quotation.findByIdAndUpdate(quotation._id, {
-      pdfURL: pdfUrl,
-      status: 'sent',
-    });
+    await Quotation.findByIdAndUpdate(quotation._id, { pdfURL: pdfUrl, status: 'sent' });
 
     const client = quotation.clientId;
 
-    // Send via Email
     if (client?.email) {
       await sendEmail({
         to:      client.email,
@@ -146,7 +156,6 @@ export const sendQuotationPDF = async (req, res, next) => {
       });
     }
 
-    // Send via WhatsApp (direct to client, not group)
     if (client?.whatsappNumber) {
       await sendWhatsApp(client.whatsappNumber, WA_TEMPLATES.JOB_CARD_CREATED, [
         quotation.quotationNumber,
@@ -154,6 +163,15 @@ export const sendQuotationPDF = async (req, res, next) => {
         pdfUrl,
       ]);
     }
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Quotation',
+      resourceId: quotation._id,
+      resourceLabel: quotation.quotationNumber,
+      changes: { status: { from: quotation.status, to: 'sent' } },
+      metadata: { sentViaEmail: !!client?.email, sentViaWhatsApp: !!client?.whatsappNumber },
+    });
 
     res.status(200).json({ success: true, pdfUrl, message: 'Quotation sent successfully' });
   } catch (err) {
@@ -165,6 +183,7 @@ export const sendQuotationPDF = async (req, res, next) => {
 
 export const approveQuotation = async (req, res, next) => {
   try {
+    const prev = await Quotation.findOne({ _id: req.params.id, ...req.companyFilter }).lean();
     const quotation = await Quotation.findOneAndUpdate(
       { _id: req.params.id, ...req.companyFilter, status: { $in: ['sent', 'draft'] } },
       { status: 'approved' },
@@ -173,6 +192,15 @@ export const approveQuotation = async (req, res, next) => {
     if (!quotation) {
       return res.status(404).json({ success: false, message: 'Quotation not found or already processed' });
     }
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Quotation',
+      resourceId: quotation._id,
+      resourceLabel: quotation.quotationNumber,
+      changes: { status: { from: prev?.status, to: 'approved' } },
+    });
+
     res.status(200).json({ success: true, data: quotation });
   } catch (err) {
     next(err);
@@ -183,12 +211,23 @@ export const approveQuotation = async (req, res, next) => {
 
 export const rejectQuotation = async (req, res, next) => {
   try {
+    const prev = await Quotation.findOne({ _id: req.params.id, ...req.companyFilter }).lean();
     const quotation = await Quotation.findOneAndUpdate(
       { _id: req.params.id, ...req.companyFilter, status: { $ne: 'converted' } },
       { status: 'rejected' },
       { new: true }
     );
     if (!quotation) return res.status(404).json({ success: false, message: 'Quotation not found' });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Quotation',
+      resourceId: quotation._id,
+      resourceLabel: quotation.quotationNumber,
+      changes: { status: { from: prev?.status, to: 'rejected' } },
+      metadata: { reason: req.body.reason },
+    });
+
     res.status(200).json({ success: true, data: quotation });
   } catch (err) {
     next(err);
@@ -196,7 +235,6 @@ export const rejectQuotation = async (req, res, next) => {
 };
 
 // ── POST /api/quotations/:id/revise ─────────────────────────────────────────
-// Creates a new quotation linked to the original. Original marked "revised".
 
 export const reviseQuotation = async (req, res, next) => {
   try {
@@ -206,7 +244,6 @@ export const reviseQuotation = async (req, res, next) => {
     const company = await Company.findById(req.user.companyId).lean();
     const quotationNumber = await generateQuotationNumber(req.user.companyId, company.quotationPrefix);
 
-    // Copy + override with body (updated pricing)
     const revisionData = {
       ...original,
       _id:            undefined,
@@ -218,16 +255,28 @@ export const reviseQuotation = async (req, res, next) => {
       projectId:      undefined,
       createdAt:      undefined,
       updatedAt:      undefined,
-      ...req.body,                  // Caller passes updated items/pricing
+      ...req.body,
       companyId:   req.user.companyId,
       createdBy:   req.user.userId,
       handledBy:   req.user.userId,
     };
 
-    // Mark original as revised
     await Quotation.findByIdAndUpdate(original._id, { status: 'revised' });
 
     const revision = await Quotation.create(revisionData);
+
+    auditLog(req, {
+      action: 'create',
+      resourceType: 'Quotation',
+      resourceId: revision._id,
+      resourceLabel: quotationNumber,
+      metadata: {
+        revisionOf: original._id,
+        revisionNumber: revisionData.revisionNumber,
+        originalNumber: original.quotationNumber,
+      },
+    });
+
     res.status(201).json({ success: true, data: revision });
   } catch (err) {
     next(err);
@@ -255,7 +304,6 @@ export const getQuotationPDF = async (req, res, next) => {
 };
 
 // ── Template data flattener ──────────────────────────────────────────────────
-// Converts nested objects to flat template variables for simple HTML replacement
 
 const flattenForTemplate = (quotation, company) => ({
   COMPANY_NAME:      company.name,

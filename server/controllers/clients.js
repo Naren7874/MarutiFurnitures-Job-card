@@ -1,4 +1,5 @@
 import Client from '../models/Client.js';
+import { auditLog } from '../utils/auditLogger.js';
 
 // ── POST /api/clients ────────────────────────────────────────────────────────
 
@@ -9,6 +10,14 @@ export const createClient = async (req, res, next) => {
       companyId: req.user.companyId,
       createdBy: req.user.userId,
     });
+
+    auditLog(req, {
+      action: 'create',
+      resourceType: 'Client',
+      resourceId: client._id,
+      resourceLabel: client.firmName || client.name,
+    });
+
     res.status(201).json({ success: true, data: client });
   } catch (err) {
     next(err);
@@ -74,12 +83,33 @@ export const updateClient = async (req, res, next) => {
     const PROTECTED = ['companyId', 'createdBy', 'gstVerified'];
     PROTECTED.forEach((f) => delete req.body[f]);
 
+    // Snapshot previous for tracking changes
+    const prev = await Client.findOne({ _id: req.params.id, ...req.companyFilter }).lean();
+
     const client = await Client.findOneAndUpdate(
       { _id: req.params.id, ...req.companyFilter },
       req.body,
       { new: true, runValidators: true }
     );
     if (!client) return res.status(404).json({ success: false, message: 'Client not found' });
+
+    // Compute changed fields
+    const changes = {};
+    const tracked = ['name', 'firmName', 'phone', 'email', 'clientType', 'gstin', 'isActive'];
+    tracked.forEach(f => {
+      if (prev && String(prev[f]) !== String(client[f])) {
+        changes[f] = { from: prev[f], to: client[f] };
+      }
+    });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Client',
+      resourceId: client._id,
+      resourceLabel: client.firmName || client.name,
+      changes: Object.keys(changes).length ? changes : undefined,
+    });
+
     res.status(200).json({ success: true, data: client });
   } catch (err) {
     next(err);
@@ -96,6 +126,15 @@ export const deactivateClient = async (req, res, next) => {
       { new: true }
     );
     if (!client) return res.status(404).json({ success: false, message: 'Client not found' });
+
+    auditLog(req, {
+      action: 'delete',
+      resourceType: 'Client',
+      resourceId: client._id,
+      resourceLabel: client.firmName || client.name,
+      metadata: { reason: 'soft_deactivate' },
+    });
+
     res.status(200).json({ success: true, data: client });
   } catch (err) {
     next(err);

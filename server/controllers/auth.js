@@ -7,6 +7,7 @@ import { Role } from '../models/Role.js';
 import { UserPermission } from '../models/UserPermission.js';
 import { resolvePermissions } from '../utils/resolvePermissions.js';
 import { sendEmail, passwordResetEmailHTML } from '../utils/sendEmail.js';
+import { auditLog } from '../utils/auditLogger.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -16,11 +17,12 @@ const signToken = (payload) =>
   });
 
 const buildTokenPayload = (user) => ({
-  userId:      user._id,
-  companyId:   user.companyId,
-  role:        user.role,
-  department:  user.department,
-  isSuperAdmin: user.isSuperAdmin,
+  userId:        user._id,
+  companyId:     user.companyId,
+  role:          user.role,
+  department:    user.department,
+  isSuperAdmin:  user.isSuperAdmin,
+  tokenVersion:  user.tokenVersion || 0,  // Used to invalidate tokens on deactivate
 });
 
 // ── POST /api/auth/login ─────────────────────────────────────────────────────
@@ -54,6 +56,16 @@ export const login = async (req, res, next) => {
     await user.save();
 
     const token = signToken(buildTokenPayload(user));
+
+    // Audit log — login event (req.user is not set on this public route, pass actor explicitly)
+    auditLog(req, {
+      action: 'login',
+      resourceType: 'User',
+      resourceId:    user._id,
+      resourceLabel: user.name,
+      metadata:      { email: user.email, role: user.role },
+      actor: { id: user._id, name: user.name, role: user.role, companyId: user.companyId },
+    });
 
     // Fetch effective permissions for frontend
     const effectivePermissions = await resolvePermissions(user._id);
@@ -106,7 +118,16 @@ export const login = async (req, res, next) => {
 // ── POST /api/auth/logout ────────────────────────────────────────────────────
 
 export const logout = (req, res) => {
-  // JWT is stateless — client discards token. Optionally blacklist here.
+  // JWT is stateless — client discards token.
+  // Audit the logout if we know who is logging out
+  if (req.user) {
+    auditLog(req, {
+      action: 'logout',
+      resourceType: 'User',
+      resourceId:    req.user.userId,
+      resourceLabel: req.user.name,
+    });
+  }
   res.status(200).json({ success: true, message: 'Logged out successfully' });
 };
 

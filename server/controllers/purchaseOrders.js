@@ -2,6 +2,7 @@ import { PurchaseOrder } from '../models/PurchaseOrder.js';
 import { Inventory } from '../models/Inventory.js';
 import Company from '../models/Company.js';
 import { generatePONumber } from '../utils/autoNumber.js';
+import { auditLog } from '../utils/auditLogger.js';
 
 // ── POST /api/purchase-orders ────────────────────────────────────────────────
 
@@ -22,6 +23,14 @@ export const createPO = async (req, res, next) => {
       requiresApproval,
       status: 'raised',
       createdBy: req.user.userId,
+    });
+
+    auditLog(req, {
+      action: 'create',
+      resourceType: 'PurchaseOrder',
+      resourceId: po._id,
+      resourceLabel: po.poNumber,
+      metadata: { totalAmount: total, requiresApproval, vendor: req.body.vendor },
     });
 
     res.status(201).json({ success: true, data: po, requiresApproval });
@@ -57,6 +66,16 @@ export const approvePO = async (req, res, next) => {
       { new: true }
     );
     if (!po) return res.status(404).json({ success: false, message: 'PO not found' });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'PurchaseOrder',
+      resourceId: po._id,
+      resourceLabel: po.poNumber,
+      changes: { status: { from: 'raised', to: 'ordered' } },
+      metadata: { action: 'approved' },
+    });
+
     res.status(200).json({ success: true, data: po });
   } catch (err) { next(err); }
 };
@@ -68,6 +87,7 @@ export const receivePO = async (req, res, next) => {
     const po = await PurchaseOrder.findOne({ _id: req.params.id, ...req.companyFilter });
     if (!po) return res.status(404).json({ success: false, message: 'PO not found' });
 
+    const prevStatus = po.status;
     po.status       = 'received';
     po.receivedDate = new Date();
     await po.save();
@@ -82,6 +102,15 @@ export const receivePO = async (req, res, next) => {
         });
       }
     }
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'PurchaseOrder',
+      resourceId: po._id,
+      resourceLabel: po.poNumber,
+      changes: { status: { from: prevStatus, to: 'received' } },
+      metadata: { itemCount: po.items.length, receivedDate: po.receivedDate },
+    });
 
     res.status(200).json({ success: true, data: po });
   } catch (err) { next(err); }

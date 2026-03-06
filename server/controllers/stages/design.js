@@ -3,6 +3,7 @@ import DesignRequest from '../../models/DesignRequest.js';
 import { StoreStage } from '../../models/StoreStage.js';
 import { uploadReqFiles } from '../../middleware/upload.js';
 import { sendWhatsApp, WA_TEMPLATES } from '../../utils/sendWhatsApp.js';
+import { auditLog } from '../../utils/auditLogger.js';
 
 /** GET /api/jobcards/:id/design */
 export const getDesign = async (req, res, next) => {
@@ -38,6 +39,14 @@ export const createDesign = async (req, res, next) => {
     // Link back to job card
     jobCard.designRequestId = design._id;
     await jobCard.save();
+
+    auditLog(req, {
+      action: 'create',
+      resourceType: 'DesignRequest',
+      resourceId: design._id,
+      resourceLabel: jobCard.jobCardNumber || req.params.id,
+      metadata: { jobCardId: jobCard._id, assignedTo: req.body.assignedTo },
+    });
 
     res.status(201).json({ success: true, data: design });
   } catch (err) { next(err); }
@@ -95,7 +104,14 @@ export const sendSignoffLink = async (req, res, next) => {
 
     const signoffUrl = `${process.env.FRONTEND_URL}/signoff/${token}`;
 
-    // Could also send via WhatsApp/email here
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'DesignRequest',
+      resourceId: design._id,
+      resourceLabel: req.params.id,
+      metadata: { action: 'signoff_link_sent', signoffUrl },
+    });
+
     res.status(200).json({ success: true, signoffUrl, data: design });
   } catch (err) { next(err); }
 };
@@ -128,6 +144,15 @@ export const markDesignReady = async (req, res, next) => {
     // Activity log
     await JobCard.findByIdAndUpdate(jobCard._id, {
       $push: { activityLog: { action: 'design_ready', doneBy: req.user.userId, prevStatus: 'active', newStatus: 'in_store', timestamp: new Date() } },
+    });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'JobCard',
+      resourceId: jobCard._id,
+      resourceLabel: jobCard.jobCardNumber,
+      changes: { status: { from: 'active', to: 'in_store' } },
+      metadata: { action: 'design_approved_store_stage_created', storeStageId: storeStage._id },
     });
 
     res.status(200).json({ success: true, data: { jobCard, storeStage } });
