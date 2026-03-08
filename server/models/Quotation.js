@@ -14,6 +14,7 @@ const quotationItemSchema = new mongoose.Schema(
     category:    { type: String },                       // "Reception Area", "Director's Cabin 1"
     description: { type: String, required: true },       // "2 Seater Sofa"
     photo:       { type: String },                       // Cloudinary URL — printed on PDF
+    fabricPhoto: { type: String },                       // Client's requested secondary photo
 
     specifications: {
       size:     String,                                  // "L-59\" x D-30\""
@@ -147,7 +148,7 @@ const quotationSchema = new mongoose.Schema(
 );
 
 // Auto-compute all totals before save
-quotationSchema.pre("save", function (next) {
+quotationSchema.pre("save", function () {
   // Item totals
   this.items.forEach((item) => {
     item.totalPrice = +(item.qty * item.sellingPrice).toFixed(2);
@@ -177,8 +178,6 @@ quotationSchema.pre("save", function (next) {
   // Grand total + advance
   this.grandTotal    = +(this.amountAfterDiscount + (this.gstAmount || 0)).toFixed(2);
   this.advanceAmount = +(this.grandTotal * (this.advancePercent / 100)).toFixed(2);
-
-  next();
 });
 
 quotationSchema.index({ companyId: 1, status: 1 });

@@ -47,12 +47,11 @@ const purchaseOrderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-purchaseOrderSchema.pre("save", function (next) {
+purchaseOrderSchema.pre("save", function () {
   this.items.forEach((item) => {
     item.totalPrice = (item.qty || 0) * (item.pricePerUnit || 0);
   });
   this.totalAmount = this.items.reduce((sum, i) => sum + (i.totalPrice || 0), 0);
-  next();
 });
 
 purchaseOrderSchema.index({ companyId: 1, status: 1 });

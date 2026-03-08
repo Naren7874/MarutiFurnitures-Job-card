@@ -5,7 +5,8 @@ export const useSocket = () => {
     const socket = useRef<Socket | null>(null)
 
     useEffect(() => {
-        socket.current = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000')
+        socket.current = io(import.meta.env.VITE_SOCKET_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000'))
+
 
         socket.current.on('connect', () => {
             console.log('Connected to WebSocket server')

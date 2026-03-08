@@ -13,6 +13,21 @@ export const PublicRoute = () => {
     return isLoggedIn ? <Navigate to="/" replace /> : <Outlet />;
 };
 
+/**
+ * Route-level permission guard.
+ * Wrap a <Route> with this as the element to redirect to / if user lacks the permission.
+ * Usage: <Route element={<PermissionRoute permission="invoice.view" />}>
+ *          <Route path="invoices" element={<InvoicesPage />} />
+ *        </Route>
+ */
+export const PermissionRoute = ({ permission }: { permission: string }) => {
+    const hasPermission = useAuthStore((s) => s.hasPermission);
+    if (!hasPermission(permission)) {
+        return <Navigate to="/" replace />;
+    }
+    return <Outlet />;
+};
+
 /** Renders children only if user has the required permission */
 export const RequirePermission = ({ permission, children }: { permission: string; children: React.ReactNode }) => {
     const hasPermission = useAuthStore((s) => s.hasPermission);
@@ -32,3 +47,4 @@ export const RequireRole = ({ roles, children }: { roles: string[]; children: Re
     if (!user || !roles.includes(user.role)) return null;
     return <>{children}</>;
 };
+

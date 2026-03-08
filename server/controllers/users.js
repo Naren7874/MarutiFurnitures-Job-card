@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
+import { auditLog } from '../utils/auditLogger.js';
 
 // ── GET /api/users ────────────────────────────────────────────────────────────
 // List all users in the same company (company-scoped)
@@ -103,6 +104,14 @@ export const createUser = async (req, res, next) => {
     delete userObj.resetPasswordToken;
     delete userObj.resetPasswordExpires;
 
+    auditLog(req, {
+      action: 'create',
+      resourceType: 'User',
+      resourceId: newUser._id,
+      resourceLabel: newUser.name,
+      changes: { email: { from: null, to: newUser.email }, role: { from: null, to: newUser.role } },
+    });
+
     res.status(201).json({ success: true, data: userObj, message: 'User created successfully' });
   } catch (err) {
     next(err);
@@ -141,6 +150,19 @@ export const updateUser = async (req, res, next) => {
     delete userObj.resetPasswordToken;
     delete userObj.resetPasswordExpires;
 
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'User',
+      resourceId: user._id,
+      resourceLabel: user.name,
+      changes: {
+        ...(name       !== undefined && { name:       { from: undefined, to: name } }),
+        ...(role       !== undefined && { role:       { from: undefined, to: role } }),
+        ...(department !== undefined && { department: { from: undefined, to: department } }),
+        ...(isActive   !== undefined && { isActive:   { from: undefined, to: isActive } }),
+      },
+    });
+
     res.status(200).json({ success: true, data: userObj, message: 'User updated successfully' });
   } catch (err) {
     next(err);
@@ -162,6 +184,13 @@ export const deleteUser = async (req, res, next) => {
     ).select('-password');
 
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    auditLog(req, {
+      action: 'deactivate',
+      resourceType: 'User',
+      resourceId: user._id,
+      resourceLabel: user.name,
+    });
 
     res.status(200).json({ success: true, message: 'User deactivated successfully' });
   } catch (err) {
@@ -190,6 +219,13 @@ export const resetUserPassword = async (req, res, next) => {
     user.password = newPassword; // pre-save hook hashes it
     await user.save();
 
+    auditLog(req, {
+      action: 'password_reset',
+      resourceType: 'User',
+      resourceId: user._id,
+      resourceLabel: user.name,
+    });
+
     res.status(200).json({ success: true, message: 'Password reset successfully' });
   } catch (err) {
     next(err);
@@ -209,6 +245,15 @@ export const changeUserRole = async (req, res, next) => {
     ).select('-password');
 
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    auditLog(req, {
+      action: 'role_change',
+      resourceType: 'User',
+      resourceId: user._id,
+      resourceLabel: user.name,
+      changes: { role: { from: undefined, to: role } },
+    });
+
     res.status(200).json({ success: true, data: user, message: 'Role updated' });
   } catch (err) {
     next(err);
@@ -229,6 +274,14 @@ export const deactivateUser = async (req, res, next) => {
     ).select('-password');
 
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    auditLog(req, {
+      action: 'deactivate',
+      resourceType: 'User',
+      resourceId: user._id,
+      resourceLabel: user.name,
+    });
+
     res.status(200).json({ success: true, message: 'User deactivated' });
   } catch (err) {
     next(err);
@@ -245,6 +298,14 @@ export const activateUser = async (req, res, next) => {
     ).select('-password');
 
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    auditLog(req, {
+      action: 'activate',
+      resourceType: 'User',
+      resourceId: user._id,
+      resourceLabel: user.name,
+    });
+
     res.status(200).json({ success: true, message: 'User activated' });
   } catch (err) {
     next(err);

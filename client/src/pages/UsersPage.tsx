@@ -30,7 +30,7 @@ import {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type UserRole = 'super_admin' | 'sales' | 'design' | 'store' | 'production' | 'qc' | 'dispatch' | 'accountant' | 'client'
+type UserRole = 'super_admin' | 'sales' | 'design' | 'store' | 'production' | 'qc' | 'dispatch' | 'accountant'
 type Dept = 'sales' | 'design' | 'store' | 'production' | 'qc' | 'dispatch' | 'accounts' | 'management'
 
 interface AppUser {
@@ -67,7 +67,6 @@ const ROLES: { value: UserRole; label: string; color: string; bg: string }[] = [
     { value: 'qc', label: 'Quality Control', color: '#10B981', bg: '#10B98115' },
     { value: 'dispatch', label: 'Dispatch', color: '#F97316', bg: '#F9731615' },
     { value: 'accountant', label: 'Accountant', color: '#EC4899', bg: '#EC489915' },
-    { value: 'client', label: 'Client', color: '#64748B', bg: '#64748B15' },
 ]
 
 const DEPARTMENTS: Dept[] = ['sales', 'design', 'store', 'production', 'qc', 'dispatch', 'accounts', 'management']

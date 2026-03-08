@@ -205,7 +205,7 @@ export default function JobCardsPage() {
                                                     className="group hover:bg-muted/40 transition-all cursor-pointer border-border/30"
                                                 >
                                                     <TableCell className="px-6 py-5">
-                                                        <Link to={`/job-cards/${jc._id}`} className="flex items-center gap-4">
+                                                        <Link to={`/jobcards/${jc._id}`} className="flex items-center gap-4">
                                                             <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform", cfg.bg, cfg.color)}>
                                                                 <Icon size={18} />
                                                             </div>
@@ -240,7 +240,7 @@ export default function JobCardsPage() {
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell className="px-6 py-5 text-right">
-                                                        <p className="text-foreground font-black text-xs">₹{jc.totalAmount?.toLocaleString()}</p>
+                                                        <p className="text-foreground font-black text-xs">₹{(jc.quotationId?.grandTotal || 0).toLocaleString()}</p>
                                                         <p className="text-muted-foreground/40 text-[9px] font-black uppercase tracking-widest">Exclusive of Tax</p>
                                                     </TableCell>
                                                 </motion.tr>
@@ -300,7 +300,7 @@ export default function JobCardsPage() {
                                                             animate={{ opacity: 1, scale: 1 }}
                                                             transition={{ delay: jidx * 0.05 }}
                                                         >
-                                                            <Link to={`/job-cards/${jc._id}`}>
+                                                            <Link to={`/jobcards/${jc._id}`}>
                                                                 <Card className="bg-white/80 dark:bg-card/40 border-border/50 dark:border-white/5 rounded-2xl p-5 hover:shadow-xl hover:shadow-black/5 hover:-translate-y-1 transition-all group relative overflow-hidden">
                                                                     <div className={cn("absolute top-0 right-0 w-16 h-16 bg-linear-to-bl opacity-0 group-hover:opacity-10 rounded-bl-[40px] transition-opacity", cfg.bg)} />
 
@@ -325,7 +325,7 @@ export default function JobCardsPage() {
                                                                             </div>
                                                                             <p className="text-muted-foreground/60 text-[10px] font-bold truncate max-w-[80px]">{jc.clientId?.name || 'External'}</p>
                                                                         </div>
-                                                                        <p className="text-foreground font-black text-xs">₹{jc.totalAmount?.toLocaleString()}</p>
+                                                                        <p className="text-foreground font-black text-xs">₹{(jc.quotationId?.grandTotal || 0).toLocaleString()}</p>
                                                                     </div>
                                                                 </Card>
                                                             </Link>

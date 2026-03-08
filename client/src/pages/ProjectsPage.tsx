@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Search, FolderOpen, Calendar, Building2, ChevronRight, MoreHorizontal, FilterX, LayoutGrid, Clock, CheckCircle2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, Search, FolderOpen, Calendar, Building2, ChevronRight, MoreHorizontal, FilterX, LayoutGrid, Clock, CheckCircle2, X } from 'lucide-react';
 import { useProjects } from '../hooks/useApi';
+import { useAuthStore } from '../stores/authStore';
+import { apiGet, apiPost } from '../lib/axios';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,9 +39,44 @@ const StatCard = ({ icon: Icon, label, value, colorClass, delay = 0 }: any) => (
 );
 
 export default function ProjectsPage() {
+    const navigate = useNavigate();
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('');
     const [page, setPage] = useState(1);
+    const [showModal, setShowModal] = useState(false);
+    const [modalQuotations, setModalQuotations] = useState<any[]>([]);
+    const [selectedQ, setSelectedQ] = useState<any>(null);
+    const [priority, setPriority] = useState('medium');
+    const [expectedDelivery, setExpectedDelivery] = useState('');
+    const [creating, setCreating] = useState(false);
+    const { hasPermission } = useAuthStore();
+    const canCreate = hasPermission('project.create');
+
+    const openModal = async () => {
+        try {
+            const res: any = await apiGet('/quotations', { status: 'approved', limit: 50 });
+            setModalQuotations(res?.data || []);
+        } catch { setModalQuotations([]); }
+        setSelectedQ(null); setPriority('medium'); setExpectedDelivery(''); setShowModal(true);
+    };
+
+    const handleCreate = async () => {
+        if (!selectedQ) return;
+        setCreating(true);
+        try {
+            const res: any = await apiPost('/projects', {
+                quotationId: selectedQ._id,
+                priority,
+                expectedDelivery: expectedDelivery || undefined,
+            });
+            const projId = res?.data?._id || res?._id;
+            setShowModal(false);
+            if (projId) navigate(`/projects/${projId}`);
+            else window.location.reload();
+        } catch (e: any) {
+            alert(e?.response?.data?.message || 'Failed to create project');
+        } finally { setCreating(false); }
+    };
 
     const { data: raw, isLoading } = useProjects({ search, status, page, limit: 12 });
     const resp: any = raw;
@@ -69,11 +106,11 @@ export default function ProjectsPage() {
                         </p>
                     </div>
                 </div>
-                <Link to="/projects/new">
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                {canCreate && (
+                    <Button onClick={openModal} className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
                         <Plus size={18} strokeWidth={3} /> Initiate Project
                     </Button>
-                </Link>
+                )}
             </motion.div>
 
             {/* Quick Stats Summary */}
@@ -239,11 +276,13 @@ export default function ProjectsPage() {
                                 </div>
                                 <h3 className="text-foreground text-xl font-black mb-2 tracking-tight">Zero Projects Detected</h3>
                                 <p className="text-muted-foreground/60 max-w-xs mb-8 font-medium">No active or archived projects match your current filters.</p>
-                                <Link to="/projects/new">
-                                    <Button className="bg-primary hover:bg-primary/90 font-black text-[10px] uppercase tracking-[0.2em] px-10 h-14 rounded-2xl shadow-xl shadow-primary/20">
-                                        Establish First Project
-                                    </Button>
-                                </Link>
+                                {canCreate && (
+                                    <Link to="/projects/new">
+                                        <Button className="bg-primary hover:bg-primary/90 font-black text-[10px] uppercase tracking-[0.2em] px-10 h-14 rounded-2xl shadow-xl shadow-primary/20">
+                                            Establish First Project
+                                        </Button>
+                                    </Link>
+                                )}
                             </div>
                         )}
                     </div>
@@ -282,6 +321,81 @@ export default function ProjectsPage() {
                     </div>
                 </motion.div>
             )}
+
+            {/* ── Create Project Modal ── */}
+            <AnimatePresence>
+                {showModal && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        onClick={() => setShowModal(false)}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-card border border-border/50 rounded-3xl w-full max-w-lg shadow-2xl p-8 space-y-6"
+                            onClick={e => e.stopPropagation()}>
+
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-black text-foreground">Initiate New Project</h2>
+                                <button onClick={() => setShowModal(false)} className="p-2 rounded-xl hover:bg-muted/50 text-muted-foreground transition-colors"><X size={18} /></button>
+                            </div>
+
+                            {/* Select Approved Quotation */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground/50">Select Approved Quotation *</label>
+                                {modalQuotations.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground/50 bg-muted/20 rounded-xl p-4 text-center">
+                                        No approved quotations available. Approve a quotation first.
+                                    </p>
+                                ) : (
+                                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                                        {modalQuotations.map((q: any) => (
+                                            <button key={q._id}
+                                                onClick={() => setSelectedQ(q)}
+                                                className={cn("w-full text-left p-3 rounded-xl border transition-all",
+                                                    selectedQ?._id === q._id
+                                                        ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                                                        : "border-border/30 hover:border-primary/30 bg-muted/10"
+                                                )}>
+                                                <p className="font-bold text-sm text-foreground">{q.projectName || q.quotationNumber}</p>
+                                                <p className="text-xs text-muted-foreground/50 mt-0.5">
+                                                    {q.quotationNumber} · {q.clientId?.name || 'Client'} · ₹{(q.grandTotal || 0).toLocaleString('en-IN')}
+                                                </p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Priority */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground/50">Priority</label>
+                                <Select value={priority} onValueChange={setPriority}>
+                                    <SelectTrigger className="h-11 rounded-xl border-border/50 bg-muted/20"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="low">Low</SelectItem>
+                                        <SelectItem value="medium">Medium</SelectItem>
+                                        <SelectItem value="high">High</SelectItem>
+                                        <SelectItem value="urgent">Urgent</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Expected Delivery */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground/50">Expected Delivery</label>
+                                <Input type="date" value={expectedDelivery} onChange={e => setExpectedDelivery(e.target.value)}
+                                    className="h-11 rounded-xl border-border/50 bg-muted/20" />
+                            </div>
+
+                            <Button
+                                onClick={handleCreate}
+                                disabled={!selectedQ || creating}
+                                className="w-full h-12 rounded-xl font-black text-xs uppercase tracking-widest gap-2 shadow-lg shadow-primary/20"
+                            >
+                                {creating ? 'Creating...' : <><Plus size={16} /> Create Project</>}
+                            </Button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

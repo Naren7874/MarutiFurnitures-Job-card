@@ -1,6 +1,7 @@
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, FileText, ClipboardList, CheckCircle, XCircle, Building2, Phone, Mail, Globe, MessageSquare, ChevronRight } from 'lucide-react';
-import { useClient } from '../hooks/useApi';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, User, MapPin, FileText, ClipboardList, CheckCircle, XCircle, Building2, Phone, Mail, Globe, MessageSquare, ChevronRight, PowerOff } from 'lucide-react';
+import { useClient, useDeactivateClient } from '../hooks/useApi';
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { Button } from '@/components/ui/button';
@@ -18,8 +19,16 @@ const FIELD = ({ label, value, icon: Icon }: { label: string; value?: string | n
 
 export default function ClientDetailPage() {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const { data: raw, isLoading } = useClient(id ?? '');
     const client: any = (raw as any) ?? {};
+    const deactivateMut = useDeactivateClient(id ?? '');
+    const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+
+    const handleDeactivate = async () => {
+        await deactivateMut.mutateAsync();
+        navigate('/clients');
+    };
 
     if (isLoading) {
         return (
@@ -48,13 +57,27 @@ export default function ClientDetailPage() {
                     </div>
                     Back to Registry
                 </Link>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                     <Button variant="outline" className="h-10 px-6 rounded-xl border-border/60 text-[10px] font-black uppercase tracking-widest hover:text-primary">
                         Edit Entity
                     </Button>
                     <Button className="h-10 px-6 rounded-xl bg-primary font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">
                         Create Transaction
                     </Button>
+                    {client.isActive !== false && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setConfirmDeactivate(true)}
+                            className="h-10 px-5 rounded-xl border-rose-500/30 text-rose-500 hover:bg-rose-500/10 font-black text-[10px] uppercase tracking-widest gap-2"
+                        >
+                            <PowerOff size={13} /> Deactivate
+                        </Button>
+                    )}
+                    {client.isActive === false && (
+                        <span className="h-10 px-5 rounded-xl border border-rose-500/20 text-rose-500/60 font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
+                            <PowerOff size={13} /> Deactivated
+                        </span>
+                    )}
                 </div>
             </motion.div>
 
@@ -235,6 +258,31 @@ export default function ClientDetailPage() {
                     </div>
                 </motion.aside>
             </div>
+
+            {/* Deactivate Confirmation */}
+            {confirmDeactivate && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-6">
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                        className="bg-card border border-border rounded-[28px] p-8 max-w-md w-full shadow-2xl space-y-5">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center">
+                                <PowerOff size={20} className="text-rose-500" />
+                            </div>
+                            <div>
+                                <p className="font-black text-foreground text-lg">Deactivate Client?</p>
+                                <p className="text-muted-foreground/60 text-sm font-medium">{client.name} will be marked inactive.</p>
+                            </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground/70 font-medium">This client will no longer appear in selection dropdowns. Existing records are preserved.</p>
+                        <div className="flex gap-3">
+                            <Button variant="outline" onClick={() => setConfirmDeactivate(false)} className="flex-1 rounded-xl h-11 font-bold border-border/60">Cancel</Button>
+                            <Button onClick={handleDeactivate} disabled={deactivateMut.isPending} className="flex-1 rounded-xl h-11 font-black bg-rose-500 hover:bg-rose-600 text-white">
+                                {deactivateMut.isPending ? 'Deactivating…' : 'Confirm Deactivate'}
+                            </Button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 }

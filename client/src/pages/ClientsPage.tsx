@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Phone, Building2, CheckCircle, XCircle, Users, Mail, MapPin, ArrowUpRight } from 'lucide-react';
 import { useClients } from '../hooks/useApi';
+import { useAuthStore } from '../stores/authStore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'motion/react';
@@ -10,6 +11,8 @@ import { cn } from '../lib/utils';
 export default function ClientsPage() {
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
+    const { hasPermission } = useAuthStore();
+    const canCreate = hasPermission('client.create');
 
     const { data: raw, isLoading } = useClients({ search, page, limit: 20 });
     const resp: any = raw;
@@ -33,11 +36,13 @@ export default function ClientsPage() {
                         </p>
                     </div>
                 </div>
-                <Link to="/clients/new">
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                        <Plus size={18} strokeWidth={3} /> Add New Client
-                    </Button>
-                </Link>
+                {canCreate && (
+                    <Link to="/clients/new">
+                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                            <Plus size={18} strokeWidth={3} /> Add New Client
+                        </Button>
+                    </Link>
+                )}
             </motion.div>
 
             {/* Search Section */}
@@ -158,11 +163,13 @@ export default function ClientsPage() {
                     </div>
                     <h3 className="text-foreground text-xl font-black mb-2">No clients found</h3>
                     <p className="text-muted-foreground max-w-xs mb-8">Try adjusting your search criteria or add a new client to the directory.</p>
-                    <Link to="/clients/new">
-                        <Button className="bg-primary hover:bg-primary/90 font-black text-xs uppercase tracking-widest px-8 h-12 rounded-2xl">
-                            Register First Client
-                        </Button>
-                    </Link>
+                    {canCreate && (
+                        <Link to="/clients/new">
+                            <Button className="bg-primary hover:bg-primary/90 font-black text-xs uppercase tracking-widest px-8 h-12 rounded-2xl">
+                                Register First Client
+                            </Button>
+                        </Link>
+                    )}
                 </div>
             )}
 

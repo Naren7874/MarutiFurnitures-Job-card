@@ -4,7 +4,7 @@ import {
     LayoutDashboard, Users, FileText, Folder, ClipboardList,
     Receipt, Package, ShoppingCart, Settings, LogOut, Bell,
     ChevronLeft, ChevronRight, Building2, ChevronDown, Check,
-    ShieldCheck
+    ShieldCheck, BarChart3
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
@@ -12,6 +12,7 @@ import { useNotificationStore } from '../stores/notificationStore';
 import { cn } from '../lib/utils';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import NotificationSheet from './NotificationSheet';
 
 // ── Nav Items by role ─────────────────────────────────────────────────────────
 
@@ -24,9 +25,10 @@ const ALL_NAV = [
     { label: 'Invoices', icon: Receipt, path: '/invoices', permission: 'invoice.view' },
     { label: 'Inventory', icon: Package, path: '/inventory', permission: 'inventory.view' },
     { label: 'Purchase Orders', icon: ShoppingCart, path: '/purchase-orders', permission: 'purchaseOrder.view' },
+    { label: 'Reports', icon: BarChart3, path: '/reports', permission: 'report.view' },
     { label: 'Users', icon: Users, path: '/users', permission: 'user.view' },
-    { label: 'Roles', icon: ShieldCheck, path: '/roles', permission: 'role.manage' },
-    { label: 'Settings', icon: Settings, path: '/settings', permission: '' },
+    { label: 'Roles', icon: ShieldCheck, path: '/roles', permission: 'privilege.view' },
+    { label: 'Settings', icon: Settings, path: '/settings', permission: 'settings.view' },
 ];
 
 
@@ -220,7 +222,9 @@ export default function AppLayout() {
                     <Outlet />
                 </main>
             </div>
+
+            {/* Notification Sheet (slide-over from right) */}
+            <NotificationSheet />
         </div>
     );
 }
-

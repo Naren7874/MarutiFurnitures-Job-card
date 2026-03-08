@@ -2,10 +2,12 @@ import JobCard from '../models/JobCard.js';
 import Project from '../models/Project.js';
 import Company from '../models/Company.js';
 import Notification from '../models/Notification.js';
+import mongoose from 'mongoose';
 import { generateJobCardNumber } from '../utils/autoNumber.js';
 import { generateAndUploadPDF } from '../utils/generatePDF.js';
 import { sendWhatsAppBulk, WA_TEMPLATES } from '../utils/sendWhatsApp.js';
 import { auditLog } from '../utils/auditLogger.js';
+
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -109,10 +111,27 @@ export const getJobCards = async (req, res, next) => {
       ];
     }
 
+    // ── Department-level scoping ──────────────────────────────────────────
+    // sales sees all (they manage quotations); super_admin bypasses via isSuperAdmin flag.
+    // Every other role only sees job cards where they appear in assignedTo.<dept>.
+    //
+    // IMPORTANT: req.user.userId is a string from JWT. MongoDB stores ObjectIds in
+    // assignedTo arrays. We must cast to ObjectId or the $in comparison will NEVER match.
+    if (!req.user.isSuperAdmin && req.user.role !== 'sales') {
+      const dept = req.user.department; // set directly from DB by auth.js middleware
+      const VALID_DEPTS = ['design', 'store', 'production', 'qc', 'dispatch', 'accountant'];
+      if (dept && VALID_DEPTS.includes(dept)) {
+        const userOid = new mongoose.Types.ObjectId(req.user.userId);
+        filter[`assignedTo.${dept}`] = { $in: [userOid] };
+      }
+    }
+
+
     const [jobCards, total] = await Promise.all([
       JobCard.find(filter)
-        .populate('clientId',  'name firmName')
+        .populate('clientId',  'name firmName city')
         .populate('projectId', 'projectName projectNumber')
+        .populate('quotationId', 'grandTotal')
         .select('-activityLog') // Don't return full log on list
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
@@ -139,14 +158,54 @@ export const getJobCardById = async (req, res, next) => {
       .populate('clientId')
       .populate('projectId', 'projectName projectNumber whatsapp')
       .populate('quotationId', 'quotationNumber grandTotal')
-      .populate('designRequestId')
-      .populate('storeStageId')
-      .populate('productionStageId')
-      .populate('qcStageId')
-      .populate('dispatchStageId')
       .lean();
 
     if (!jobCard) return res.status(404).json({ success: false, message: 'Job card not found' });
+    res.status(200).json({ success: true, data: jobCard });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ── PUT /api/jobcards/:id (edit details) ─────────────────────────────────────
+
+export const updateJobCard = async (req, res, next) => {
+  try {
+    const { title, priority, expectedDelivery, items } = req.body;
+    
+    const jobCard = await JobCard.findOne({ _id: req.params.id, ...req.companyFilter });
+    if (!jobCard) return res.status(404).json({ success: false, message: 'Job card not found' });
+
+    // Ensure we aren't editing a closed/cancelled job card
+    if (['closed', 'cancelled'].includes(jobCard.status)) {
+      return res.status(400).json({ success: false, message: `Cannot edit a ${jobCard.status} job card` });
+    }
+
+    const updates = {};
+    if (title !== undefined) updates.title = title;
+    if (priority !== undefined) updates.priority = priority;
+    if (expectedDelivery !== undefined) updates.expectedDelivery = expectedDelivery;
+    if (items !== undefined) updates.items = items;
+
+    // Apply updates
+    Object.assign(jobCard, updates);
+    await jobCard.save();
+
+    await addActivityLog(jobCard._id, {
+      action:     'edited',
+      doneBy:     req.user.userId,
+      newStatus:  jobCard.status,
+      note:       'Job card details updated',
+    });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'JobCard',
+      resourceId: jobCard._id,
+      resourceLabel: jobCard.jobCardNumber,
+      metadata: { action: 'jobcard_edited' },
+    });
+
     res.status(200).json({ success: true, data: jobCard });
   } catch (err) {
     next(err);
@@ -326,15 +385,9 @@ export const getJobCardPDF = async (req, res, next) => {
     const { renderPDF } = await import('../utils/generatePDF.js');
 
     const pdfBuffer = await renderPDF('jobcard', {
-      COMPANY_NAME:      company.name,
-      JC_NUMBER:         jobCard.jobCardNumber,
-      JC_TITLE:          jobCard.title,
-      CLIENT_NAME:       jobCard.clientId?.name,
-      PROJECT_NAME:      jobCard.projectId?.projectName,
-      PRIORITY:          jobCard.priority?.toUpperCase(),
-      ORDER_DATE:        new Date(jobCard.orderDate).toLocaleDateString('en-IN'),
-      EXPECTED_DELIVERY: jobCard.expectedDelivery ? new Date(jobCard.expectedDelivery).toLocaleDateString('en-IN') : '',
-      STATUS:            jobCard.status,
+      company,
+      client: jobCard.clientId || {},
+      jobCard,
     });
 
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${jobCard.jobCardNumber}.pdf"` });

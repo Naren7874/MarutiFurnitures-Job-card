@@ -28,10 +28,10 @@ export const createClient = async (req, res, next) => {
 
 export const getClients = async (req, res, next) => {
   try {
-    const { search, clientType, isActive = true, page = 1, limit = 20 } = req.query;
+    const { search, clientType, isActive = 'true', page = 1, limit = 20 } = req.query;
 
     const filter = { ...req.companyFilter };
-    if (isActive !== 'all') filter.isActive = isActive === 'true';
+    if (isActive !== 'all') filter.isActive = String(isActive) === 'true';
     if (clientType) filter.clientType = clientType;
 
     if (search) {

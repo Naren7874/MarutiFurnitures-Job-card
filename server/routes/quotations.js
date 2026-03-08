@@ -13,6 +13,8 @@ import {
 import { authenticateJWT }    from '../middleware/auth.js';
 import { injectCompanyScope } from '../middleware/scope.js';
 import { checkPermission }    from '../middleware/permission.js';
+import { uploadSingle, handleUploadError } from '../middleware/upload.js';
+import { uploadToCloudinary } from '../config/cloudinary.js';
 
 const router = express.Router();
 router.use(authenticateJWT, injectCompanyScope);
@@ -26,5 +28,25 @@ router.patch('/:id/send',         checkPermission('quotation.send'),   sendQuota
 router.patch('/:id/approve',      checkPermission('quotation.edit'),   approveQuotation);
 router.patch('/:id/reject',       checkPermission('quotation.edit'),   rejectQuotation);
 router.post('/:id/revise',        checkPermission('quotation.create'), reviseQuotation);
+
+// ── Image Upload ───────────────────────────────────────────────
+// Accepts: multipart/form-data with field 'file'
+// Returns: { url, publicId }
+router.post(
+  '/upload-item-photo',
+  checkPermission('quotation.create'),
+  uploadSingle,
+  handleUploadError,
+  async (req, res, next) => {
+    try {
+      if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+      const result = await uploadToCloudinary(req.file.buffer, 'maruti/quotation-items');
+      res.json({ success: true, url: result.url, publicId: result.publicId });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 
 export default router;

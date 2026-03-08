@@ -23,8 +23,8 @@ const dispatchStageSchema = new mongoose.Schema(
       },
     ],
     vehicle: {
-      number: String,                                    // "GJ-01-AB-1234"
-      type:   String,                                    // "Mini Truck", "Tempo"
+      number: { type: String },                            // "GJ-01-AB-1234"
+      type:   { type: String },                            // "Mini Truck", "Tempo"
     },
 
     challanNumber: String,

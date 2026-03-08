@@ -2,15 +2,22 @@ import nodemailer from 'nodemailer';
 
 // ── Transport setup ─────────────────────────────────────────────────────────
 
-const transporter = nodemailer.createTransport({
-  host:   process.env.EMAIL_HOST,
-  port:   Number(process.env.EMAIL_PORT) || 587,
-  secure: process.env.EMAIL_PORT === '465',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+let transporter = null;
+
+const getTransporter = () => {
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host:   process.env.EMAIL_HOST,
+      port:   Number(process.env.EMAIL_PORT) || 587,
+      secure: process.env.EMAIL_PORT === '465',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+  }
+  return transporter;
+};
 
 // ── Public helpers ──────────────────────────────────────────────────────────
 
@@ -31,7 +38,7 @@ export const sendEmail = async ({ to, subject, html, attachments = [] }) => {
     html,
     attachments,
   };
-  return transporter.sendMail(mailOptions);
+  return getTransporter().sendMail(mailOptions);
 };
 
 // ── Email templates ─────────────────────────────────────────────────────────

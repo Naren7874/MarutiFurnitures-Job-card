@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Search, Package, AlertTriangle, RotateCcw, Boxes, TrendingDown, Layers, MoreHorizontal } from 'lucide-react';
-import { useInventory, useRestockItem } from '../hooks/useApi';
+import { Plus, Search, Package, AlertTriangle, RotateCcw, Boxes, TrendingDown, Layers, MoreHorizontal, Loader2 } from 'lucide-react';
+import { useInventory, useRestockItem, useCreateItem } from '../hooks/useApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
@@ -35,6 +36,8 @@ export default function InventoryPage() {
     const [page, setPage] = useState(1);
     const [restockItem, setRestockItem] = useState<any>(null);
     const [qty, setQty] = useState('');
+    const [showAddItem, setShowAddItem] = useState(false);
+    const [newItem, setNewItem] = useState({ itemName: '', sku: '', category: '', unit: 'pcs', currentStock: '', minStockLevel: '', unitRate: '' });
 
     const { data: raw, isLoading, refetch } = useInventory({ search, page, limit: 30 });
     const resp: any = raw;
@@ -43,12 +46,26 @@ export default function InventoryPage() {
 
     const lowStockCount = items.filter(i => i.currentStock <= i.minStockLevel).length;
     const restock = useRestockItem(restockItem?._id ?? '');
+    const createItem = useCreateItem();
 
     const handleRestock = async () => {
         if (!qty) return;
         await restock.mutateAsync({ qty: Number(qty) });
         setRestockItem(null);
         setQty('');
+        refetch();
+    };
+
+    const handleAddItem = async () => {
+        if (!newItem.itemName || !newItem.sku) return;
+        await createItem.mutateAsync({
+            ...newItem,
+            currentStock: Number(newItem.currentStock) || 0,
+            minStockLevel: Number(newItem.minStockLevel) || 0,
+            unitRate: Number(newItem.unitRate) || 0,
+        });
+        setShowAddItem(false);
+        setNewItem({ itemName: '', sku: '', category: '', unit: 'pcs', currentStock: '', minStockLevel: '', unitRate: '' });
         refetch();
     };
 
@@ -69,11 +86,12 @@ export default function InventoryPage() {
                         </p>
                     </div>
                 </div>
-                <Link to="/inventory/new">
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                        <Plus size={18} strokeWidth={3} /> Add Stock Item
-                    </Button>
-                </Link>
+                <Button
+                    onClick={() => setShowAddItem(true)}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95"
+                >
+                    <Plus size={18} strokeWidth={3} /> Add Stock Item
+                </Button>
             </motion.div>
 
             {/* Quick Stats Summary */}
@@ -312,6 +330,102 @@ export default function InventoryPage() {
                                 className="w-full h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted"
                             >
                                 Discard Operation
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* ── Add New Inventory Item Dialog ── */}
+            <Dialog open={showAddItem} onOpenChange={setShowAddItem}>
+                <DialogContent className="max-w-lg p-0 overflow-hidden bg-card border-none rounded-[32px] shadow-2xl">
+                    <div className="bg-linear-to-br from-emerald-600 to-teal-700 p-8 text-white relative">
+                        <div className="relative z-10">
+                            <DialogTitle className="text-2xl font-black tracking-tight mb-1">Add Stock Item</DialogTitle>
+                            <DialogDescription className="text-white/60 font-medium">Register a new item in your inventory vault</DialogDescription>
+                        </div>
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full blur-2xl" />
+                    </div>
+
+                    <div className="p-8 space-y-5">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2 space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Item Name *</Label>
+                                <Input
+                                    value={newItem.itemName}
+                                    onChange={e => setNewItem(f => ({ ...f, itemName: e.target.value }))}
+                                    placeholder="e.g. Teak Wood Plank"
+                                    className="rounded-2xl h-11 font-medium"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">SKU *</Label>
+                                <Input
+                                    value={newItem.sku}
+                                    onChange={e => setNewItem(f => ({ ...f, sku: e.target.value }))}
+                                    placeholder="e.g. TWP-001"
+                                    className="rounded-2xl h-11 font-medium"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Category</Label>
+                                <Input
+                                    value={newItem.category}
+                                    onChange={e => setNewItem(f => ({ ...f, category: e.target.value }))}
+                                    placeholder="e.g. Timber"
+                                    className="rounded-2xl h-11 font-medium"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Unit</Label>
+                                <Select value={newItem.unit} onValueChange={v => setNewItem(f => ({ ...f, unit: v }))}>
+                                    <SelectTrigger className="rounded-2xl h-11 font-bold text-xs"><SelectValue /></SelectTrigger>
+                                    <SelectContent className="rounded-2xl">
+                                        {['pcs', 'sqft', 'ltr', 'kg', 'mtr', 'nos', 'set', 'pair', 'box'].map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Initial Stock</Label>
+                                <Input
+                                    type="number" min="0"
+                                    value={newItem.currentStock}
+                                    onChange={e => setNewItem(f => ({ ...f, currentStock: e.target.value }))}
+                                    className="rounded-2xl h-11 font-bold"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Min Stock Level</Label>
+                                <Input
+                                    type="number" min="0"
+                                    value={newItem.minStockLevel}
+                                    onChange={e => setNewItem(f => ({ ...f, minStockLevel: e.target.value }))}
+                                    className="rounded-2xl h-11 font-bold"
+                                />
+                            </div>
+                            <div className="col-span-2 space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Unit Rate (₹)</Label>
+                                <Input
+                                    type="number" min="0"
+                                    value={newItem.unitRate}
+                                    onChange={e => setNewItem(f => ({ ...f, unitRate: e.target.value }))}
+                                    className="rounded-2xl h-11 font-bold"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3 pt-2">
+                            <Button
+                                onClick={handleAddItem}
+                                disabled={!newItem.itemName || !newItem.sku || createItem.isPending}
+                                className="w-full h-12 rounded-2xl font-black text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2"
+                            >
+                                {createItem.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                                Add to Inventory
+                            </Button>
+                            <Button variant="ghost" onClick={() => setShowAddItem(false)} className="w-full h-10 rounded-2xl font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted">
+                                Cancel
                             </Button>
                         </div>
                     </div>

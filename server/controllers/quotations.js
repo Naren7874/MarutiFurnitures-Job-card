@@ -294,7 +294,11 @@ export const getQuotationPDF = async (req, res, next) => {
 
     const company = await Company.findById(req.user.companyId).lean();
     const { renderPDF } = await import('../utils/generatePDF.js');
-    const pdfBuffer = await renderPDF('quotation', flattenForTemplate(quotation, company));
+    const pdfBuffer = await renderPDF('quotation', {
+      company,
+      quotation,
+      client: quotation.clientId || {},
+    });
 
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${quotation.quotationNumber}.pdf"` });
     res.send(pdfBuffer);

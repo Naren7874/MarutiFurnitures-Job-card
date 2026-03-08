@@ -4,9 +4,15 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
 import { initSocket } from './socket/socket.js';
 import { startCronJobs } from './queues/cronJobs.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
 
 // ── Environment ──────────────────────────────────────────────────────────────
 dotenv.config();
@@ -25,9 +31,14 @@ initSocket(server);
 app.use(helmet());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(cors({
-  origin:      process.env.FRONTEND_URL || 'http://localhost:5173',
+  // In production (served via ngrok) accept any origin.
+  // In dev, restrict to the Vite dev server.
+  origin: process.env.NODE_ENV === 'production'
+    ? '*'
+    : (process.env.FRONTEND_URL || 'http://localhost:5173'),
   credentials: true,
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -45,6 +56,7 @@ import purchaseOrderRoutes from './routes/purchaseOrders.js';
 import gstRoutes           from './routes/gst.js';
 import reportRoutes        from './routes/reports.js';
 import privilegeRoutes     from './routes/privileges.js';
+import notificationRoutes  from './routes/notifications.js';
 
 // ── API Routes ───────────────────────────────────────────────────────────────
 app.use('/api/auth',            authRoutes);
@@ -60,6 +72,7 @@ app.use('/api/purchase-orders', purchaseOrderRoutes);
 app.use('/api/gst',             gstRoutes);
 app.use('/api/reports',         reportRoutes);
 app.use('/api/privileges',      privilegeRoutes);
+app.use('/api/notifications',   notificationRoutes);
 
 // ── Health Check ──────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
@@ -70,10 +83,22 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ── 404 Handler ───────────────────────────────────────────────────────────────
-app.use((req, res) => {
+// ── Static files (React production build) ────────────────────────────────────
+// Only active when the dist folder exists (i.e. after `npm run build`)
+const distPath = path.join(__dirname, '../client/dist');
+app.use(express.static(distPath));
+
+// ── SPA Fallback — serve index.html for all non-API routes ───────────────────
+// Must come AFTER API routes so /api/* is not caught here
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
+
+// ── 404 Handler (API only) ────────────────────────────────────────────────────
+app.use('/api', (req, res) => {
   res.status(404).json({ success: false, message: `Route not found: ${req.method} ${req.originalUrl}` });
 });
+
 
 // ── Global Error Handler ──────────────────────────────────────────────────────
 app.use((err, req, res, _next) => {

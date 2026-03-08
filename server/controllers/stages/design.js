@@ -158,3 +158,51 @@ export const markDesignReady = async (req, res, next) => {
     res.status(200).json({ success: true, data: { jobCard, storeStage } });
   } catch (err) { next(err); }
 };
+
+/** GET /api/jobcards/signoff/:token — Public: client views design (no auth) */
+export const getSignoffPage = async (req, res, next) => {
+  try {
+    const design = await DesignRequest.findOne({ signoffToken: req.params.token })
+      .populate('jobCardId', 'jobCardNumber projectId')
+      .populate({ path: 'jobCardId', populate: { path: 'projectId', select: 'projectName' } })
+      .lean();
+    if (!design) return res.status(404).json({ success: false, message: 'Signoff link is invalid or expired' });
+
+    res.json({
+      success: true,
+      data: {
+        files:          design.files || [],
+        designerNotes:  design.designerNotes || '',
+        projectName:    design.jobCardId?.projectId?.projectName || '',
+        jobCardNumber:  design.jobCardId?.jobCardNumber || '',
+        signoffStatus:  design.signoff?.status,
+      },
+    });
+  } catch (err) { next(err); }
+};
+
+/** PATCH /api/jobcards/signoff/:token — Public: client approves/rejects design (no auth) */
+export const submitSignoff = async (req, res, next) => {
+  try {
+    const { status, remarks } = req.body; // status: 'approved' | 'rejected'
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'status must be approved or rejected' });
+    }
+
+    const design = await DesignRequest.findOne({ signoffToken: req.params.token });
+    if (!design) return res.status(404).json({ success: false, message: 'Signoff link is invalid or expired' });
+    if (design.signoff?.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'This sign-off has already been submitted' });
+    }
+
+    design.signoff = {
+      status,
+      remarks:     remarks || '',
+      signedAt:    new Date(),
+      clientIp:    req.ip,
+    };
+    await design.save();
+
+    res.json({ success: true, message: `Design ${status} successfully`, data: { status } });
+  } catch (err) { next(err); }
+};

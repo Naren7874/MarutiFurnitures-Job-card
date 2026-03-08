@@ -2,9 +2,10 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SocketProvider } from './context/SocketContext';
-import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
+import { ProtectedRoute, PublicRoute, PermissionRoute } from './components/ProtectedRoute';
 import AppLayout from './components/AppLayout';
 import { ThemeProvider } from './components/theme-provider';
+
 
 // ── Query Client ──────────────────────────────────────────────────────────────
 
@@ -32,9 +33,12 @@ const NewClientPage = lazy(() => import('./pages/NewClientPage'));
 
 // Quotations
 const QuotationsPage = lazy(() => import('./pages/QuotationsPage'));
+const NewQuotationPage = lazy(() => import('./pages/NewQuotationPage'));
+const QuotationDetailPage = lazy(() => import('./pages/QuotationDetailPage'));
 
 // Projects
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
+const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'));
 
 // Job Cards
 const JobCardsPage = lazy(() => import('./pages/JobCardsPage'));
@@ -42,12 +46,28 @@ const JobCardDetailPage = lazy(() => import('./pages/JobCardDetailPage'));
 
 // Invoices
 const InvoicesPage = lazy(() => import('./pages/InvoicesPage'));
+const InvoiceDetailPage = lazy(() => import('./pages/InvoiceDetailPage'));
+const NewInvoicePage = lazy(() => import('./pages/NewInvoicePage'));
 
 // Inventory
 const InventoryPage = lazy(() => import('./pages/InventoryPage'));
 
 // Purchase Orders
 const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrdersPage'));
+const PurchaseOrderDetailPage = lazy(() => import('./pages/PurchaseOrderDetailPage'));
+const NewPurchaseOrderPage = lazy(() => import('./pages/NewPurchaseOrderPage'));
+
+// Quotations (edit)
+const QuotationEditPage = lazy(() => import('./pages/QuotationEditPage'));
+
+// Notifications
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+
+// Reports
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+
+// Public (no auth)
+const ClientSignoffPage = lazy(() => import('./pages/ClientSignoffPage'));
 
 // Users & Roles
 const UsersPage = lazy(() => import('./pages/UsersPage'));
@@ -80,12 +100,15 @@ export default function App() {
             <Suspense fallback={<PageLoader />}>
               <Routes>
 
-                {/* Public */}
+                {/* Public — incl. client sign-off */}
                 <Route element={<PublicRoute />}>
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                   <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
                 </Route>
+
+                {/* Public sign-off page (no auth needed) */}
+                <Route path="/signoff/:token" element={<ClientSignoffPage />} />
 
                 {/* Protected */}
                 <Route element={<ProtectedRoute />}>
@@ -94,46 +117,77 @@ export default function App() {
                     {/* Dashboard */}
                     <Route index element={<DashboardPage />} />
 
-                    {/* Clients */}
-                    <Route path="clients" element={<ClientsPage />} />
-                    <Route path="clients/new" element={<NewClientPage />} />
-                    <Route path="clients/:id" element={<ClientDetailPage />} />
+                    {/* Clients — requires client.view */}
+                    <Route element={<PermissionRoute permission="client.view" />}>
+                      <Route path="clients" element={<ClientsPage />} />
+                      <Route path="clients/new" element={<NewClientPage />} />
+                      <Route path="clients/:id" element={<ClientDetailPage />} />
+                    </Route>
 
-                    {/* Quotations */}
-                    <Route path="quotations" element={<QuotationsPage />} />
-                    <Route path="quotations/new" element={<Stub name="New Quotation" />} />
-                    <Route path="quotations/:id" element={<Stub name="Quotation Detail" />} />
+                    {/* Quotations — requires quotation.view */}
+                    <Route element={<PermissionRoute permission="quotation.view" />}>
+                      <Route path="quotations" element={<QuotationsPage />} />
+                      <Route path="quotations/:id" element={<QuotationDetailPage />} />
+                    </Route>
+                    {/* Quotation edit — requires quotation.edit (sales only) */}
+                    <Route element={<PermissionRoute permission="quotation.edit" />}>
+                      <Route path="quotations/:id/edit" element={<QuotationEditPage />} />
+                    </Route>
+                    {/* Quotation create — requires quotation.create */}
+                    <Route element={<PermissionRoute permission="quotation.create" />}>
+                      <Route path="quotations/new" element={<NewQuotationPage />} />
+                    </Route>
 
-                    {/* Projects */}
-                    <Route path="projects" element={<ProjectsPage />} />
-                    <Route path="projects/new" element={<Stub name="New Project" />} />
-                    <Route path="projects/:id" element={<Stub name="Project Detail" />} />
+                    {/* Projects — requires project.view */}
+                    <Route element={<PermissionRoute permission="project.view" />}>
+                      <Route path="projects" element={<ProjectsPage />} />
+                      <Route path="projects/new" element={<Stub name="New Project" />} />
+                      <Route path="projects/:id" element={<ProjectDetailPage />} />
+                    </Route>
 
-                    {/* Job Cards */}
+                    {/* Job Cards — requires jobcard.view (all roles get this) */}
                     <Route path="jobcards" element={<JobCardsPage />} />
                     <Route path="jobcards/new" element={<Stub name="New Job Card" />} />
                     <Route path="jobcards/:id" element={<JobCardDetailPage />} />
 
-                    {/* Invoices */}
-                    <Route path="invoices" element={<InvoicesPage />} />
-                    <Route path="invoices/new" element={<Stub name="New Invoice" />} />
-                    <Route path="invoices/:id" element={<Stub name="Invoice Detail" />} />
+                    {/* Invoices — requires invoice.view */}
+                    <Route element={<PermissionRoute permission="invoice.view" />}>
+                      <Route path="invoices" element={<InvoicesPage />} />
+                      <Route path="invoices/new" element={<NewInvoicePage />} />
+                      <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+                    </Route>
 
-                    {/* Inventory */}
-                    <Route path="inventory" element={<InventoryPage />} />
-                    <Route path="inventory/new" element={<Stub name="New Inventory Item" />} />
+                    {/* Inventory — requires inventory.view */}
+                    <Route element={<PermissionRoute permission="inventory.view" />}>
+                      <Route path="inventory" element={<InventoryPage />} />
+                      <Route path="inventory/new" element={<Stub name="New Inventory Item" />} />
+                    </Route>
 
-                    {/* Purchase Orders */}
-                    <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
-                    <Route path="purchase-orders/new" element={<Stub name="New Purchase Order" />} />
-                    <Route path="purchase-orders/:id" element={<Stub name="PO Detail" />} />
+                    {/* Purchase Orders — requires purchaseOrder.view */}
+                    <Route element={<PermissionRoute permission="purchaseOrder.view" />}>
+                      <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
+                      <Route path="purchase-orders/new" element={<NewPurchaseOrderPage />} />
+                      <Route path="purchase-orders/:id" element={<PurchaseOrderDetailPage />} />
+                    </Route>
 
-                    {/* Users & Roles */}
-                    <Route path="users" element={<UsersPage />} />
-                    <Route path="users/:id" element={<UserDetailPage />} />
-                    <Route path="roles" element={<RolesPage />} />
+                    {/* Reports — requires reports.view_financial or reports.view_production */}
+                    <Route element={<PermissionRoute permission="report.view" />}>
+                      <Route path="reports" element={<ReportsPage />} />
+                    </Route>
 
-                    {/* Settings */}
+                    {/* Notifications — all logged-in users */}
+                    <Route path="notifications" element={<NotificationsPage />} />
+
+                    {/* Users & Roles — super_admin / user.view */}
+                    <Route element={<PermissionRoute permission="user.view" />}>
+                      <Route path="users" element={<UsersPage />} />
+                      <Route path="users/:id" element={<UserDetailPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute permission="privilege.view" />}>
+                      <Route path="roles" element={<RolesPage />} />
+                    </Route>
+
+                    {/* Settings — all logged-in users (filtered by role inside component) */}
                     <Route path="settings" element={<SettingsPage />} />
 
                     {/* 404 */}

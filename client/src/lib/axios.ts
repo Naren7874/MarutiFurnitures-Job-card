@@ -70,4 +70,28 @@ export const apiDelete = <T>(url: string) => api.delete<T>(url).then(r => r.data
 export const apiUpload = <T>(url: string, formData: FormData) =>
     api.post<T>(url, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
 
+/** Download PDF — fetches from backend with auth and triggers browser download */
+export const downloadPdf = async (apiPath: string, filename: string = 'document.pdf') => {
+    const res = await api.get(apiPath, { responseType: 'blob' });
+    const blob = new Blob([res.data], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+
+    // Ensure filename always has .pdf extension
+    let finalName = filename || 'document.pdf';
+    if (!finalName.endsWith('.pdf')) finalName += '.pdf';
+
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = finalName;
+    document.body.appendChild(a);
+    a.click();
+
+    // Cleanup safely
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+};
+
 export default api;

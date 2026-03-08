@@ -179,17 +179,17 @@ export const sendInvoice = async (req, res, next) => {
 export const getInvoicePDF = async (req, res, next) => {
   try {
     const invoice = await Invoice.findOne({ _id: req.params.id, ...req.companyFilter })
-      .populate('clientId').lean();
+      .populate('clientId')
+      .populate('projectId', 'projectName')
+      .lean();
     if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
 
     const company = await Company.findById(req.user.companyId).lean();
     const { renderPDF } = await import('../utils/generatePDF.js');
     const pdfBuffer = await renderPDF('invoice', {
-      INVOICE_NUMBER:  invoice.invoiceNumber,
-      CLIENT_NAME:     invoice.clientId?.name,
-      GRAND_TOTAL:     invoice.grandTotal?.toLocaleString('en-IN'),
-      BALANCE_DUE:     invoice.balanceDue?.toLocaleString('en-IN'),
-      COMPANY_NAME:    company.name,
+      company,
+      invoice,
+      client: invoice.clientId || {},
     });
 
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${invoice.invoiceNumber}.pdf"` });

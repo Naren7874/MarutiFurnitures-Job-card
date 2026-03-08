@@ -5,6 +5,8 @@ const itemSchema = new mongoose.Schema(
     srNo:        { type: Number, required: true },
     description: { type: String, required: true },
     photo:       { type: String },                       // Cloudinary URL — printed on PDF
+    fabricPhoto: { type: String },                       // Secondary photo for fabric/texture
+
     specifications: {
       size:     String,
       polish:   String,

@@ -209,6 +209,16 @@ export const resetPassword = async (req, res, next) => {
     user.resetPasswordExpires = undefined;
     await user.save();
 
+    auditLog(req, {
+      action: 'password_reset',
+      resourceType: 'User',
+      resourceId: user._id,
+      resourceLabel: user.name,
+      metadata: { method: 'forgot_password_link' },
+      // Pass actor explicitly — no JWT on this public route
+      actor: { id: user._id, name: user.name, role: user.role, companyId: user.companyId },
+    });
+
     const token = signToken(buildTokenPayload(user));
     res.status(200).json({ success: true, token, message: 'Password reset successful' });
   } catch (err) {

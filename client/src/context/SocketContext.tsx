@@ -16,7 +16,8 @@ import { useNotificationStore } from '../stores/notificationStore';
 import { useQueryClient } from '@tanstack/react-query';
 import { QK } from '../hooks/useApi';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000');
+
 
 const SocketContext = createContext<Socket | null>(null);
 

@@ -4,152 +4,137 @@
 <meta charset="UTF-8"/>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
   body {
     font-family: Arial, sans-serif;
     font-size: 11px;
     color: #1a1a1a;
     background: #fff;
+    padding: 20px;
   }
-
-  /* ── HEADER ── */
+  
+  /* HEADER */
   .header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    border-bottom: 3px solid #1a1a1a;
-    padding-bottom: 10px;
-    margin-bottom: 10px;
+    align-items: center;
+    border-bottom: 2px solid #e53935;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
   }
-  .header-left { display: flex; align-items: center; gap: 12px; }
-  .header-left img { height: 55px; object-fit: contain; }
-  .company-name { font-size: 18px; font-weight: 800; }
-  .company-sub  { font-size: 9.5px; color: #555; margin-top: 2px; }
-  .company-contact { font-size: 9.5px; color: #333; text-align: right; line-height: 1.7; }
+  .header-left {
+    font-size: 11px;
+    line-height: 1.6;
+    color: #333;
+  }
+  .header-icon {
+    color: #e53935;
+    margin-right: 5px;
+    font-weight: bold;
+  }
+  .header-right {
+    text-align: right;
+  }
+  .header-right img {
+    height: 50px;
+    object-fit: contain;
+    margin-bottom: 4px;
+  }
+  .company-tagline {
+    font-size: 12px;
+    font-weight: 800;
+  }
 
-  /* ── DOCUMENT TITLE ── */
+  /* DOCUMENT TITLE */
   .doc-title {
     text-align: center;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 900;
-    letter-spacing: 4px;
-    color: #1a1a1a;
-    margin-bottom: 10px;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
   }
 
-  /* ── META TABLE ── */
+  /* META TABLE */
   .meta-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 12px;
-    border: 1.5px solid #1a1a1a;
+    margin-bottom: 25px;
+    border: 1px solid #ccc;
   }
   .meta-table td {
-    padding: 5px 8px;
-    border: 1px solid #bbb;
-    font-size: 10.5px;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    font-size: 11.5px;
   }
   .meta-table .label {
-    font-weight: 700;
-    background: #f0f0f0;
-    width: 130px;
+    font-weight: bold;
+    background-color: #f2f2f2;
+    width: 18%;
   }
-  .meta-table .value-bold { font-weight: 700; }
+  .meta-table .value {
+    width: 32%;
+  }
+  .meta-table .value-full {
+    background-color: #f2f2f2;
+    font-weight: normal;
+  }
 
-  /* ── ITEMS TABLE ── */
+  /* ITEMS TABLE */
   .items-table {
     width: 100%;
     border-collapse: collapse;
   }
   .items-table th {
-    background: #1a1a1a;
-    color: #fff;
-    font-weight: 700;
-    padding: 7px 10px;
-    border: 1px solid #333;
-    font-size: 11.5px;
-    letter-spacing: 1px;
+    font-weight: bold;
+    padding: 8px 10px;
+    border: 1px solid #777;
+    font-size: 12px;
+    text-align: left;
   }
   .items-table td {
     border: 1px solid #ccc;
-    padding: 10px;
+    padding: 12px;
     vertical-align: top;
   }
-  .items-table tr:nth-child(even) td { background: #fafafa; }
+  .col-no {
+    width: 50px;
+    text-align: center;
+    font-weight: normal;
+    font-size: 12px;
+  }
 
-  .col-no   { width: 35px; text-align: center; font-weight: 700; font-size: 13px; }
-  .col-item { }
-
-  /* Photos grid inside item cell */
+  /* ITEM CELL */
   .photo-grid {
     display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
+    gap: 10px;
+    margin-bottom: 10px;
   }
   .item-photo {
-    width: 130px;
-    height: 110px;
+    width: 160px;
+    height: 160px;
     object-fit: cover;
-    border-radius: 4px;
-    border: 1px solid #ccc;
   }
-  .no-photo {
-    width: 130px; height: 110px;
-    background: #f0f0f0;
-    display: flex; align-items: center;
-    justify-content: center;
-    font-size: 9px; color: #aaa;
-    border-radius: 4px;
-    border: 1px dashed #ccc;
-  }
-
-  /* Item description block */
+  
   .item-title {
-    font-size: 13px;
-    font-weight: 700;
-    color: #1a1a1a;
-    margin-bottom: 5px;
+    font-size: 14px;
+    color: #2e6073;
+    margin-bottom: 4px;
   }
+  
   .spec-line {
-    font-size: 10.5px;
-    color: #333;
-    line-height: 1.8;
-  }
-  .spec-line span { display: block; }
-  .spec-key { font-weight: 600; color: #1a1a1a; }
-
-  /* ── FOOTER ── */
-  .footer {
-    margin-top: 18px;
-    border-top: 2px solid #1a1a1a;
-    padding-top: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    font-size: 9.5px;
-    color: #555;
-  }
-  .sign-box {
-    text-align: center;
-    border-top: 1px solid #333;
-    padding-top: 5px;
-    width: 150px;
-    font-size: 10px;
+    font-size: 11.5px;
     color: #1a1a1a;
+    line-height: 1.6;
   }
-  .priority-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 3px;
-    font-weight: 700;
-    font-size: 10px;
-    letter-spacing: 1px;
+
+  /* BOTTOM ACCENT */
+  .bottom-accent {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 25px;
+    background-color: #e53935;
   }
-  .priority-low      { background: #e8f5e9; color: #2e7d32; }
-  .priority-medium   { background: #fff3e0; color: #e65100; }
-  .priority-high     { background: #fce4ec; color: #c62828; }
-  .priority-urgent   { background: #b71c1c; color: #fff; }
 </style>
 </head>
 <body>
@@ -157,171 +142,92 @@
   <!-- HEADER -->
   <div class="header">
     <div class="header-left">
+      <div><span class="header-icon">📞</span> <%= company.phone %></div>
+      <% if(company.email) { %><div><span class="header-icon">✉</span> <%= company.email %></div><% } %>
+      <% if(company.website) { %><div><span class="header-icon">🌐</span> <%= company.website %></div><% } %>
+    </div>
+    <div class="header-right">
       <% if (company.logo) { %>
         <img src="<%= company.logo %>" alt="logo"/>
+      <% } else { %>
+        <div style="font-size:24px; font-weight:900; color:#e53935;"><%= company.name %></div>
       <% } %>
-      <div>
-        <div class="company-name"><%= company.name %></div>
-        <div class="company-sub"><%= company.tagline || '' %></div>
-        <div class="company-sub">
-          <%= company.phone %>
-          <% if(company.email) { %> &nbsp;|&nbsp; <%= company.email %><% } %>
-          <% if(company.website) { %> &nbsp;|&nbsp; <%= company.website %><% } %>
-        </div>
-      </div>
-    </div>
-    <div class="company-contact">
-      <%= company.address.line1 %><br/>
-      <% if(company.address.line2) { %><%= company.address.line2 %><br/><% } %>
-      <%= company.address.city %>, <%= company.address.state %><br/>
-      GSTIN: <%= company.gstin || '—' %>
+      <div class="company-tagline"><%= company.tagline || 'The Solid Wood Furniture Makers' %></div>
     </div>
   </div>
 
-  <!-- DOCUMENT TITLE -->
   <div class="doc-title">JOB CARD</div>
 
-  <!-- META INFO — exactly like your paper job card -->
+  <!-- META INFO -->
   <table class="meta-table">
     <tr>
-      <td class="label">Job Card No.</td>
-      <td class="value-bold"><%= jobCard.jobCardNumber %></td>
-      <td class="label">Order Date</td>
-      <td><%= new Date(jobCard.orderDate).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'2-digit'}) %></td>
+      <td class="label">Job Card No.:</td>
+      <td class="value"><strong><%= jobCard.jobCardNumber %></strong></td>
+      <td class="label">Order Date:</td>
+      <td class="value"><strong><%= new Date(jobCard.orderDate).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'2-digit'}) %></strong></td>
     </tr>
     <tr>
-      <td class="label">Name</td>
-      <td colspan="3"><%= client.name %><% if(client.firmName){ %> — <%= client.firmName %><% } %></td>
+      <td class="label">Name:</td>
+      <td colspan="3" class="value-full"><%= client.name %><% if(client.firmName){ %> — <%= client.firmName %><% } %></td>
     </tr>
     <tr>
-      <td class="label">Contact Person</td>
-      <td><%= jobCard.salesperson.name || '—' %></td>
-      <td class="label">Salesperson Name</td>
-      <td><%= jobCard.salesperson.name || '—' %></td>
+      <td class="label">Contact Person:</td>
+      <td class="value"><%= jobCard.salesperson && jobCard.salesperson.name ? jobCard.salesperson.name : '—' %></td>
+      <td class="label">Salesperson Name:</td>
+      <td class="value"><%= jobCard.salesperson && jobCard.salesperson.name ? jobCard.salesperson.name : '—' %></td>
     </tr>
     <tr>
-      <td class="label">Location</td>
-      <td><%= client.address ? client.address.city : '—' %></td>
-      <td class="label">Delivery Date</td>
-      <td>
-        <strong>
-          <%= jobCard.expectedDelivery
-            ? new Date(jobCard.expectedDelivery).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'2-digit'})
-            : '—' %>
-        </strong>
-      </td>
-    </tr>
-    <tr>
-      <td class="label">Project</td>
-      <td><%= jobCard.title %></td>
-      <td class="label">Priority</td>
-      <td>
-        <span class="priority-badge priority-<%= jobCard.priority %>">
-          <%= jobCard.priority.toUpperCase() %>
-        </span>
+      <td class="label">Location:</td>
+      <td class="value"><%= client.address ? client.address.city : '—' %></td>
+      <td class="label">Delivery Date:</td>
+      <td class="value">
+        <%= jobCard.expectedDelivery ? new Date(jobCard.expectedDelivery).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'2-digit'}) : '—' %>
       </td>
     </tr>
   </table>
 
-  <!-- ITEMS TABLE — simple photo + specs, exactly like your paper JC -->
+  <!-- ITEMS TABLE -->
   <table class="items-table">
     <thead>
       <tr>
-        <th class="col-no">No.</th>
-        <th class="col-item">Item</th>
+        <th class="col-no" style="text-align:center;">No.</th>
+        <th>Item</th>
       </tr>
     </thead>
     <tbody>
       <% jobCard.items.forEach(function(item) { %>
         <tr>
-          <!-- SR NO -->
           <td class="col-no"><%= item.srNo %></td>
-
-          <!-- ITEM DETAILS -->
-          <td class="col-item">
-
-            <!-- Photos — same as your paper job card (reference photo + fabric photo) -->
+          <td>
+            <!-- Photos -->
             <div class="photo-grid">
               <% if (item.photo) { %>
-                <img src="<%= item.photo %>" class="item-photo" alt="item photo"/>
-              <% } else { %>
-                <div class="no-photo">No Photo</div>
+                <img src="<%= item.photo %>" class="item-photo" alt="Item Photo"/>
+              <% } %>
+              <% if (item.fabricPhoto) { %>
+                <img src="<%= item.fabricPhoto %>" class="item-photo" alt="Fabric Photo"/>
               <% } %>
             </div>
 
-            <!-- Description + specs — clean and readable for workshop -->
+            <!-- Description -->
             <div class="item-title"><%= item.description %></div>
 
+            <!-- Specs -->
             <div class="spec-line">
-              <span>
-                <span class="spec-key">Qty:</span>
-                <%= item.qty %> <%= item.unit %>
-              </span>
-              <% if(item.specifications.size) { %>
-              <span>
-                <span class="spec-key">Size:</span>
-                <%= item.specifications.size %>
-              </span>
-              <% } %>
-              <% if(item.specifications.material) { %>
-              <span>
-                <span class="spec-key">Material:</span>
-                <%= item.specifications.material %>
-              </span>
-              <% } %>
-              <% if(item.specifications.polish) { %>
-              <span>
-                <span class="spec-key">Polish:</span>
-                <%= item.specifications.polish %>
-              </span>
-              <% } %>
-              <% if(item.specifications.fabric) { %>
-              <span>
-                <span class="spec-key">Fabric:</span>
-                <%= item.specifications.fabric %>
-              </span>
-              <% } %>
-              <% if(item.specifications.finish) { %>
-              <span>
-                <span class="spec-key">Finish:</span>
-                <%= item.specifications.finish %>
-              </span>
-              <% } %>
-              <% if(item.specifications.hardware) { %>
-              <span>
-                <span class="spec-key">Hardware:</span>
-                <%= item.specifications.hardware %>
-              </span>
-              <% } %>
-              <% if(item.specifications.notes) { %>
-              <span>
-                <span class="spec-key">Note:</span>
-                <%= item.specifications.notes %>
-              </span>
-              <% } %>
+              <%= item.description %> : <%= item.qty %> <%= item.unit %><br/>
+              <% if(item.specifications && item.specifications.polish) { %>Polish : <%= item.specifications.polish %><br/><% } %>
+              <% if(item.specifications && item.specifications.size) { %>Size : <%= item.specifications.size %><br/><% } %>
+              <% if(item.specifications && item.specifications.fabric) { %>Fabric : <%= item.specifications.fabric %><br/><% } %>
+              <% if(item.specifications && item.specifications.material) { %>Material : <%= item.specifications.material %><br/><% } %>
+              <% if(item.specifications && item.specifications.notes) { %>Note : <%= item.specifications.notes %><br/><% } %>
             </div>
-
           </td>
         </tr>
       <% }); %>
     </tbody>
   </table>
 
-  <!-- FOOTER -->
-  <div class="footer">
-    <div>
-      Generated: <%= new Date().toLocaleDateString('en-IN') %><br/>
-      Job Card: <strong><%= jobCard.jobCardNumber %></strong>
-    </div>
-    <div style="text-align:center; font-size:9px; color:#aaa;">
-      This is a computer-generated job card.<br/>
-      <%= company.name %> — <%= company.website || company.phone %>
-    </div>
-    <div class="sign-box">
-      Authorised By<br/>
-      <strong><%= company.name %></strong>
-    </div>
-  </div>
+  <div class="bottom-accent"></div>
 
 </body>
 </html>

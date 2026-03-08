@@ -1,29 +1,67 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Loader2, MapPin, MessageSquare, Sparkles } from 'lucide-react';
-import { useCreateClient } from '../hooks/useApi';
+import {
+    ArrowLeft, Save, Loader2, MapPin, Sparkles,
+    BadgeCheck, User2, Phone,
+} from 'lucide-react';
+import { useCreateClient, useVerifyGST } from '../hooks/useApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
+
+const CLIENT_TYPES = [
+    { value: 'direct_client', label: 'Direct Client', desc: 'Homeowner or individual buyer' },
+    { value: 'architect', label: 'Architect', desc: 'Design professional' },
+    { value: 'designer', label: 'Interior Designer', desc: 'Design studio or firm' },
+    { value: 'contractor', label: 'Contractor', desc: 'Construction or builder company' },
+];
 
 export default function NewClientPage() {
     const navigate = useNavigate();
     const create = useCreateClient();
+    const verifyGST = useVerifyGST();
+    const [gstStatus, setGstStatus] = useState<'idle' | 'verifying' | 'verified' | 'failed'>('idle');
 
     const [form, setForm] = useState({
-        name: '', phone: '', email: '', whatsapp: '',
-        clientType: 'individual', firmName: '', gstin: '',
+        clientType: 'direct_client',
+        name: '',
+        firmName: '',
+        phone: '',
+        whatsappNumber: '',
+        email: '',
+        gstin: '',
         notes: '',
-        address: { street: '', city: '', state: '', pincode: '' },
+        address: { line1: '', line2: '', city: '', state: '', pincode: '' },
     });
 
     const set = (field: string, value: string) => setForm(f => ({ ...f, [field]: value }));
     const setAddr = (field: string, value: string) =>
         setForm(f => ({ ...f, address: { ...f.address, [field]: value } }));
+
+    const handleVerifyGST = async () => {
+        if (!form.gstin || form.gstin.length !== 15) return;
+        setGstStatus('verifying');
+        try {
+            const res: any = await verifyGST.mutateAsync({ gstin: form.gstin });
+            if (res?.data) {
+                setForm(f => ({
+                    ...f,
+                    firmName: res.data.legalName || f.firmName,
+                    address: {
+                        ...f.address,
+                        state: res.data.stateName || f.address.state,
+                    },
+                }));
+                setGstStatus('verified');
+            } else {
+                setGstStatus('failed');
+            }
+        } catch {
+            setGstStatus('failed');
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,239 +69,227 @@ export default function NewClientPage() {
         navigate('/clients');
     };
 
+    const selectedType = CLIENT_TYPES.find(t => t.value === form.clientType);
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="p-8 max-w-4xl mx-auto space-y-12"
+            className="p-6 md:p-8 max-w-5xl mx-auto space-y-10"
         >
-            {/* Header / Navigation */}
+            {/* Header */}
             <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-6"
+                className="flex items-center justify-between gap-6"
             >
                 <button
                     type="button"
                     onClick={() => navigate(-1)}
                     className="group flex items-center gap-3 text-muted-foreground hover:text-primary transition-all text-xs font-black uppercase tracking-widest"
                 >
-                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-card dark:bg-muted/40 border border-border dark:border-transparent group-hover:bg-primary/10 transition-colors">
+                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border group-hover:bg-primary/10 transition-colors">
                         <ArrowLeft size={16} />
                     </div>
-                    Discard Entry
+                    Back
                 </button>
-                <div className="flex items-center gap-3">
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary/40 shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+                <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary/40" />
                     <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest opacity-70">
-                        New Entity Registration
+                        New Client Registration
                     </p>
                 </div>
             </motion.div>
 
-            <div className="space-y-1 text-center md:text-left">
-                <h1 className="text-foreground text-4xl md:text-5xl font-black tracking-tighter leading-none mb-4">Onboard New Client</h1>
-                <p className="text-muted-foreground text-lg font-bold opacity-60">Initialize a new relationship within the Maruti ecosystem.</p>
+            <div>
+                <h1 className="text-foreground text-4xl font-black tracking-tighter mb-2">Register New Client</h1>
+                <p className="text-muted-foreground text-sm font-semibold opacity-60">
+                    Add an external client — this is separate from your internal staff.
+                </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-10 pb-20">
-                {/* Identification Matrix */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="md:col-span-8 space-y-8"
-                    >
-                        <Section title="Primary Identification" icon={Sparkles}>
-                            <div className="grid gap-8">
-                                <FormField label="Entity Name or Core Project">
-                                    <Input
-                                        required
-                                        value={form.name}
-                                        onChange={(e) => set('name', e.target.value)}
-                                        placeholder="e.g. Skyline Residency / Rohan Gupta"
-                                        className="bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-14 rounded-2xl focus:ring-2 focus:ring-primary/20 transition-all font-black text-lg tracking-tight px-6 shadow-sm"
-                                    />
-                                </FormField>
+            <form onSubmit={handleSubmit} className="space-y-8 pb-20">
 
+                {/* === Client Type === */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {CLIENT_TYPES.map(t => (
+                        <button
+                            key={t.value}
+                            type="button"
+                            onClick={() => set('clientType', t.value)}
+                            className={cn(
+                                'flex flex-col items-start gap-1.5 p-4 rounded-2xl border-2 text-left transition-all',
+                                form.clientType === t.value
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-border bg-card hover:border-border/80 hover:bg-accent/5'
+                            )}
+                        >
+                            <p className={cn('text-xs font-black uppercase tracking-wider', form.clientType === t.value ? 'text-primary' : 'text-foreground/70')}>{t.label}</p>
+                            <p className="text-[10px] text-muted-foreground/50 font-medium">{t.desc}</p>
+                        </button>
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+                    {/* === Left column === */}
+                    <div className="md:col-span-8 space-y-6">
+
+                        {/* Identity */}
+                        <Section title="Contact Identity" icon={User2}>
+                            <div className="grid gap-6">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    <FormField label="Classification">
-                                        <Select value={form.clientType} onValueChange={(v: string) => set('clientType', v)}>
-                                            <SelectTrigger className="h-12 bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground rounded-2xl font-black text-[10px] uppercase tracking-widest px-6 shadow-sm focus:ring-primary/10 transition-all">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent className="rounded-2xl shadow-2xl">
-                                                <SelectItem value="individual" className="rounded-xl font-black text-[10px] uppercase tracking-widest py-3 hover:bg-primary/10">Individual / Residential</SelectItem>
-                                                <SelectItem value="company" className="rounded-xl font-black text-[10px] uppercase tracking-widest py-3 hover:bg-primary/10">Company / Commercial</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                    <FormField label="Contact Name *">
+                                        <Input
+                                            required
+                                            value={form.name}
+                                            onChange={(e) => set('name', e.target.value)}
+                                            placeholder="e.g. Rohan Gupta"
+                                            className={inputCls}
+                                        />
                                     </FormField>
-
-                                    {form.clientType === 'company' && (
-                                        <motion.div
-                                            initial={{ opacity: 0, scale: 0.95 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                        >
-                                            <FormField label="Corporate Firm Name">
-                                                <Input
-                                                    value={form.firmName}
-                                                    onChange={(e) => set('firmName', e.target.value)}
-                                                    placeholder="Business Name"
-                                                    className="bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-black tracking-tight px-6 shadow-sm"
-                                                />
-                                            </FormField>
-                                        </motion.div>
-                                    )}
+                                    <FormField label="Firm / Company Name">
+                                        <Input
+                                            value={form.firmName}
+                                            onChange={(e) => set('firmName', e.target.value)}
+                                            placeholder={selectedType?.value === 'direct_client' ? 'Optional' : 'e.g. Dreamscape Studio'}
+                                            className={inputCls}
+                                        />
+                                    </FormField>
                                 </div>
 
-                                <FormField label="GSTIN Identifier (Optional)">
-                                    <Input
-                                        value={form.gstin}
-                                        onChange={(e) => set('gstin', e.target.value)}
-                                        placeholder="22AAAAA0000A1Z5"
-                                        className="bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl uppercase font-black tracking-[0.2em] text-xs px-6 shadow-sm"
-                                    />
+                                {/* GSTIN with verify */}
+                                <FormField label="GSTIN (Optional — required for GST invoicing)">
+                                    <div className="flex gap-3">
+                                        <Input
+                                            value={form.gstin}
+                                            onChange={(e) => { set('gstin', e.target.value.toUpperCase()); setGstStatus('idle'); }}
+                                            placeholder="22AAAAA0000A1Z5"
+                                            maxLength={15}
+                                            className={cn(inputCls, 'uppercase tracking-[0.15em] font-mono')}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleVerifyGST}
+                                            disabled={form.gstin.length !== 15 || gstStatus === 'verifying'}
+                                            className="shrink-0 h-12 px-5 rounded-xl font-bold text-xs gap-2 transition-all"
+                                        >
+                                            {gstStatus === 'verifying' ? <Loader2 className="animate-spin" size={14} /> : <BadgeCheck size={14} />}
+                                            {gstStatus === 'verifying' ? 'Verifying...' : 'Verify'}
+                                        </Button>
+                                    </div>
+                                    {gstStatus === 'verified' && (
+                                        <p className="text-emerald-500 text-xs font-bold flex items-center gap-1.5 mt-1">
+                                            <BadgeCheck size={12} /> GSTIN verified — firm name & state auto-filled
+                                        </p>
+                                    )}
+                                    {gstStatus === 'failed' && (
+                                        <p className="text-rose-500 text-xs font-bold mt-1">⚠ GSTIN verification failed. Check the number and try again.</p>
+                                    )}
                                 </FormField>
                             </div>
                         </Section>
 
-                        <Section title="Communication Channels" icon={MessageSquare}>
+                        {/* Communication */}
+                        <Section title="Communication Channels" icon={Phone}>
                             <div className="grid gap-6 sm:grid-cols-2">
-                                <FormField label="Primary Link (Phone)">
+                                <FormField label="Phone *">
                                     <Input
                                         required
                                         type="tel"
                                         value={form.phone}
                                         onChange={(e) => set('phone', e.target.value)}
-                                        placeholder="+91 9876543210"
-                                        className="bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-black tracking-wider px-6 shadow-sm"
+                                        placeholder="+91 98765 43210"
+                                        className={inputCls}
                                     />
                                 </FormField>
-                                <FormField label="Direct Messaging (WhatsApp)">
+                                <FormField label="WhatsApp Number">
                                     <Input
                                         type="tel"
-                                        value={form.whatsapp}
-                                        onChange={(e) => set('whatsapp', e.target.value)}
-                                        placeholder="+91 9876543210"
-                                        className="bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-black tracking-wider px-6 shadow-sm"
+                                        value={form.whatsappNumber}
+                                        onChange={(e) => set('whatsappNumber', e.target.value)}
+                                        placeholder="+91 98765 43210"
+                                        className={inputCls}
                                     />
                                 </FormField>
-                                <FormField label="Electronic Mail" className="sm:col-span-2">
+                                <FormField label="Email" className="sm:col-span-2">
                                     <Input
                                         type="email"
                                         value={form.email}
                                         onChange={(e) => set('email', e.target.value)}
-                                        placeholder="client@corporate.domain"
-                                        className="bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-black tracking-tight px-6 shadow-sm"
+                                        placeholder="client@example.com"
+                                        className={inputCls}
                                     />
                                 </FormField>
                             </div>
                         </Section>
-                    </motion.div>
+                    </div>
 
-                    <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="md:col-span-4 space-y-8"
-                    >
-                        <Section title="Geographical Site" icon={MapPin}>
-                            <div className="space-y-6">
-                                <FormField label="Street Detail">
-                                    <Input
-                                        value={form.address.street}
-                                        onChange={(e) => setAddr('street', e.target.value)}
-                                        placeholder="Site Location"
-                                        className="bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-black tracking-tight px-4 shadow-sm"
-                                    />
+                    {/* === Right column === */}
+                    <div className="md:col-span-4 space-y-6">
+                        <Section title="Address" icon={MapPin}>
+                            <div className="space-y-4">
+                                <FormField label="Address Line 1">
+                                    <Input value={form.address.line1} onChange={(e) => setAddr('line1', e.target.value)} placeholder="Street / Building" className={inputCls} />
                                 </FormField>
-                                <div className="grid grid-cols-1 gap-6">
-                                    <FormField label="City Area">
-                                        <Input
-                                            value={form.address.city}
-                                            onChange={(e) => setAddr('city', e.target.value)}
-                                            placeholder="City"
-                                            className="bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-black tracking-tight px-4 shadow-sm"
-                                        />
-                                    </FormField>
-                                    <FormField label="State / Zone">
-                                        <Input
-                                            value={form.address.state}
-                                            onChange={(e) => setAddr('state', e.target.value)}
-                                            placeholder="State"
-                                            className="bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-black tracking-tight px-4 shadow-sm"
-                                        />
-                                    </FormField>
-                                    <FormField label="Standard PIN">
-                                        <Input
-                                            value={form.address.pincode}
-                                            onChange={(e) => setAddr('pincode', e.target.value)}
-                                            placeholder="400001"
-                                            className="bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-black tracking-[0.3em] px-4 shadow-sm"
-                                        />
-                                    </FormField>
-                                </div>
+                                <FormField label="Address Line 2">
+                                    <Input value={form.address.line2} onChange={(e) => setAddr('line2', e.target.value)} placeholder="Area / Locality" className={inputCls} />
+                                </FormField>
+                                <FormField label="City">
+                                    <Input value={form.address.city} onChange={(e) => setAddr('city', e.target.value)} placeholder="City" className={inputCls} />
+                                </FormField>
+                                <FormField label="State">
+                                    <Input value={form.address.state} onChange={(e) => setAddr('state', e.target.value)} placeholder="State" className={inputCls} />
+                                </FormField>
+                                <FormField label="Pincode">
+                                    <Input value={form.address.pincode} onChange={(e) => setAddr('pincode', e.target.value)} placeholder="400001" className={inputCls} />
+                                </FormField>
                             </div>
                         </Section>
 
-                        <Section title="Internal Intelligence" icon={Sparkles}>
+                        <Section title="Internal Notes" icon={Sparkles}>
                             <textarea
                                 value={form.notes}
                                 onChange={(e) => set('notes', e.target.value)}
-                                rows={6}
-                                placeholder="Strategic insights on client requirements or constraints..."
-                                className="w-full bg-white dark:bg-card/40 border border-border dark:border-border/40 rounded-[28px] px-6 py-5 text-foreground text-sm font-bold placeholder:text-muted-foreground/30 resize-none focus:outline-none focus:border-primary/50 transition-all shadow-sm backdrop-blur-md"
+                                rows={4}
+                                placeholder="Any specific client requirements or special notes..."
+                                className="w-full bg-white dark:bg-card/40 border border-border dark:border-border/40 rounded-2xl px-5 py-4 text-foreground text-sm font-medium placeholder:text-muted-foreground/30 resize-none focus:outline-none focus:border-primary/50 transition-all"
                             />
                         </Section>
-                    </motion.div>
+                    </div>
                 </div>
 
-                {/* Submission Flow */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center pt-10"
-                >
-                    <div className="w-full max-w-lg space-y-4">
-                        <Button
-                            type="submit"
-                            disabled={create.isPending}
-                            className="bg-primary text-primary-foreground hover:bg-primary/90 h-16 rounded-[28px] font-black text-xl shadow-[0_20px_50px_-10px_rgba(var(--primary),0.4)] gap-4 w-full transition-all hover:scale-[1.02] active:scale-98 overflow-hidden relative group"
-                        >
-                            <span className="relative z-10 flex items-center justify-center gap-3">
-                                {create.isPending ? <Loader2 className="animate-spin" size={24} /> : <Save size={24} strokeWidth={3} />}
-                                {create.isPending ? 'ORCHESTRATING REGISTRY...' : 'INSTANTIATE ENTITY'}
-                            </span>
-                            <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                        </Button>
-                        <p className="text-muted-foreground/40 text-[9px] font-black uppercase tracking-[0.3em] text-center italic">
-                            By proceeding, you authorize this data into the permanent firm records.
-                        </p>
-                    </div>
-                </motion.div>
+                {/* Submit */}
+                <div className="flex items-center gap-4 pt-4">
+                    <Button
+                        type="submit"
+                        disabled={create.isPending}
+                        className="h-12 px-8 rounded-2xl font-black text-sm gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
+                    >
+                        {create.isPending ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                        {create.isPending ? 'Saving...' : 'Create Client'}
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={() => navigate('/clients')} className="h-12 px-6 rounded-2xl font-bold text-sm text-muted-foreground">
+                        Cancel
+                    </Button>
+                </div>
             </form>
-
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                @keyframes shimmer { 100% { transform: translateX(100%); } }
-                .animate-shimmer { animation: shimmer 1.5s infinite; }
-            ` }} />
         </motion.div>
     );
 }
 
-// ── Components ─────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const inputCls = 'bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-medium px-4 focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/40 shadow-none';
 
 function Section({ title, icon: Icon, children }: { title: string; icon: any; children: React.ReactNode }) {
     return (
-        <div className="bg-white/80 dark:bg-card/20 border border-border dark:border-border/20 rounded-[40px] p-8 space-y-8 shadow-2xl shadow-black/5 backdrop-blur-xl relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-2 h-full bg-primary/10 group-hover:bg-primary/30 transition-colors" />
-            <div className="flex items-center justify-between mb-4">
-                <p className="text-foreground text-sm font-black uppercase tracking-[0.2em] italic">{title}</p>
-                <div className="p-2 rounded-xl bg-muted/50 text-muted-foreground/40 group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                    <Icon size={16} />
+        <div className="bg-white dark:bg-card/20 border border-border dark:border-border/30 rounded-3xl p-6 space-y-5">
+            <div className="flex items-center gap-3 pb-1 border-b border-border/30">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                    <Icon size={14} />
                 </div>
+                <p className="text-foreground text-sm font-black uppercase tracking-wider">{title}</p>
             </div>
             {children}
         </div>
@@ -272,8 +298,8 @@ function Section({ title, icon: Icon, children }: { title: string; icon: any; ch
 
 function FormField({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
     return (
-        <div className={cn("space-y-3", className)}>
-            <label className="text-muted-foreground/40 text-[9px] font-black uppercase tracking-[0.2em] block px-1">{label}</label>
+        <div className={cn('space-y-2', className)}>
+            <label className="text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest block">{label}</label>
             {children}
         </div>
     );

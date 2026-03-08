@@ -115,3 +115,47 @@ export const receivePO = async (req, res, next) => {
     res.status(200).json({ success: true, data: po });
   } catch (err) { next(err); }
 };
+
+// ── GET /api/purchase-orders/:id ─────────────────────────────────────────────
+
+export const getPOById = async (req, res, next) => {
+  try {
+    const po = await PurchaseOrder.findOne({ _id: req.params.id, ...req.companyFilter })
+      .populate('createdBy', 'name role')
+      .populate('approvedBy', 'name role')
+      .populate('items.inventoryId', 'itemName sku unit currentStock')
+      .lean();
+    if (!po) return res.status(404).json({ success: false, message: 'Purchase order not found' });
+    res.status(200).json({ success: true, data: po });
+  } catch (err) { next(err); }
+};
+
+// ── PATCH /api/purchase-orders/:id/cancel ────────────────────────────────────
+
+export const cancelPO = async (req, res, next) => {
+  try {
+    const po = await PurchaseOrder.findOne({ _id: req.params.id, ...req.companyFilter });
+    if (!po) return res.status(404).json({ success: false, message: 'PO not found' });
+    if (po.status === 'received') {
+      return res.status(400).json({ success: false, message: 'Cannot cancel a received PO' });
+    }
+
+    const prev = po.status;
+    po.status       = 'cancelled';
+    po.cancelReason = req.body.reason || '';
+    po.cancelledBy  = req.user.userId;
+    po.cancelledAt  = new Date();
+    await po.save();
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'PurchaseOrder',
+      resourceId: po._id,
+      resourceLabel: po.poNumber,
+      changes: { status: { from: prev, to: 'cancelled' } },
+      metadata: { reason: po.cancelReason },
+    });
+
+    res.status(200).json({ success: true, data: po });
+  } catch (err) { next(err); }
+};

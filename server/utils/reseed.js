@@ -73,23 +73,27 @@ const buildRoles = (companyId) => [
   },
   {
     companyId, name: 'design', isSystem: true, dataScope: 'department', isActive: true,
-    permissions: ['jobcard.view','designrequest.view','designrequest.create','designrequest.edit','designrequest.upload','project.view','notification.view'],
+    permissions: ['jobcard.view','designrequest.view','designrequest.create','designrequest.edit','designrequest.upload','designrequest.signoff','designrequest.ready','project.view','notification.view'],
   },
   {
     companyId, name: 'store', isSystem: true, dataScope: 'department', isActive: true,
-    permissions: ['jobcard.view','storeStage.view','storeStage.edit','storeStage.issue','inventory.view','inventory.create','inventory.edit','purchaseOrder.view','purchaseOrder.create','purchaseOrder.edit','notification.view'],
+    // store sees Design tab read-only (needs measurements to build BOM)
+    permissions: ['jobcard.view','storeStage.view','storeStage.edit','storeStage.issue','inventory.view','inventory.create','inventory.edit','purchaseOrder.view','purchaseOrder.create','purchaseOrder.edit','designrequest.view','notification.view'],
   },
   {
     companyId, name: 'production', isSystem: true, dataScope: 'department', isActive: true,
-    permissions: ['jobcard.view','productionStage.view','productionStage.edit','notification.view'],
+    // production sees Design (measurements) + Store (issued materials) read-only + QC result read-only
+    permissions: ['jobcard.view','productionStage.view','productionStage.edit','designrequest.view','storeStage.view','qcStage.view','notification.view'],
   },
   {
     companyId, name: 'qc', isSystem: true, dataScope: 'department', isActive: true,
-    permissions: ['jobcard.view','qcStage.view','qcStage.edit','qcStage.pass','qcStage.fail','notification.view'],
+    // qc sees Design (specs to verify) + Production (substage history) read-only
+    permissions: ['jobcard.view','qcStage.view','qcStage.edit','qcStage.pass','qcStage.fail','designrequest.view','productionStage.view','notification.view'],
   },
   {
     companyId, name: 'dispatch', isSystem: true, dataScope: 'department', isActive: true,
-    permissions: ['jobcard.view','dispatchStage.view','dispatchStage.edit','dispatchStage.deliver','notification.view'],
+    // dispatch sees QC tab read-only (QC cert PDF to carry on delivery)
+    permissions: ['jobcard.view','dispatchStage.view','dispatchStage.edit','dispatchStage.deliver','qcStage.view','notification.view'],
   },
   {
     companyId, name: 'accountant', isSystem: true, dataScope: 'all', isActive: true,

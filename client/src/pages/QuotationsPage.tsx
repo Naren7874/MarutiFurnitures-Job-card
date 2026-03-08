@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, FileText, Clock, MoreHorizontal } from 'lucide-react';
 import { useQuotations } from '../hooks/useApi';
+import { useAuthStore } from '../stores/authStore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +24,8 @@ export default function QuotationsPage() {
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('');
     const [page, setPage] = useState(1);
+    const { hasPermission } = useAuthStore();
+    const canCreate = hasPermission('quotation.create');
 
     const { data: raw, isLoading } = useQuotations({ search, status, page, limit: 20 });
     const resp: any = raw;
@@ -46,11 +49,13 @@ export default function QuotationsPage() {
                         </p>
                     </div>
                 </div>
-                <Link to="/quotations/new">
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                        <Plus size={18} strokeWidth={3} /> Create Quotation
-                    </Button>
-                </Link>
+                {canCreate && (
+                    <Link to="/quotations/new">
+                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                            <Plus size={18} strokeWidth={3} /> Create Quotation
+                        </Button>
+                    </Link>
+                )}
             </motion.div>
 
             {/* Filters Section */}
