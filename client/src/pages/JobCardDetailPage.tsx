@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'motion/react';
 import { PhotoUploadZone } from '@/components/ui/photo-upload-zone';
 import { cn } from '../lib/utils';
+import { ImagePreview } from '@/components/ui/image-preview';
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -248,16 +249,34 @@ function OverviewTab({ jc }: any) {
                                     <tr key={item._id} className="hover:bg-muted/10 transition-colors">
                                         <td className="px-4 py-3 text-center font-bold text-muted-foreground/60">{item.srNo}</td>
                                         <td className="px-4 py-3">
-                                            <p className="font-bold text-foreground text-sm">{item.description}</p>
-                                            {item.specifications && (
-                                                <div className="mt-1 flex flex-wrap gap-2">
-                                                    {Object.entries(item.specifications).filter(([_, v]) => v).map(([k, v]) => (
-                                                        <span key={k} className="text-[10px] font-bold text-muted-foreground/70 bg-muted/40 px-2 py-0.5 rounded-md border border-border/40 capitalize">
-                                                            {k}: {String(v)}
-                                                        </span>
-                                                    ))}
+                                            <div className="flex gap-4">
+                                                {(item.photo || item.fabricPhoto) && (
+                                                    <div className="flex gap-2 shrink-0">
+                                                        {item.photo && (
+                                                            <div className="w-14 h-14">
+                                                                <ImagePreview src={item.photo} alt="Main" />
+                                                            </div>
+                                                        )}
+                                                        {item.fabricPhoto && (
+                                                            <div className="w-14 h-14">
+                                                                <ImagePreview src={item.fabricPhoto} alt="Fabric" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                <div className="flex-1">
+                                                    <p className="font-bold text-foreground text-sm">{item.description}</p>
+                                                    {item.specifications && (
+                                                        <div className="mt-1 flex flex-wrap gap-2">
+                                                            {Object.entries(item.specifications).filter(([_, v]) => v).map(([k, v]) => (
+                                                                <span key={k} className="text-[10px] font-bold text-muted-foreground/70 bg-muted/40 px-2 py-0.5 rounded-md border border-border/40 capitalize">
+                                                                    {k}: {String(v)}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3 text-center font-black text-sm">{item.qty} {item.unit || 'pcs'}</td>
                                     </tr>
@@ -978,17 +997,20 @@ function EditJobCardModal({ jc, onClose, onSuccess }: any) {
         onSuccess,
     });
 
-    const addItem = () => setItems([...items, { description: '', qty: 1, unit: 'pcs', srNo: items.length + 1 }]);
+    const addItem = () => setItems(prev => [...prev, { description: '', qty: 1, unit: 'pcs', srNo: prev.length + 1 }]);
     const updateItem = (index: number, field: string, value: any) => {
-        const newItems = [...items];
-        newItems[index] = { ...newItems[index], [field]: value };
-        setItems(newItems);
+        setItems(prev => {
+            const newItems = [...prev];
+            if (!newItems[index]) return prev;
+            newItems[index] = { ...newItems[index], [field]: value };
+            return newItems;
+        });
     };
     const removeItem = (index: number) => {
-        const newItems = items.filter((_, i) => i !== index);
-        // Re-number
-        newItems.forEach((it, i) => { it.srNo = i + 1; });
-        setItems(newItems);
+        setItems(prev => {
+            const newItems = prev.filter((_, i) => i !== index);
+            return newItems.map((it, i) => ({ ...it, srNo: i + 1 }));
+        });
     };
 
     const handlePhotoUpload = async (index: number, file: File, type: 'photo' | 'fabricPhoto' = 'photo') => {

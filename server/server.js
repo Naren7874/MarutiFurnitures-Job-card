@@ -1,9 +1,9 @@
+import 'dotenv/config';
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
@@ -14,8 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 
-// ── Environment ──────────────────────────────────────────────────────────────
-dotenv.config();
+// ── Environment (handled by top-level import) ───────────────────────────────
 
 // ── Database ─────────────────────────────────────────────────────────────────
 connectDB();

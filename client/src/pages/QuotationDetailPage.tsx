@@ -13,6 +13,7 @@ import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { ImagePreview } from '@/components/ui/image-preview';
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -303,8 +304,27 @@ export default function QuotationDetailPage() {
                                             <td className="px-5 py-4 text-muted-foreground/30 font-black text-xs">{item.srNo}</td>
                                             <td className="px-5 py-4">
                                                 {item.category && <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/40 mb-0.5">{item.category}</p>}
-                                                <p className="text-sm font-bold text-foreground">{item.description}</p>
-                                                {item.specifications?.size && <p className="text-[10px] text-muted-foreground/40 font-medium mt-0.5">{item.specifications.size}</p>}
+                                                <div className="flex gap-4">
+                                                    {(item.photo || item.fabricPhoto) && (
+                                                        <div className="flex gap-2 shrink-0">
+                                                            {item.photo && (
+                                                                <div className="w-16 h-16">
+                                                                    <ImagePreview src={item.photo} alt="Main" />
+                                                                </div>
+                                                            )}
+                                                            {item.fabricPhoto && (
+                                                                <div className="w-16 h-16">
+                                                                    <ImagePreview src={item.fabricPhoto} alt="Fabric" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    <div className="flex-1">
+                                                        <p className="text-sm font-bold text-foreground">{item.description}</p>
+                                                        {item.specifications?.size && <p className="text-[10px] text-muted-foreground/40 font-medium mt-0.5">{item.specifications.size}</p>}
+                                                        {item.specifications?.material && <p className="text-[10px] text-muted-foreground/40 font-medium">{item.specifications.material}</p>}
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td className="px-5 py-4 text-sm font-bold text-foreground/70">{item.qty} {item.unit || 'pcs'}</td>
                                             <td className="px-5 py-4 text-sm font-bold text-foreground/70">{fmt(item.sellingPrice)}</td>

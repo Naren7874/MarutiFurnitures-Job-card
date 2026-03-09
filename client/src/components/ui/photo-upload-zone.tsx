@@ -31,26 +31,38 @@ export function PhotoUploadZone({
 
     if (photoUrl) {
         return (
-            <div className="relative w-full h-[140px] rounded-2xl overflow-hidden group/photo border border-border/40">
-                <img src={photoUrl} alt="Item photo" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-all flex items-center justify-center gap-2">
+            <div className="relative w-full h-[140px] rounded-2xl overflow-hidden group/photo border border-border/40 bg-muted/20 shadow-sm transition-all hover:shadow-md">
+                <img src={photoUrl} alt="Item photo" className="w-full h-full object-cover transition-transform duration-500 group-hover/photo:scale-110" />
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/photo:opacity-100 transition-all duration-300 flex items-center justify-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => window.open(photoUrl, '_blank')}
+                        className="bg-white/10 backdrop-blur-md text-white p-2.5 rounded-xl hover:bg-white/20 transition-all hover:scale-110 active:scale-95"
+                        title="View Full Image"
+                    >
+                        <ImagePlus size={16} />
+                    </button>
                     <button
                         type="button"
                         onClick={() => inputRef.current?.click()}
-                        className="bg-white/90 text-foreground p-2 rounded-xl hover:bg-white transition"
+                        className="bg-white/10 backdrop-blur-md text-white p-2.5 rounded-xl hover:bg-white/20 transition-all hover:scale-110 active:scale-95"
+                        title="Change Photo"
                     >
-                        <ImagePlus size={14} />
+                        <Loader2 size={16} className={uploading ? "animate-spin" : ""} />
                     </button>
                     <button
                         type="button"
                         onClick={onRemove}
-                        className="bg-red-500 text-white p-2 rounded-xl hover:bg-red-600 transition"
+                        className="bg-rose-500/80 backdrop-blur-md text-white p-2.5 rounded-xl hover:bg-rose-600 transition-all hover:scale-110 active:scale-95"
+                        title="Remove Photo"
                     >
-                        <X size={14} />
+                        <X size={16} />
                     </button>
                 </div>
-                <div className="absolute top-2 right-2">
-                    <CheckCircle2 size={16} className="text-emerald-400 drop-shadow" />
+                <div className="absolute top-2 right-2 pointer-events-none">
+                    <div className="bg-emerald-500 text-white p-1 rounded-full shadow-lg scale-90">
+                        <CheckCircle2 size={12} />
+                    </div>
                 </div>
                 <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </div>
