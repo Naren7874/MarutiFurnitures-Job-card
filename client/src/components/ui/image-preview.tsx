@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogTrigger } from './dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from './dialog';
 import { Maximize2 } from 'lucide-react';
 
 export function ImagePreview({ src, alt }: { src: string; alt?: string }) {
@@ -15,6 +15,7 @@ export function ImagePreview({ src, alt }: { src: string; alt?: string }) {
                 </div>
             </DialogTrigger>
             <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none shadow-none sm:max-w-3xl">
+                <DialogTitle className="sr-only">Image Preview</DialogTitle>
                 <div className="relative w-full h-full flex items-center justify-center p-4">
                     <img
                         src={src}

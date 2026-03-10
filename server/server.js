@@ -27,7 +27,18 @@ const server = http.createServer(app);
 initSocket(server);
 
 // ── Core Middleware ──────────────────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "blob:", "res.cloudinary.com", "*.cloudinary.com"],
+      "connect-src": ["'self'", "res.cloudinary.com", "*.cloudinary.com", "wss:", "ws:"],
+      "style-src": ["'self'", "'unsafe-inline'"],
+      "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+    },
+  },
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(cors({
   // In production (served via ngrok) accept any origin.
