@@ -53,17 +53,7 @@ interface AppRole {
     permissions: string[]; dataScope: string; isActive: boolean
 }
 
-const ROLES: { value: UserRole; label: string; color: string }[] = [
-    { value: 'super_admin', label: 'Super Admin', color: '#EF4444' },
-    { value: 'sales', label: 'Sales', color: '#8B5CF6' },
-    { value: 'design', label: 'Design', color: '#6366F1' },
-    { value: 'store', label: 'Store', color: '#F59E0B' },
-    { value: 'production', label: 'Production', color: '#1315E5' },
-    { value: 'qc', label: 'Quality Control', color: '#10B981' },
-    { value: 'dispatch', label: 'Dispatch', color: '#F97316' },
-    { value: 'accountant', label: 'Accountant', color: '#EC4899' },
-    { value: 'client', label: 'Client', color: '#64748B' },
-]
+
 
 // SRS §5.3 — full permission list grouped by module
 const ALL_PERMISSIONS = [
