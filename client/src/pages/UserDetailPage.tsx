@@ -5,7 +5,7 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import {
     ArrowLeft, User, ShieldCheck, ShieldX, ShieldAlert, Shield,
     Clock, Trash2, Plus, Loader2, CheckCircle2, AlertCircle,
-    Key, UserX, UserCheck, History, Package, Mail, Phone
+    Key, UserX, UserCheck, History, Mail, Phone
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ import api from '@/lib/axios'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type UserRole = 'super_admin' | 'sales' | 'design' | 'store' | 'production' | 'qc' | 'dispatch' | 'accountant' | 'client'
+type UserRole = string
 
 interface AppUser {
     _id: string; name: string; email: string; role: UserRole
@@ -29,13 +29,11 @@ interface Override {
     reason?: string; expiresAt?: string; grantedBy?: { name: string }; grantedAt: string
 }
 
-interface PermissionSet { _id: string; name: string; description?: string; permissions: string[] }
 
 interface UserPermData {
     user: AppUser
     permissions: {
         roleId?: { name: string; permissions: string[] }
-        permissionSetIds?: PermissionSet[]
         overrides?: Override[]
         effectivePermissions?: string[]
     } | null
@@ -48,6 +46,12 @@ interface AuditEntry {
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
+
+// Dynamic roles are fetched from the API — system + custom
+interface AppRole {
+    _id: string; name: string; isSystem: boolean
+    permissions: string[]; dataScope: string; isActive: boolean
+}
 
 const ROLES: { value: UserRole; label: string; color: string }[] = [
     { value: 'super_admin', label: 'Super Admin', color: '#EF4444' },
@@ -95,17 +99,24 @@ const ACTION_COLORS: Record<string, string> = {
 
 const fetchUser = (id: string) => api.get(`/users/${id}`).then(r => r.data.data)
 const fetchPerms = (id: string) => api.get(`/privileges/users/${id}`).then(r => r.data.data)
-const fetchSets = () => api.get('/privileges/permission-sets').then(r => r.data.data)
 const fetchHistory = (id: string) => api.get(`/privileges/users/${id}/history`).then(r => r.data.data)
+const fetchAllRoles = () => api.get('/privileges/roles').then(r => r.data.data as AppRole[])
+
+// Helper to pick a color per role (system roles get fixed colors, custom roles use a default)
+const SYSTEM_ROLE_COLORS: Record<string, string> = {
+    super_admin: '#EF4444', sales: '#8B5CF6', design: '#6366F1',
+    store: '#F59E0B', production: '#1315E5', qc: '#10B981',
+    dispatch: '#F97316', accountant: '#EC4899', client: '#64748B',
+}
+function getRoleColor(name: string) { return SYSTEM_ROLE_COLORS[name] || '#767A8C' }
 
 // ── Role Badge ────────────────────────────────────────────────────────────────
 function RoleBadge({ role }: { role: string }) {
-    const cfg = ROLES.find(r => r.value === role)
-    const color = cfg?.color || '#64748B'
+    const color = getRoleColor(role)
     return (
         <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border"
             style={{ color, borderColor: `${color}30`, backgroundColor: `${color}10` }}>
-            {cfg?.label || role}
+            {role}
         </span>
     )
 }
@@ -114,13 +125,11 @@ function RoleBadge({ role }: { role: string }) {
 function PermissionsGrid({ perms }: { perms: UserPermData['permissions'] | undefined }) {
     const effective = new Set(perms?.effectivePermissions || [])
     const rolePerms = new Set(perms?.roleId?.permissions || [])
-    const setPerms = new Set((perms?.permissionSetIds || []).flatMap(s => s.permissions))
     const grants = new Set((perms?.overrides || []).filter(o => o.type === 'grant').map(o => o.permission))
     const denies = new Set((perms?.overrides || []).filter(o => o.type === 'deny').map(o => o.permission))
 
     const getSource = (p: string): 'role' | 'set' | 'grant' | 'none' => {
         if (grants.has(p)) return 'grant'
-        if (setPerms.has(p)) return 'set'
         if (rolePerms.has(p)) return 'role'
         return 'none'
     }
@@ -144,7 +153,7 @@ function PermissionsGrid({ perms }: { perms: UserPermData['permissions'] | undef
                             const has = effective.has(p)
                             const denied = denies.has(p)
                             const source = has ? getSource(p) : 'none'
-                            const sourceColor = source === 'grant' ? '#10B981' : source === 'set' ? '#6366F1' : source === 'role' ? '#64748B' : 'transparent'
+                            const sourceColor = source === 'grant' ? '#10B981' : source === 'role' ? '#64748B' : 'transparent'
                             return (
                                 <span key={p} title={`source: ${source}`}
                                     className={cn('inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold border transition-all',
@@ -170,14 +179,22 @@ function OverridesTab({ userId, overrides }: { userId: string, overrides: Overri
     const [reason, setReason] = useState('')
     const [toast, setToast] = useState<string | null>(null)
 
-    const mut = useMutation({
-        mutationFn: (data: any) => api.post(`/privileges/users/${userId}/overrides`, data),
+    const grantMut = useMutation({
+        mutationFn: (data: { permission: string; reason: string }) =>
+            api.post(`/privileges/users/${userId}/grant`, data),
+        onSuccess: () => { qc.invalidateQueries({ queryKey: ['user-perms', userId] }); setPerm(''); setReason(''); setToast('Override added') },
+        onError: () => setToast('Failed to add override')
+    })
+
+    const denyMut = useMutation({
+        mutationFn: (data: { permission: string; reason: string }) =>
+            api.post(`/privileges/users/${userId}/deny`, data),
         onSuccess: () => { qc.invalidateQueries({ queryKey: ['user-perms', userId] }); setPerm(''); setReason(''); setToast('Override added') },
         onError: () => setToast('Failed to add override')
     })
 
     const delMut = useMutation({
-        mutationFn: (oid: string) => api.delete(`/privileges/users/${userId}/overrides/${oid}`),
+        mutationFn: (oid: string) => api.delete(`/privileges/users/${userId}/override/${oid}`),
         onSuccess: () => { qc.invalidateQueries({ queryKey: ['user-perms', userId] }); setToast('Override removed') }
     })
 
@@ -196,8 +213,16 @@ function OverridesTab({ userId, overrides }: { userId: string, overrides: Overri
                     <Input placeholder="Reason (optional)..." value={reason} onChange={e => setReason(e.target.value)} className="bg-card border-border h-10 rounded-xl" />
                 </div>
                 <div className="w-full md:w-32 flex items-end">
-                    <Button onClick={() => mut.mutate({ permission: perm, type, reason })} disabled={!perm || mut.isPending} className="w-full h-10 rounded-xl font-bold">
-                        {mut.isPending ? <Loader2 className="size-4 animate-spin" /> : type === 'grant' ? <Plus className="size-4 mr-2" /> : <ShieldX className="size-4 mr-2" />}
+                    <Button
+                        onClick={() => {
+                            if (!perm) return
+                            if (type === 'grant') grantMut.mutate({ permission: perm, reason })
+                            else denyMut.mutate({ permission: perm, reason })
+                        }}
+                        disabled={!perm || grantMut.isPending || denyMut.isPending}
+                        className="w-full h-10 rounded-xl font-bold"
+                    >
+                        {(grantMut.isPending || denyMut.isPending) ? <Loader2 className="size-4 animate-spin" /> : type === 'grant' ? <Plus className="size-4 mr-2" /> : <ShieldX className="size-4 mr-2" />}
                         Add
                     </Button>
                 </div>
@@ -249,8 +274,10 @@ export default function UserDetailPage() {
         queryFn: () => fetchPerms(id!)
     })
 
-    const { data: sets } = useQuery<PermissionSet[]>({ queryKey: ['perm-sets'], queryFn: fetchSets })
     const { data: history } = useQuery<AuditEntry[]>({ queryKey: ['user-history', id], queryFn: () => fetchHistory(id!) })
+
+    // Fetch ALL roles (system + custom) for the Change Role section
+    const { data: allRoles = [] } = useQuery<AppRole[]>({ queryKey: ['roles'], queryFn: fetchAllRoles })
 
     const deactivateMut = useMutation({
         mutationFn: () => api.patch(`/users/${id}/deactivate`),
@@ -267,10 +294,6 @@ export default function UserDetailPage() {
         onSuccess: () => { qc.invalidateQueries({ queryKey: ['user', id], }); qc.invalidateQueries({ queryKey: ['user-perms', id] }); showToast('Role updated') }
     })
 
-    const toggleSetMut = useMutation({
-        mutationFn: (setId: string) => api.post(`/privileges/users/${id}/sets/${setId}`),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['user-perms', id] })
-    })
 
     if (loadingUser || loadingPerms) return <div className="flex flex-col items-center justify-center min-h-[400px] gap-3 text-muted-foreground"><Loader2 className="size-8 animate-spin" /><p className="text-sm font-bold uppercase tracking-widest">Loading permissions...</p></div>
 
@@ -343,17 +366,28 @@ export default function UserDetailPage() {
                                 <Key className="size-3.5" /> Change Role
                             </p>
                             <div className="flex gap-2 flex-wrap">
-                                {ROLES.filter(r => r.value !== 'super_admin').map(r => (
-                                    <button key={r.value} type="button"
-                                        onClick={() => setNewRole(r.value)}
-                                        className={cn('px-3 py-1.5 rounded-lg border text-xs font-bold transition-all',
-                                            newRole === r.value ? 'bg-primary/10 border-primary/50 text-foreground' : 'bg-muted/30 border-border hover:border-muted-foreground/40',
-                                            user.role === r.value ? 'opacity-50 cursor-not-allowed bg-muted/10' : '')}
-                                        disabled={user.role === r.value}>
-                                        {r.label}
-                                        {user.role === r.value && ' ✓'}
-                                    </button>
-                                ))}
+                                {/* Bug 4 fix: show ALL roles (system + custom) fetched from the API */}
+                                {allRoles
+                                    .filter(r => r.name !== 'super_admin' && r.isActive)
+                                    .map(r => {
+                                        const color = getRoleColor(r.name)
+                                        const isCurrent = user.role === r.name
+                                        const isSelected = newRole === r.name
+                                        return (
+                                            <button key={r._id} type="button"
+                                                onClick={() => setNewRole(r.name as UserRole)}
+                                                className={cn('px-3 py-1.5 rounded-lg border text-xs font-bold transition-all',
+                                                    isSelected ? 'bg-primary/10 border-primary/50 text-foreground' : 'bg-muted/30 border-border hover:border-muted-foreground/40',
+                                                    isCurrent ? 'opacity-50 cursor-not-allowed bg-muted/10' : '')}
+                                                style={isSelected ? { borderColor: `${color}50`, color } : {}}
+                                                disabled={isCurrent}>
+                                                {r.name}
+                                                {!r.isSystem && <span className="ml-1 text-[9px] opacity-50">(custom)</span>}
+                                                {isCurrent && ' ✓'}
+                                            </button>
+                                        )
+                                    })
+                                }
                                 <Button onClick={() => setConfirmAction({ type: 'change_role' })}
                                     disabled={!newRole || changeRoleMut.isPending}
                                     className="rounded-lg h-8 px-4 text-xs font-bold ml-auto md:ml-2">
@@ -371,7 +405,6 @@ export default function UserDetailPage() {
                 {[
                     { key: 'perms', label: 'Permissions', icon: Shield },
                     { key: 'overrides', label: 'Manual Overrides', icon: ShieldAlert },
-                    { key: 'sets', label: 'Permission Sets', icon: Package },
                     { key: 'history', label: 'Audit Log', icon: History }
                 ].map(tab => (
                     <button key={tab.key} onClick={() => setActiveTab(tab.key as any)}
@@ -415,40 +448,6 @@ export default function UserDetailPage() {
                     </motion.div>
                 )}
 
-                {activeTab === 'sets' && (
-                    <motion.div key="sets" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                        <Card className="border-border bg-card/50 backdrop-blur-sm rounded-2xl">
-                            <CardHeader className="pb-3 border-b border-border/50">
-                                <CardTitle className="text-sm font-black flex items-center gap-2 uppercase tracking-tighter">
-                                    <Package className="size-4 text-indigo-500" /> Assigned Permission Sets
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {sets?.map(set => {
-                                        const active = permsData?.permissions?.permissionSetIds?.some(s => s._id === set._id)
-                                        return (
-                                            <div key={set._id} className={cn("flex items-center justify-between p-4 rounded-2xl border transition-all", active ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-muted/10 border-border')}>
-                                                <div className="flex items-center gap-3">
-                                                    <div className={cn("p-2 rounded-xl", active ? 'bg-indigo-500/10 text-indigo-500' : 'bg-muted text-muted-foreground')}>
-                                                        <Package className="size-4" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-black text-foreground">{set.name}</p>
-                                                        <p className="text-[10px] text-muted-foreground">{set.permissions.length} perms</p>
-                                                    </div>
-                                                </div>
-                                                <Button variant={active ? 'default' : 'outline'} size="sm" onClick={() => toggleSetMut.mutate(set._id)} disabled={toggleSetMut.isPending} className="rounded-xl h-8 px-4 text-[10px] font-bold">
-                                                    {active ? 'Remove' : 'Assign'}
-                                                </Button>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-                )}
 
                 {activeTab === 'history' && (
                     <motion.div key="history" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
@@ -500,7 +499,7 @@ export default function UserDetailPage() {
                 open={confirmAction.type === 'change_role'}
                 onOpenChange={(open) => !open && setConfirmAction({ type: null })}
                 title="Change Role"
-                description={`Update ${user.name}'s role to "${ROLES.find(r => r.value === newRole)?.label}"? This will update their base permissions immediately.`}
+                description={`Update ${user.name}'s role to "${newRole}"? This will update their base permissions immediately.`}
                 onConfirm={async () => {
                     await changeRoleMut.mutateAsync()
                     setConfirmAction({ type: null })

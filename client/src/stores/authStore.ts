@@ -46,6 +46,7 @@ interface AuthState {
     setAuth: (token: string, user: AuthUser, companies?: CompanyInfo[]) => void;
     setCompany: (company: CompanyInfo) => void;
     switchCompany: (company: CompanyInfo) => void;
+    setToken: (token: string) => void;
     logout: () => void;
     hasPermission: (permission: string) => boolean;
 }
@@ -76,6 +77,10 @@ export const useAuthStore = create<AuthState>()(
              */
             switchCompany: (company) => {
                 set({ company });
+            },
+
+            setToken: (token) => {
+                set({ token });
             },
 
             logout: () => {
@@ -116,6 +121,7 @@ export const useAuthStore = create<AuthState>()(
 // ── Global helpers (called by axios interceptor on module load) ───────────────
 
 export const logoutUser = () => useAuthStore.getState().logout();
+export const setToken = (token: string) => useAuthStore.getState().setToken(token);
 
 registerTokenGetter(() => useAuthStore.getState().token);
 registerCompanyGetter(() => useAuthStore.getState().company?.id ?? null);

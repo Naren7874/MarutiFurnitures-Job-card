@@ -1,8 +1,18 @@
 import express from 'express';
-const router = express.Router();
-import * as controller from '../controllers/companies.js';
+import {
+    getCompanies,
+    getCompanyById,
+    updateCompany,
+} from '../controllers/companies.js';
+import { authenticateJWT } from '../middleware/auth.js';
+import { checkPermission } from '../middleware/permission.js';
 
-// Basic boilerplate routes
-router.get('/', (req, res) => res.json({ message: 'companies.js route basic setup' }));
+const router = express.Router();
+
+router.use(authenticateJWT);
+
+router.get('/', getCompanies);
+router.get('/:id', getCompanyById);
+router.put('/:id', checkPermission('settings.edit'), updateCompany);
 
 export default router;

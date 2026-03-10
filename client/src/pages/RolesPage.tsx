@@ -44,55 +44,91 @@ const PERMISSION_GROUPS = [
         group: 'Job Cards',
         prefix: 'jobcard',
         icon: '📋',
-        perms: ['jobcard.view', 'jobcard.create', 'jobcard.update', 'jobcard.delete', 'jobcard.stage.advance'],
+        perms: ['jobcard.view', 'jobcard.create', 'jobcard.edit', 'jobcard.export', 'jobcard.close', 'jobcard.assign', 'jobcard.override_status'],
     },
     {
         group: 'Clients',
         prefix: 'client',
         icon: '👤',
-        perms: ['client.view', 'client.create', 'client.update', 'client.delete'],
+        perms: ['client.view', 'client.create', 'client.edit', 'client.delete', 'client.verify_gst'],
     },
     {
         group: 'Quotations',
         prefix: 'quotation',
         icon: '📄',
-        perms: ['quotation.view', 'quotation.create', 'quotation.approve', 'quotation.delete'],
-    },
-    {
-        group: 'Invoices',
-        prefix: 'invoice',
-        icon: '🧾',
-        perms: ['invoice.view', 'invoice.create', 'invoice.send', 'invoice.delete'],
-    },
-    {
-        group: 'Inventory',
-        prefix: 'inventory',
-        icon: '📦',
-        perms: ['inventory.view', 'inventory.create', 'inventory.update', 'inventory.delete'],
-    },
-    {
-        group: 'Purchase Orders',
-        prefix: 'purchaseorder',
-        icon: '🛒',
-        perms: ['purchaseorder.view', 'purchaseorder.create', 'purchaseorder.approve'],
+        perms: ['quotation.view', 'quotation.create', 'quotation.edit', 'quotation.send', 'quotation.approve', 'quotation.reject'],
     },
     {
         group: 'Projects',
         prefix: 'project',
         icon: '🏗️',
-        perms: ['project.view', 'project.create', 'project.update'],
+        perms: ['project.view', 'project.create', 'project.edit'],
+    },
+    {
+        group: 'Design',
+        prefix: 'designrequest',
+        icon: '✏️',
+        perms: ['designrequest.view', 'designrequest.create', 'designrequest.edit', 'designrequest.upload', 'designrequest.signoff', 'designrequest.ready'],
+    },
+    {
+        group: 'Store Stage',
+        prefix: 'storeStage',
+        icon: '🏪',
+        perms: ['storeStage.view', 'storeStage.edit', 'storeStage.issue'],
+    },
+    {
+        group: 'Production Stage',
+        prefix: 'productionStage',
+        icon: '🏭',
+        perms: ['productionStage.view', 'productionStage.edit'],
+    },
+    {
+        group: 'QC Stage',
+        prefix: 'qcStage',
+        icon: '🔍',
+        perms: ['qcStage.view', 'qcStage.edit', 'qcStage.pass', 'qcStage.fail'],
+    },
+    {
+        group: 'Dispatch Stage',
+        prefix: 'dispatchStage',
+        icon: '🚚',
+        perms: ['dispatchStage.view', 'dispatchStage.edit', 'dispatchStage.deliver'],
+    },
+    {
+        group: 'Invoices',
+        prefix: 'invoice',
+        icon: '🧾',
+        perms: ['invoice.view', 'invoice.create', 'invoice.edit', 'invoice.send', 'invoice.payment'],
+    },
+    {
+        group: 'Inventory',
+        prefix: 'inventory',
+        icon: '📦',
+        perms: ['inventory.view', 'inventory.create', 'inventory.edit'],
+    },
+    {
+        group: 'Purchase Orders',
+        prefix: 'purchaseOrder',
+        icon: '🛒',
+        perms: ['purchaseOrder.view', 'purchaseOrder.create', 'purchaseOrder.edit', 'purchaseOrder.approve'],
     },
     {
         group: 'Reports',
-        prefix: 'report',
+        prefix: 'reports',
         icon: '📊',
-        perms: ['report.view', 'report.export'],
+        perms: ['reports.view_financial', 'reports.view_production', 'reports.view_delivery', 'reports.export'],
     },
     {
         group: 'Users & Roles',
         prefix: 'user',
         icon: '👥',
-        perms: ['user.view', 'user.create', 'user.update', 'user.delete', 'role.manage'],
+        perms: ['user.view', 'user.create', 'user.edit', 'user.deactivate', 'privilege.view', 'privilege.grant', 'privilege.deny'],
+    },
+    {
+        group: 'Settings & Audit',
+        prefix: 'settings',
+        icon: '⚙️',
+        perms: ['settings.view', 'settings.edit', 'settings.company_edit', 'audit_log.view', 'audit_log.export'],
     },
 ]
 
@@ -502,8 +538,16 @@ export default function RolesPage() {
                         placeholder="Search roles…"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        className="pl-9 rounded-xl h-10"
+                        className="pl-9 pr-9 rounded-xl h-10"
                     />
+                    {search && (
+                        <button
+                            onClick={() => setSearch('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-muted text-muted-foreground transition-colors"
+                        >
+                            <X className="size-3.5" />
+                        </button>
+                    )}
                 </div>
 
                 {/* Content */}

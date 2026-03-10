@@ -193,13 +193,6 @@
 
   <!-- FOOTER -->
   <div class="footer">
-    <div>
-      <strong>Bank Details</strong><br/>
-      <% if(company.bankDetails) { %>
-        <%= company.bankDetails.bankName %> | A/C: <%= company.bankDetails.accountNumber %><br/>
-        IFSC: <%= company.bankDetails.ifsc %> | Branch: <%= company.bankDetails.branch %>
-      <% } %>
-    </div>
     <div class="sign-box">
       Authorised Signatory<br/>
       <strong><%= company.name %></strong>

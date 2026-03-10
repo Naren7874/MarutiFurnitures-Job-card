@@ -16,8 +16,23 @@ const findChrome = () => {
     const bundled = puppeteer.executablePath();
     if (bundled && existsSync(bundled)) return bundled;
   } catch { /* bundled not found */ }
-  const paths = ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium-browser', '/usr/bin/chromium'];
-  for (const p of paths) { if (existsSync(p)) return p; }
+
+  const paths = [
+    // Windows paths
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\Chrome\\Application\\chrome.exe',
+    path.join(process.env.LOCALAPPDATA || '', 'Google/Chrome/Application/chrome.exe'),
+    path.join(process.env.USERPROFILE || '', 'AppData/Local/Google/Chrome/Application/chrome.exe'),
+    // Linux paths
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium'
+  ];
+
+  for (const p of paths) {
+    if (p && existsSync(p)) return p;
+  }
   return undefined;
 };
 

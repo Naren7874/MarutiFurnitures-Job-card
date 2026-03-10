@@ -6,6 +6,7 @@ import {
   forgotPassword,
   resetPassword,
   switchCompany,
+  refreshToken,
 } from '../controllers/auth.js';
 import { authenticateJWT } from '../middleware/auth.js';
 
@@ -13,14 +14,15 @@ const router = express.Router();
 
 // ── Public routes ────────────────────────────────────────────────────────────
 
-router.post('/login',          login);
+router.post('/login', login);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPassword);
+router.post('/refresh', refreshToken);
 
 // ── Authenticated routes ─────────────────────────────────────────────────────
 
-router.post('/logout',          authenticateJWT, logout);
-router.get('/me',               authenticateJWT, getMe);
-router.post('/switch-company',  authenticateJWT, switchCompany);
+router.post('/logout', authenticateJWT, logout);
+router.get('/me', authenticateJWT, getMe);
+router.post('/switch-company', authenticateJWT, switchCompany);
 
 export default router;

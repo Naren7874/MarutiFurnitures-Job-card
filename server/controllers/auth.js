@@ -17,12 +17,12 @@ const signToken = (payload) =>
   });
 
 const buildTokenPayload = (user) => ({
-  userId:        user._id,
-  companyId:     user.companyId,
-  role:          user.role,
-  department:    user.department,
-  isSuperAdmin:  user.isSuperAdmin,
-  tokenVersion:  user.tokenVersion || 0,  // Used to invalidate tokens on deactivate
+  userId: user._id,
+  companyId: user.companyId,
+  role: user.role,
+  department: user.department,
+  isSuperAdmin: user.isSuperAdmin,
+  tokenVersion: user.tokenVersion || 0,  // Used to invalidate tokens on deactivate
 });
 
 // ── POST /api/auth/login ─────────────────────────────────────────────────────
@@ -61,9 +61,9 @@ export const login = async (req, res, next) => {
     auditLog(req, {
       action: 'login',
       resourceType: 'User',
-      resourceId:    user._id,
+      resourceId: user._id,
       resourceLabel: user.name,
-      metadata:      { email: user.email, role: user.role },
+      metadata: { email: user.email, role: user.role },
       actor: { id: user._id, name: user.name, role: user.role, companyId: user.companyId },
     });
 
@@ -75,11 +75,11 @@ export const login = async (req, res, next) => {
     if (user.isSuperAdmin) {
       const companies = await Company.find({ isActive: true }).lean();
       allCompanies = companies.map(c => ({
-        id:    c._id,
-        name:  c.name,
-        slug:  c.slug,
+        id: c._id,
+        name: c.name,
+        slug: c.slug,
         gstin: c.gstin,
-        plan:  c.plan,
+        plan: c.plan,
       }));
     }
 
@@ -90,22 +90,22 @@ export const login = async (req, res, next) => {
       success: true,
       token,
       user: {
-        id:          user._id,
-        name:        user.name,
-        email:       user.email,
-        role:        user.role,
-        department:  user.department,
-        companyId:   user.companyId,
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        companyId: user.companyId,
         isSuperAdmin: user.isSuperAdmin,
         profilePhoto: user.profilePhoto,
         effectivePermissions,
       },
       company: loginCompany ? {
-        id:    loginCompany._id,
-        name:  loginCompany.name,
-        slug:  loginCompany.slug,
+        id: loginCompany._id,
+        name: loginCompany.name,
+        slug: loginCompany.slug,
         gstin: loginCompany.gstin,
-        plan:  loginCompany.plan,
+        plan: loginCompany.plan,
       } : null,
       allCompanies,
     });
@@ -124,7 +124,7 @@ export const logout = (req, res) => {
     auditLog(req, {
       action: 'logout',
       resourceType: 'User',
-      resourceId:    req.user.userId,
+      resourceId: req.user.userId,
       resourceLabel: req.user.name,
     });
   }
@@ -196,7 +196,7 @@ export const resetPassword = async (req, res, next) => {
       .digest('hex');
 
     const user = await User.findOne({
-      resetPasswordToken:   hashedToken,
+      resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: new Date() },
     });
 
@@ -205,7 +205,7 @@ export const resetPassword = async (req, res, next) => {
     }
 
     user.password = req.body.password;          // Pre-save hook re-hashes
-    user.resetPasswordToken   = undefined;
+    user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
 
@@ -249,6 +249,42 @@ export const switchCompany = async (req, res, next) => {
       success: true,
       token,
       company: { id: company._id, name: company.name, slug: company.slug },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ── POST /api/auth/refresh ───────────────────────────────────────────────────
+
+export const refreshToken = async (req, res, next) => {
+  try {
+    const { token: oldToken } = req.body;
+    if (!oldToken) return res.status(400).json({ success: false, message: 'Token is required' });
+
+    // Verify token even if expired
+    let decoded;
+    try {
+      decoded = jwt.verify(oldToken, process.env.JWT_SECRET, { ignoreExpiration: true });
+    } catch (err) {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+
+    const user = await User.findById(decoded.userId).lean();
+    if (!user || !user.isActive) {
+      return res.status(401).json({ success: false, message: 'User not found or inactive' });
+    }
+
+    // Optional: check tokenVersion to invalidate on logout/password change
+    if (user.tokenVersion !== decoded.tokenVersion) {
+      return res.status(401).json({ success: false, message: 'Token has been revoked' });
+    }
+
+    const newToken = signToken(buildTokenPayload(user));
+
+    res.status(200).json({
+      success: true,
+      token: newToken,
     });
   } catch (err) {
     next(err);

@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
-import { Bell, Shield, Building2, User, ChevronRight, CheckCircle2, Globe, Laptop, Fingerprint, LogOut, ScrollText, Download, Calendar as CalendarIcon, ArrowRight, Hash, Inbox } from 'lucide-react';
+import { Bell, Shield, Building2, User, ChevronRight, CheckCircle2, Globe, Laptop, Fingerprint, LogOut, ScrollText, Download, Calendar as CalendarIcon, ArrowRight, Hash, Inbox, Loader2, Plus, ShieldCheck, ShieldX, Trash2 } from 'lucide-react';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { toast } from 'sonner';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
@@ -31,7 +32,18 @@ type Tab = 'profile' | 'company' | 'notifications' | 'security' | 'auditlog';
 
 export default function SettingsPage() {
     const [tab, setTab] = useState<Tab>('profile');
-    const { user, company, logout } = useAuthStore();
+    const { user, company, logout, setCompany } = useAuthStore();
+    const qc = useQueryClient();
+
+    const updateCompanyMut = useMutation({
+        mutationFn: (data: any) => api.put(`/companies/${company?.id}`, data),
+        onSuccess: (res) => {
+            qc.invalidateQueries({ queryKey: ['company', company?.id] });
+            setCompany(res.data.data); // Update local store
+            toast.success('Organization profile synchronized successfully');
+        },
+        onError: () => toast.error('Failed to update organization profile'),
+    });
 
     const TABS: { key: Tab; icon: React.ElementType; label: string; desc: string }[] = [
         { key: 'profile', icon: User, label: 'Identity', desc: 'Personal preferences' },
@@ -168,33 +180,86 @@ export default function SettingsPage() {
 
                                             {tab === 'company' && (
                                                 <div className="space-y-12">
-                                                    <div className="space-y-1">
-                                                        <h2 className="text-foreground text-2xl font-black tracking-tight">Organization Profile</h2>
-                                                        <CardDescription className="text-muted-foreground/60 text-sm font-medium">Verified corporate credentials and subscription status</CardDescription>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="space-y-1">
+                                                            <h2 className="text-foreground text-2xl font-black tracking-tight">Organization Profile</h2>
+                                                            <CardDescription className="text-muted-foreground/60 text-sm font-medium">Verified corporate credentials and branding preferences</CardDescription>
+                                                        </div>
+                                                        <Button
+                                                            onClick={() => {
+                                                                if (!company) return;
+                                                                const formData = (document.getElementById('company-form') as HTMLFormElement);
+                                                                const data = Object.fromEntries(new FormData(formData).entries());
+                                                                // Nest GST rates correctly
+                                                                (data as any).gstRates = {
+                                                                    cgst: Number(data.cgst),
+                                                                    sgst: Number(data.sgst),
+                                                                    igst: Number(data.igst)
+                                                                };
+                                                                delete (data as any).cgst;
+                                                                delete (data as any).sgst;
+                                                                delete (data as any).igst;
+                                                                updateCompanyMut.mutate(data);
+                                                            }}
+                                                            disabled={updateCompanyMut.isPending}
+                                                            className="rounded-xl h-10 px-8 font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20"
+                                                        >
+                                                            {updateCompanyMut.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : <CheckCircle2 className="size-4 mr-2" />}
+                                                            Sync Organization
+                                                        </Button>
                                                     </div>
 
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                                    <form id="company-form" className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                                                         <div className="space-y-2">
                                                             <label className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] block">Legal Entity Name</label>
-                                                            <div className="bg-muted/40 border border-border/40 p-4 rounded-2xl">
-                                                                <p className="text-foreground font-black tracking-tight">{company?.name}</p>
-                                                            </div>
+                                                            <input name="name" defaultValue={company?.name} className="w-full bg-muted/40 border border-border/40 p-4 rounded-2xl text-foreground font-black tracking-tight focus:outline-none focus:ring-2 ring-primary/20" />
                                                         </div>
                                                         <div className="space-y-2">
                                                             <label className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] block">GST Identification</label>
-                                                            <div className="bg-white dark:bg-muted/40 border border-border dark:border-border/40 p-4 rounded-2xl flex items-center justify-between">
-                                                                <p className="text-foreground font-black tracking-widest uppercase">{(company as any)?.gstin ?? 'UNSENT'}</p>
-                                                                <CheckCircle2 size={16} className="text-emerald-500" />
+                                                            <input name="gstin" defaultValue={(company as any)?.gstin} className="w-full bg-white dark:bg-muted/40 border border-border dark:border-border/40 p-4 rounded-2xl text-foreground font-black tracking-widest uppercase focus:outline-none focus:ring-2 ring-primary/20" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] block">Official Email</label>
+                                                            <input name="email" type="email" defaultValue={(company as any)?.email} className="w-full bg-muted/20 border border-border/40 p-4 rounded-2xl text-foreground font-bold focus:outline-none focus:ring-2 ring-primary/20" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] block">Contact Number</label>
+                                                            <input name="phone" defaultValue={(company as any)?.phone} className="w-full bg-muted/20 border border-border/40 p-4 rounded-2xl text-foreground font-bold focus:outline-none focus:ring-2 ring-primary/20" />
+                                                        </div>
+
+                                                        <div className="col-span-full pt-8 border-t border-border/20">
+                                                            <h3 className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] mb-6">Document Branding Prefixes</h3>
+                                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                                                {[
+                                                                    { label: 'Quotation', name: 'quotationPrefix', val: (company as any)?.quotationPrefix || 'QT' },
+                                                                    { label: 'Job Card', name: 'jobCardPrefix', val: (company as any)?.jobCardPrefix || 'JC' },
+                                                                    { label: 'Invoice', name: 'invoicePrefix', val: (company as any)?.invoicePrefix || 'INV' },
+                                                                    { label: 'Project', name: 'projectPrefix', val: (company as any)?.projectPrefix || 'PRJ' },
+                                                                ].map(p => (
+                                                                    <div key={p.name} className="space-y-2">
+                                                                        <label className="text-[9px] font-bold text-muted-foreground/60 uppercase ml-1">{p.label}</label>
+                                                                        <input name={p.name} defaultValue={p.val} className="w-full bg-accent/5 border border-border/40 p-3 rounded-xl text-center font-black text-xs focus:ring-2 ring-primary/20" />
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                         </div>
-                                                        <Card className="col-span-full bg-linear-to-br from-primary/5 to-indigo-500/5 border border-primary/20 p-6 rounded-[24px] flex items-center justify-between shadow-none">
-                                                            <div>
-                                                                <p className="text-primary font-black text-xl tracking-tighter uppercase mb-1">{(company as any)?.plan ?? 'Standard Enterprise'}</p>
-                                                                <p className="text-muted-foreground text-xs font-semibold uppercase tracking-widest">Renewal Date: Oct 24, 2024</p>
+
+                                                        <div className="col-span-full pt-8 border-t border-border/20">
+                                                            <h3 className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] mb-6">Default Taxation (GST)</h3>
+                                                            <div className="grid grid-cols-3 gap-6">
+                                                                {[
+                                                                    { label: 'CGST (%)', name: 'cgst', val: (company as any)?.gstRates?.cgst || 9 },
+                                                                    { label: 'SGST (%)', name: 'sgst', val: (company as any)?.gstRates?.sgst || 9 },
+                                                                    { label: 'IGST (%)', name: 'igst', val: (company as any)?.gstRates?.igst || 18 },
+                                                                ].map(g => (
+                                                                    <div key={g.name} className="space-y-2">
+                                                                        <label className="text-[9px] font-bold text-muted-foreground/60 uppercase ml-1">{g.label}</label>
+                                                                        <input name={g.name} type="number" step="0.5" defaultValue={g.val} className="w-full bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-2xl text-center font-black text-emerald-600 focus:ring-2 ring-emerald-500/20" />
+                                                                    </div>
+                                                                ))}
                                                             </div>
-                                                            <Button size="sm" className="bg-primary text-white font-black text-[9px] uppercase tracking-widest px-6 h-10 rounded-xl shadow-lg shadow-primary/20">Upgrade Tier</Button>
-                                                        </Card>
-                                                    </div>
+                                                        </div>
+                                                    </form>
                                                 </div>
                                             )}
 

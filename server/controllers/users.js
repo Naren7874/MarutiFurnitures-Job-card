@@ -1,5 +1,8 @@
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
+import { Role } from '../models/Role.js';
+import { UserPermission } from '../models/UserPermission.js';
+import { resolvePermissions } from '../utils/resolvePermissions.js';
 import { auditLog } from '../utils/auditLogger.js';
 
 // ── GET /api/users ────────────────────────────────────────────────────────────
@@ -9,11 +12,11 @@ export const getUsers = async (req, res, next) => {
     const { page = 1, limit = 50, role, isActive, search } = req.query;
 
     const filter = { companyId: req.user.companyId };
-    if (role)     filter.role = role;
+    if (role) filter.role = role;
     if (isActive !== undefined) filter.isActive = isActive === 'true';
     if (search) {
       filter.$or = [
-        { name:  { $regex: search, $options: 'i' } },
+        { name: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
       ];
     }
@@ -89,15 +92,38 @@ export const createUser = async (req, res, next) => {
 
     const newUser = await User.create({
       companyId: req.user.companyId,
-      name:      name.trim(),
-      email:     email.toLowerCase().trim(),
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
       password,                               // pre-save hook hashes it
       role,
       department: department || undefined,
-      phone:      phone || undefined,
+      phone: phone || undefined,
       whatsappNumber: whatsappNumber || undefined,
-      createdBy:  req.user.userId,
+      createdBy: req.user.userId,
     });
+
+    // ── Bug 2 fix: auto-create UserPermission record so the user has permissions immediately
+    // Look up the Role document matching the role string (e.g. 'sales' → Role {name:'sales', isSystem:true})
+    const roleDoc = await Role.findOne({ companyId: req.user.companyId, name: role }).lean();
+    if (roleDoc) {
+      try {
+        await UserPermission.create({
+          companyId: req.user.companyId,
+          userId: newUser._id,
+          roleId: roleDoc._id,
+          permissionSetIds: [],
+          overrides: [],
+          effectivePermissions: roleDoc.permissions || [],
+        });
+        // Update user's roleId reference
+        await User.findByIdAndUpdate(newUser._id, { roleId: roleDoc._id });
+        // Rebuild and cache effective permissions
+        resolvePermissions(newUser._id.toString()).catch(() => { });
+      } catch (permErr) {
+        // Don't fail user creation if permission record fails — log and continue
+        console.error('[createUser] Failed to create UserPermission:', permErr.message);
+      }
+    }
 
     const userObj = newUser.toObject();
     delete userObj.password;
@@ -132,16 +158,16 @@ export const updateUser = async (req, res, next) => {
 
     // Only super_admin can change role/active status
     if ((role !== undefined || isActive !== undefined) &&
-        req.user.role !== 'super_admin') {
+      req.user.role !== 'super_admin') {
       return res.status(403).json({ success: false, message: 'Only admins can change role or status' });
     }
 
-    if (name        !== undefined) user.name        = name.trim();
-    if (role        !== undefined) user.role        = role;
-    if (department  !== undefined) user.department  = department;
-    if (phone       !== undefined) user.phone       = phone;
+    if (name !== undefined) user.name = name.trim();
+    if (role !== undefined) user.role = role;
+    if (department !== undefined) user.department = department;
+    if (phone !== undefined) user.phone = phone;
     if (whatsappNumber !== undefined) user.whatsappNumber = whatsappNumber;
-    if (isActive    !== undefined) user.isActive    = isActive;
+    if (isActive !== undefined) user.isActive = isActive;
 
     await user.save();
 
@@ -156,10 +182,10 @@ export const updateUser = async (req, res, next) => {
       resourceId: user._id,
       resourceLabel: user.name,
       changes: {
-        ...(name       !== undefined && { name:       { from: undefined, to: name } }),
-        ...(role       !== undefined && { role:       { from: undefined, to: role } }),
+        ...(name !== undefined && { name: { from: undefined, to: name } }),
+        ...(role !== undefined && { role: { from: undefined, to: role } }),
         ...(department !== undefined && { department: { from: undefined, to: department } }),
-        ...(isActive   !== undefined && { isActive:   { from: undefined, to: isActive } }),
+        ...(isActive !== undefined && { isActive: { from: undefined, to: isActive } }),
       },
     });
 
@@ -235,23 +261,47 @@ export const resetUserPassword = async (req, res, next) => {
 // ── PATCH /api/users/:id/role ─────────────────────────────────────────────────
 export const changeUserRole = async (req, res, next) => {
   try {
-    const { role } = req.body;
-    if (!role) return res.status(400).json({ success: false, message: 'Role is required' });
+    // Accept either a role name string (e.g. 'sales') or a custom role ObjectId string (roleId)
+    const { role, roleId } = req.body;
+    if (!role && !roleId) return res.status(400).json({ success: false, message: 'Role or roleId is required' });
 
-    const user = await User.findOneAndUpdate(
-      { _id: req.params.id, companyId: req.user.companyId },
-      { role },
+    // Find the target Role document — by roleId if provided, otherwise by name
+    let roleDoc = null;
+    if (roleId) {
+      roleDoc = await Role.findOne({ _id: roleId, companyId: req.user.companyId }).lean();
+    } else {
+      roleDoc = await Role.findOne({ companyId: req.user.companyId, name: role }).lean();
+    }
+
+    if (!roleDoc) {
+      return res.status(404).json({ success: false, message: `Role "${role || roleId}" not found. Check that the role exists in this company.` });
+    }
+
+    const oldUser = await User.findOne({ _id: req.params.id, companyId: req.user.companyId }).lean();
+    if (!oldUser) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Update User document: role name + roleId reference
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role: roleDoc.name, roleId: roleDoc._id },
       { new: true }
     ).select('-password');
 
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    // ── Bug 3 fix: update UserPermission.roleId and rebuild effective permissions
+    await UserPermission.findOneAndUpdate(
+      { userId: req.params.id },
+      { roleId: roleDoc._id },
+      { upsert: true, new: true }
+    );
+    // Rebuild and cache effective permissions asynchronously
+    resolvePermissions(req.params.id).catch(() => { });
 
     auditLog(req, {
       action: 'role_change',
       resourceType: 'User',
       resourceId: user._id,
       resourceLabel: user.name,
-      changes: { role: { from: undefined, to: role } },
+      changes: { role: { from: oldUser.role, to: roleDoc.name } },
     });
 
     res.status(200).json({ success: true, data: user, message: 'Role updated' });

@@ -9,29 +9,26 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
-    name:  { type: String, required: true, trim: true },
+    name: { type: String, required: true, trim: true },
     email: { type: String, required: true, lowercase: true, trim: true },
     password: { type: String, required: true },
 
-    phone:          { type: String },
+    phone: { type: String },
     whatsappNumber: { type: String },
-    profilePhoto:   { type: String },                    // Cloudinary URL
+    profilePhoto: { type: String },                    // Cloudinary URL
 
     role: {
       type: String,
-      enum: [
-        "super_admin",   // owner — cross-company, full access
-        "sales",
-        "design",
-        "store",
-        "production",
-        "qc",
-        "dispatch",
-        "accountant",
-        "client",
-      ],
       required: true,
+      // No enum — supports both system roles (super_admin, sales, design, etc.)
+      // and custom role name strings. The actual permission set is resolved via
+      // UserPermission.roleId → Role collection.
     },
+
+    // Reference to the Role document that drives this user's effective permissions.
+    // For system roles this is auto-populated at user creation.
+    // For custom roles this points to the custom Role document.
+    roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role' },
 
     // Primary department — helps with data scoping + dashboard filtering
     // (separate from role so privilege overrides can span departments)
@@ -51,7 +48,7 @@ const userSchema = new mongoose.Schema(
     tokenVersion: { type: Number, default: 0 },
 
     // Password reset
-    resetPasswordToken:   { type: String },
+    resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
 
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

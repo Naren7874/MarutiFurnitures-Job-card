@@ -30,7 +30,7 @@ import {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type UserRole = 'super_admin' | 'sales' | 'design' | 'store' | 'production' | 'qc' | 'dispatch' | 'accountant'
+type UserRole = string
 type Dept = 'sales' | 'design' | 'store' | 'production' | 'qc' | 'dispatch' | 'accounts' | 'management'
 
 interface AppUser {
@@ -58,16 +58,17 @@ interface UserFormData {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const ROLES: { value: UserRole; label: string; color: string; bg: string }[] = [
-    { value: 'super_admin', label: 'Super Admin', color: '#EF4444', bg: '#EF444415' },
-    { value: 'sales', label: 'Sales', color: '#8B5CF6', bg: '#8B5CF615' },
-    { value: 'design', label: 'Design', color: '#6366F1', bg: '#6366F115' },
-    { value: 'store', label: 'Store', color: '#F59E0B', bg: '#F59E0B15' },
-    { value: 'production', label: 'Production', color: '#1315E5', bg: '#1315E515' },
-    { value: 'qc', label: 'Quality Control', color: '#10B981', bg: '#10B98115' },
-    { value: 'dispatch', label: 'Dispatch', color: '#F97316', bg: '#F9731615' },
-    { value: 'accountant', label: 'Accountant', color: '#EC4899', bg: '#EC489915' },
-]
+const SYSTEM_ROLES: Record<string, { label: string; color: string; bg: string }> = {
+    'super_admin': { label: 'Super Admin', color: '#EF4444', bg: '#EF444415' },
+    'sales': { label: 'Sales', color: '#8B5CF6', bg: '#8B5CF615' },
+    'design': { label: 'Design', color: '#6366F1', bg: '#6366F115' },
+    'store': { label: 'Store', color: '#F59E0B', bg: '#F59E0B15' },
+    'production': { label: 'Production', color: '#1315E5', bg: '#1315E515' },
+    'qc': { label: 'Quality Control', color: '#10B981', bg: '#10B98115' },
+    'dispatch': { label: 'Dispatch', color: '#F97316', bg: '#F9731615' },
+    'accountant': { label: 'Accountant', color: '#EC4899', bg: '#EC489915' },
+}
+
 
 const DEPARTMENTS: Dept[] = ['sales', 'design', 'store', 'production', 'qc', 'dispatch', 'accounts', 'management']
 
@@ -104,8 +105,8 @@ const resetPassword = async ({ id, newPassword }: { id: string; newPassword: str
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getRoleCfg(role: UserRole) {
-    return ROLES.find(r => r.value === role) ?? { color: '#767A8C', bg: '#767A8C15', label: role }
+function getRoleCfg(role: string) {
+    return SYSTEM_ROLES[role] ?? { color: '#6366F1', bg: '#6366F115', label: role }
 }
 
 function getInitials(name: string) {
@@ -140,12 +141,13 @@ function RoleBadge({ role }: { role: UserRole }) {
 
 // ── User drawer / modal ───────────────────────────────────────────────────────
 function UserDrawer({
-    open, onClose, editUser, onSuccess
+    open, onClose, editUser, onSuccess, roles = []
 }: {
     open: boolean
     onClose: () => void
     editUser: AppUser | null
     onSuccess: (msg: string) => void
+    roles: any[]
 }) {
     const qc = useQueryClient()
     const [form, setForm] = useState<UserFormData>(EMPTY_FORM)
@@ -206,7 +208,7 @@ function UserDrawer({
         }
     }
 
-    const selectedRole = ROLES.find(r => r.value === form.role)
+    const selectedRoleCfg = getRoleCfg(form.role)
 
     return (
         <AnimatePresence>
@@ -236,8 +238,8 @@ function UserDrawer({
                                         <AvatarFallback
                                             className="text-sm font-black"
                                             style={{
-                                                backgroundColor: selectedRole?.bg || '#767A8C15',
-                                                color: selectedRole?.color || '#767A8C',
+                                                backgroundColor: selectedRoleCfg.bg,
+                                                color: selectedRoleCfg.color,
                                             }}
                                         >
                                             {getInitials(editUser.name)}
@@ -343,40 +345,41 @@ function UserDrawer({
                                 <Separator />
 
                                 {/* Role */}
-                                <div className="space-y-2">
-                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                        Role *
-                                        {form.role && (
-                                            <span className="ml-2 normal-case font-normal text-foreground" style={{ color: selectedRole?.color }}>
-                                                — {selectedRole?.label}
-                                            </span>
-                                        )}
-                                    </Label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {ROLES.filter(r => r.value !== 'super_admin').map(r => (
+                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                    Role *
+                                    {form.role && (
+                                        <span className="ml-2 normal-case font-normal text-foreground" style={{ color: selectedRoleCfg.color }}>
+                                            — {selectedRoleCfg.label}
+                                        </span>
+                                    )}
+                                </Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {roles.filter(r => r.name !== 'super_admin').map(r => {
+                                        const cfg = getRoleCfg(r.name);
+                                        return (
                                             <button
-                                                key={r.value}
+                                                key={r._id}
                                                 type="button"
-                                                onClick={() => setForm(f => ({ ...f, role: r.value }))}
+                                                onClick={() => setForm(f => ({ ...f, role: r.name }))}
                                                 className={cn(
                                                     'flex items-center gap-2 p-3 rounded-xl border text-xs font-bold text-left transition-all',
-                                                    form.role === r.value
+                                                    form.role === r.name
                                                         ? 'border-current shadow-sm scale-[1.01]'
                                                         : 'border-border hover:border-muted-foreground/40 bg-transparent'
                                                 )}
-                                                style={form.role === r.value
-                                                    ? { color: r.color, backgroundColor: r.bg, borderColor: `${r.color}50` }
+                                                style={form.role === r.name
+                                                    ? { color: cfg.color, backgroundColor: cfg.bg, borderColor: `${cfg.color}50` }
                                                     : {}
                                                 }
                                             >
                                                 <div
                                                     className="size-2 rounded-full shrink-0"
-                                                    style={{ backgroundColor: r.color }}
+                                                    style={{ backgroundColor: cfg.color }}
                                                 />
-                                                {r.label}
+                                                {cfg.label}
                                             </button>
-                                        ))}
-                                    </div>
+                                        );
+                                    })}
                                 </div>
 
                                 {/* Department */}
@@ -502,6 +505,9 @@ function ResetPasswordModal({ user, onClose, onSuccess }: {
                                 <span>{error}</span>
                             </div>
                         )}
+                        {/* Visually hidden field to catch browser autofill */}
+                        <input type="text" name="username" autoComplete="email" style={{ display: 'none' }} aria-hidden="true" value={user.email} readOnly />
+
                         <div className="relative">
                             <Input
                                 type={showPass ? 'text' : 'password'}
@@ -510,6 +516,7 @@ function ResetPasswordModal({ user, onClose, onSuccess }: {
                                 onChange={e => setNewPassword(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && mut.mutate({ id: user._id, newPassword })}
                                 className="rounded-xl h-11 pr-10"
+                                autoComplete="new-password"
                                 autoFocus
                             />
                             <button
@@ -554,6 +561,11 @@ export default function UsersPage() {
         queryFn: fetchUsers,
     })
 
+    const { data: roles = [] } = useQuery<any[]>({
+        queryKey: ['roles'],
+        queryFn: () => api.get('/privileges/roles').then(r => r.data.data),
+    })
+
     const deactivateMut = useMutation({
         mutationFn: deactivateUser,
         onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); showToast('User deactivated') },
@@ -572,10 +584,9 @@ export default function UsersPage() {
     }
 
     const filtered = users.filter(u => {
-        const matchesSearch =
+        const matchesSearch = !search ||
             u.name.toLowerCase().includes(search.toLowerCase()) ||
             u.email.toLowerCase().includes(search.toLowerCase()) ||
-            u.role.toLowerCase().includes(search.toLowerCase()) ||
             (u.department || '').toLowerCase().includes(search.toLowerCase())
         const matchesRole = roleFilter === 'all' || u.role === roleFilter
         return matchesSearch && matchesRole
@@ -626,15 +637,24 @@ export default function UsersPage() {
                             placeholder="Search users…"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="pl-9 rounded-xl h-10 w-64"
+                            className="pl-9 pr-9 rounded-xl h-10 w-64"
+                            autoComplete="disabled"
                         />
+                        {search && (
+                            <button
+                                onClick={() => setSearch('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-muted text-muted-foreground transition-colors"
+                            >
+                                <X className="size-3.5" />
+                            </button>
+                        )}
                     </div>
 
                     {/* Role filter chips */}
                     <div className="flex items-center gap-2 flex-wrap">
                         <Filter className="size-3.5 text-muted-foreground shrink-0" />
                         <button
-                            onClick={() => setRoleFilter('all')}
+                            onClick={() => { setRoleFilter('all'); setSearch('') }}
                             className={cn(
                                 'px-3 py-1.5 rounded-lg text-xs font-bold border transition-all',
                                 roleFilter === 'all'
@@ -644,19 +664,23 @@ export default function UsersPage() {
                         >
                             All
                         </button>
-                        {ROLES.filter(r => users.some(u => u.role === r.value)).map(r => (
-                            <button
-                                key={r.value}
-                                onClick={() => setRoleFilter(roleFilter === r.value ? 'all' : r.value)}
-                                className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
-                                style={roleFilter === r.value
-                                    ? { color: r.color, backgroundColor: r.bg, borderColor: `${r.color}40` }
-                                    : { borderColor: 'var(--border)', color: 'var(--muted-foreground)' }
-                                }
-                            >
-                                {r.label}
-                            </button>
-                        ))}
+                        {roles.filter(r => users.some(u => u.role === r.name)).map(r => {
+                            const cfg = getRoleCfg(r.name);
+                            const isActive = roleFilter === r.name;
+                            return (
+                                <button
+                                    key={r._id}
+                                    onClick={() => setRoleFilter(isActive ? 'all' : r.name)}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
+                                    style={isActive
+                                        ? { color: cfg.color, backgroundColor: cfg.bg, borderColor: `${cfg.color}40` }
+                                        : { borderColor: 'var(--border)', color: 'var(--muted-foreground)' }
+                                    }
+                                >
+                                    {cfg.label}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -832,6 +856,7 @@ export default function UsersPage() {
                     onClose={() => { setDrawerOpen(false); setEditTarget(null) }}
                     editUser={editTarget}
                     onSuccess={showToast}
+                    roles={roles}
                 />
 
                 {/* Reset Password Modal */}
