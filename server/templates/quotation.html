@@ -20,41 +20,51 @@
     /* ── HEADER ── */
     .header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
       border-bottom: 3px solid #c8a84b;
-      padding-bottom: 10px;
-      margin-bottom: 10px;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
     }
-
-    .header-left {
+    .header-brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      /* Gap removed in favor of negative margin on .header-info to overlap SVG whitespace */
     }
-
-    .header-left img {
-      height: 60px;
+    .header-logo {
+      height: 100px; /* Restored size so it's not tiny */
+      width: 200px;
       object-fit: contain;
+      margin-left: -65px; /* Pull left to align with page margin */
     }
-
+    .header-info {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      margin-left: -70px; /* Pull text tight against the SVG path, ignoring its large internal padding */
+    }
     .company-name {
-      font-size: 20px;
-      font-weight: 800;
+      font-size: 24px;
+      font-weight: 900;
       color: #1a1a1a;
     }
-
-    .company-sub {
-      font-size: 10px;
+    .company-tagline {
+      font-size: 11px;
       color: #555;
       margin-top: 2px;
     }
-
-    .company-contact {
-      font-size: 10px;
-      color: #333;
+    .header-right {
       text-align: right;
-      line-height: 1.7;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #333;
+    }
+    .header-icon {
+      color: #c8a84b; /* Gold color for quotation */
+      margin-right: 5px;
+      font-weight: bold;
+      font-size: 14px;
+      vertical-align: middle;
     }
 
     /* ── META ROW ── */
@@ -132,34 +142,81 @@
     }
 
     .col-photo {
-      width: 140px;
+      width: 170px;
       text-align: center;
+      vertical-align: top;
     }
 
     .photo-grid {
       display: flex;
+      flex-wrap: wrap;
       gap: 4px;
-      justify-content: center;
+      justify-content: flex-start;
+      padding: 2px;
+    }
+
+    .photo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .photo-label {
+      font-size: 7.5px;
+      color: #999;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .item-photo {
-      width: 68px;
-      height: 68px;
+      width: 70px;
+      height: 70px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      display: block;
+    }
+
+    .item-photo-sm {
+      width: 52px;
+      height: 52px;
       object-fit: cover;
       border-radius: 3px;
       border: 1px solid #ddd;
+      display: block;
     }
 
     .no-photo {
-      width: 68px;
-      height: 68px;
-      background: #f0f0f0;
+      width: 70px;
+      height: 70px;
+      background: #f5f5f5;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 9px;
-      color: #aaa;
-      border-radius: 3px;
+      font-size: 8px;
+      color: #bbb;
+      border-radius: 4px;
+      border: 1px dashed #ccc;
+    }
+
+    .extra-photos {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      margin-top: 3px;
+    }
+
+    .specs {
+      margin-top: 4px;
+      font-size: 9.5px;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .specs span {
+      display: block;
     }
 
     .col-desc {
@@ -320,27 +377,19 @@
 
   <!-- HEADER -->
   <div class="header">
-    <div class="header-left">
+    <div class="header-brand">
       <% if (company.logo) { %>
-        <img src="<%= company.logo %>" alt="logo" />
-        <% } %>
-          <div>
-            <div class="company-name">
-              <%= company.name %>
-            </div>
-            <div class="company-sub">
-              <%= company.tagline || '' %>
-            </div>
-            <div class="company-sub">
-              <%= company.website || '' %> &nbsp;|&nbsp; <%= company.phone %>
-            </div>
-          </div>
+        <img class="header-logo" src="<%= company.logo %>" alt="logo" />
+      <% } %>
+      <div class="header-info">
+        <div class="company-name"><%= company.name %></div>
+        <div class="company-tagline"><%= company.tagline || '' %></div>
+      </div>
     </div>
-    <div class="company-contact">
-      <%= company.address.line1 %><br />
-        <%= company.address.city %>, <%= company.address.state %> - <%= company.address.pincode %><br />
-              <%= company.email %><br />
-                GSTIN: <%= company.gstin || '—' %>
+    <div class="header-right">
+      <div><span class="header-icon">📞</span> <%= company.phone %></div>
+      <% if(company.email) { %><div><span class="header-icon">✉</span> <%= company.email %></div><% } %>
+      <% if(company.website) { %><div><span class="header-icon">🌐</span> <%= company.website %></div><% } %>
     </div>
   </div>
 
@@ -372,9 +421,9 @@
       </td>
     </tr>
     <tr>
-      <td class="label">Site</td>
+      <td class="label">Site / Location</td>
       <td>
-        <%= quotation.projectName %>
+        <%= quotation.projectName %> <%= quotation.siteAddress?.location ? '— ' + quotation.siteAddress.location : '' %>
       </td>
       <td class="label">Architect / Ref</td>
       <td>
@@ -424,15 +473,34 @@
               </td>
               <td class="col-photo">
                 <div class="photo-grid">
-                  <% if (item.photo) { %>
-                    <img src="<%= item.photo %>" class="item-photo" alt="item" />
+                  <!-- Primary photo -->
+                  <div class="photo-wrap">
+                    <% if (item.photo) { %>
+                      <img src="<%= item.photo %>" class="item-photo" alt="main" />
                     <% } else { %>
                       <div class="no-photo">No Photo</div>
-                      <% } %>
-                        <% if (item.fabricPhoto) { %>
-                          <img src="<%= item.fabricPhoto %>" class="item-photo" alt="fabric" />
-                          <% } %>
+                    <% } %>
+                    <span class="photo-label">Design</span>
+                  </div>
+                  <!-- Fabric / material photo -->
+                  <% if (item.fabricPhoto) { %>
+                    <div class="photo-wrap">
+                      <img src="<%= item.fabricPhoto %>" class="item-photo" alt="fabric" />
+                      <span class="photo-label">Fabric</span>
+                    </div>
+                  <% } %>
                 </div>
+                <!-- Extra photos row -->
+                <% if (item.photos && item.photos.length > 0) { %>
+                  <div class="extra-photos">
+                    <% item.photos.forEach(function(url, pi) { %>
+                      <div class="photo-wrap">
+                        <img src="<%= url %>" class="item-photo-sm" alt="ref <%= pi+1 %>" />
+                        <span class="photo-label">Ref <%= pi+1 %></span>
+                      </div>
+                    <% }); %>
+                  </div>
+                <% } %>
               </td>
               <td class="col-desc">
                 <strong>
@@ -465,91 +533,45 @@
     </tbody>
   </table>
 
+
   <!-- TOTALS -->
   <div class="totals-wrap">
     <table class="totals-table">
-      <% if (quotation.discountNote) { %>
-        <tr>
-          <td colspan="2"
-            style="font-size:9.5px; color:#888; font-style:italic; text-align:right; padding:5px 14px 3px; border-bottom:1px solid #eee; background:#fafafa;">
-            Note: <%= quotation.discountNote %>
-          </td>
-        </tr>
-        <% } %>
-          <tr>
-            <td class="t-label">Subtotal</td>
-            <td class="t-value">₹<%= quotation.subtotal.toLocaleString('en-IN') %>
-            </td>
-          </tr>
-          <% if (quotation.discount> 0) { %>
-            <tr>
-              <td class="t-label">Discount</td>
-              <td class="t-value" style="color:#c0392b; font-weight:700;">− ₹<%=
-                  quotation.discount.toLocaleString('en-IN') %>
-              </td>
-            </tr>
-            <tr>
-              <td class="t-label" style="color:#555;">After Discount</td>
-              <td class="t-value" style="color:#555;">₹<%= (quotation.subtotal -
-                  quotation.discount).toLocaleString('en-IN') %>
-              </td>
-            </tr>
-            <% } %>
-              <% if (quotation.gstType) { %>
-                <% if (quotation.gstType==='cgst_sgst' ) { %>
-                  <tr>
-                    <td class="t-label">CGST (9%)</td>
-                    <td class="t-value">₹<%= quotation.cgst.toLocaleString('en-IN') %>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="t-label">SGST (9%)</td>
-                    <td class="t-value">₹<%= quotation.sgst.toLocaleString('en-IN') %>
-                    </td>
-                  </tr>
-                  <% } else { %>
-                    <tr>
-                      <td class="t-label">IGST (18%)</td>
-                      <td class="t-value">₹<%= quotation.igst.toLocaleString('en-IN') %>
-                      </td>
-                    </tr>
-                    <% } %>
-                      <% } %>
-                        <!-- GRAND TOTAL row — gold top border acts as separator -->
-                        <tr class="t-final">
-                          <td
-                            style="border-top:2px solid #c8a84b; background:#1a1a1a; color:#c8a84b; font-weight:800; font-size:13px; padding:10px 14px; letter-spacing:0.5px;">
-                            GRAND TOTAL
-                          </td>
-                          <td
-                            style="border-top:2px solid #c8a84b; background:#1a1a1a; color:#c8a84b; font-weight:800; font-size:13px; padding:10px 14px; text-align:right;">
-                            ₹<%= quotation.grandTotal.toLocaleString('en-IN') %>
-                          </td>
-                        </tr>
-                        <% if (quotation.advanceAmount> 0) { %>
-                          <tr class="t-advance">
-                            <td>Advance (<%= quotation.advancePercent %>%)</td>
-                            <td class="t-value">₹<%= quotation.advanceAmount.toLocaleString('en-IN') %>
-                            </td>
-                          </tr>
-                          <% } %>
+      <tr>
+        <td class="t-label">TOTAL AMT</td>
+        <td class="t-value">&#8377;<%= quotation.subtotal.toLocaleString('en-IN') %></td>
+      </tr>
+      <% if (quotation.discount > 0) { %>
+      <tr>
+        <td class="t-label" style="color:#555;">Discount</td>
+        <td class="t-value" style="color:#c0392b; font-weight:700;">&#8722; &#8377;<%= quotation.discount.toLocaleString('en-IN') %></td>
+      </tr>
+      <% } %>
+      <tr class="t-final">
+        <td style="border-top:2px solid #c8a84b; background:#1a1a1a; color:#c8a84b; font-weight:800; font-size:13px; padding:10px 14px; letter-spacing:0.5px;">
+          FINAL AMT
+        </td>
+        <td style="border-top:2px solid #c8a84b; background:#1a1a1a; color:#c8a84b; font-weight:800; font-size:13px; padding:10px 14px; text-align:right;">
+          &#8377;<%= (quotation.subtotal - (quotation.discount || 0)).toLocaleString('en-IN') %>
+        </td>
+      </tr>
     </table>
   </div>
 
+  <!-- TERMS & CONDITIONS (static - Maruti Furniture) -->
+  <div class="terms">
+    <div class="terms-title">&#9733; Terms &amp; Conditions &#9733;</div>
+    <ul>
+      <li>*18% GST extra on all above price.</li>
+      <li>*No Guarantee or Warranty of any kind is given on Imported furniture, glass, cloth, rexine.</li>
+      <li>*Delivery Time 120 days after Final &mdash; 50% Payment Advance &amp; 50% Before Delivery</li>
+      <li>*Transportation (Delivery) Charge, Packing Charge 2% &amp; Labour Charge (Floorwise) Will be Extra</li>
+      <li>*When the Goods arrive, after the arrangement is made, check &amp; Release the deliveryman. If there is any damage after that the Responsibility will not remain with The Company.</li>
+    </ul>
+  </div>
 
-  <!-- TERMS & CONDITIONS -->
-  <% if (quotation.termsAndConditions && quotation.termsAndConditions.length> 0) { %>
-    <div class="terms">
-      <div class="terms-title">★ Terms & Conditions ★</div>
-      <ul>
-        <% quotation.termsAndConditions.forEach(function(t) { %>
-          <li>
-            <%= t %>
-          </li>
-          <% }); %>
-      </ul>
-    </div>
-    <% } %>
+
+
 
       <!-- FOOTER -->
       <div class="footer">

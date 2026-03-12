@@ -102,9 +102,16 @@ export const useApproveQuotation = (id: string) => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: () => apiPatch(`/quotations/${id}/approve`),
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['quotations'] }); qc.invalidateQueries({ queryKey: QK.quotation(id) }); },
+        // Approval now auto-creates a Project + Job Cards, so invalidate all three
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['quotations'] });
+            qc.invalidateQueries({ queryKey: QK.quotation(id) });
+            qc.invalidateQueries({ queryKey: ['projects'] });
+            qc.invalidateQueries({ queryKey: ['jobcards'] });
+        },
     });
 };
+
 
 export const useRejectQuotation = (id: string) => {
     const qc = useQueryClient();
@@ -121,6 +128,18 @@ export const useReviseQuotation = (id: string) => {
         onSuccess: () => qc.invalidateQueries({ queryKey: ['quotations'] }),
     });
 };
+
+export const useAssignQuotationStaff = (id: string) => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (staffIds: string[]) => apiPatch(`/quotations/${id}/assign-staff`, { staffIds }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: QK.quotation(id) });
+            qc.invalidateQueries({ queryKey: ['jobcards'] });
+        },
+    });
+};
+
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 

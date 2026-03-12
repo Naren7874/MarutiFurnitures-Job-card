@@ -24,11 +24,10 @@ const projectSchema = new mongoose.Schema(
     projectName:  { type: String, required: true, trim: true },
     architect:    { type: String },                      // "Ar. Dreamscape"
     siteAddress: {
-      line1:   String,
-      line2:   String,
-      city:    String,
-      state:   String,
-      pincode: String,
+      location: String,
+      line1:    String,
+      line2:    String,
+      pincode:  String,
     },
 
     // GST context (copied at creation for reporting)

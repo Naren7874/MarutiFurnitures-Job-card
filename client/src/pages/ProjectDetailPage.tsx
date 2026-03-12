@@ -2,15 +2,15 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
     ArrowLeft, FolderOpen, Building2, MapPin, Calendar, Users,
-    Plus, ChevronRight, AlertTriangle, CheckCircle2, Clock,
-    Loader2, Package, Activity,
+    ChevronRight, AlertTriangle, CheckCircle2, Clock,
+    Loader2, Package, Activity, Phone, Mail
 } from 'lucide-react';
-import { useProject, useCreateJobCard, useUpdateProjectStatus, useUpdateWhatsApp } from '../hooks/useApi';
+import { useProject, useUpdateProjectStatus, useUpdateWhatsApp } from '../hooks/useApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -38,29 +38,13 @@ export default function ProjectDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    const { data: raw, isLoading, refetch } = useProject(id!);
+    const { data: raw, isLoading } = useProject(id!);
     const project: any = (raw as any)?.data;
 
     const statusMut = useUpdateProjectStatus(id!);
-    const createJC = useCreateJobCard();
     const whatsappMut = useUpdateWhatsApp(id!);
 
-    const [showJCForm, setShowJCForm] = useState(false);
-    const [jcForm, setJcForm] = useState({ title: '', priority: 'medium', expectedDelivery: '' });
     const [statusChanging, setStatusChanging] = useState(false);
-
-    const handleCreateJC = async () => {
-        if (!jcForm.title) return;
-        await createJC.mutateAsync({
-            projectId: id,
-            title: jcForm.title,
-            priority: jcForm.priority,
-            expectedDelivery: jcForm.expectedDelivery || undefined,
-        });
-        setShowJCForm(false);
-        setJcForm({ title: '', priority: 'medium', expectedDelivery: '' });
-        refetch();
-    };
 
     const handleStatusChange = async (newStatus: string) => {
         setStatusChanging(true);
@@ -124,9 +108,6 @@ export default function ProjectDetailPage() {
                             ))}
                         </SelectContent>
                     </Select>
-                    <Button onClick={() => setShowJCForm(true)} className="h-10 px-5 rounded-xl font-black text-xs gap-2">
-                        <Plus size={14} /> New Job Card
-                    </Button>
                 </div>
             </div>
 
@@ -134,11 +115,33 @@ export default function ProjectDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Client */}
                 <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-3">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 pb-2 border-b border-border/20">
-                        <Building2 size={12} /> Client
+                    <div className="flex items-center justify-between pb-2 border-b border-border/20">
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">
+                            <Building2 size={12} /> Client Details
+                        </div>
                     </div>
-                    <p className="font-black text-sm text-foreground">{project.clientId?.firmName || project.clientId?.name || '—'}</p>
-                    {project.clientId?.phone && <p className="text-xs text-muted-foreground/60 font-medium">{project.clientId.phone}</p>}
+                    <div>
+                        <h3 className="font-black text-[15px] text-foreground tracking-tight">{project.clientId?.name || '—'}</h3>
+                        {project.clientId?.firmName && <p className="text-[11px] font-bold text-muted-foreground/60 tracking-wide mt-0.5">{project.clientId.firmName}</p>}
+                    </div>
+
+                    <div className="space-y-2 pt-1">
+                        {project.clientId?.phone && (
+                            <div className="flex items-center gap-2.5 text-xs text-muted-foreground/80 font-bold">
+                                <Phone size={13} className="text-blue-500/60" /> {project.clientId.phone}
+                            </div>
+                        )}
+                        {project.clientId?.email && (
+                            <div className="flex items-center gap-2.5 text-xs text-muted-foreground/80 font-bold truncate">
+                                <Mail size={13} className="text-violet-500/60" /> {project.clientId.email}
+                            </div>
+                        )}
+                        {project.architect && (
+                            <div className="flex items-center gap-2.5 text-xs text-muted-foreground/80 font-bold border-t border-border/30 pt-3 mt-3">
+                                <span className="text-[10px] font-black uppercase text-muted-foreground/40 bg-muted px-1.5 py-0.5 rounded-md">Ar.</span> {project.architect}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Site Address */}
@@ -146,11 +149,13 @@ export default function ProjectDetailPage() {
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 pb-2 border-b border-border/20">
                         <MapPin size={12} /> Site Address
                     </div>
-                    <div className="text-xs text-muted-foreground/70 font-medium space-y-1">
+                    <div className="text-xs text-muted-foreground/70 font-semibold space-y-1.5">
+                        {project.siteAddress?.location && <p className="font-black text-foreground text-[13px]">{project.siteAddress.location}</p>}
                         {project.siteAddress?.line1 && <p>{project.siteAddress.line1}</p>}
                         {project.siteAddress?.line2 && <p>{project.siteAddress.line2}</p>}
-                        {(project.siteAddress?.city || project.siteAddress?.state) && (
-                            <p>{[project.siteAddress.city, project.siteAddress.state].filter(Boolean).join(', ')}</p>
+                        {project.siteAddress?.pincode && <p className="pt-1">Pincode: <span className="font-bold text-foreground">{project.siteAddress.pincode}</span></p>}
+                        {!project.siteAddress?.location && !project.siteAddress?.line1 && (
+                            <p className="italic opacity-50 font-normal">No site address provided</p>
                         )}
                     </div>
                 </div>
@@ -241,57 +246,6 @@ export default function ProjectDetailPage() {
                 </div>
             )}
 
-            {/* New Job Card Panel */}
-            <AnimatePresence>
-                {showJCForm && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="bg-primary/5 border border-primary/20 rounded-2xl p-6 space-y-4"
-                    >
-                        <p className="text-sm font-black text-foreground">Create New Job Card</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <Input
-                                placeholder="Job card title (e.g. Master Bedroom Wardrobe)"
-                                value={jcForm.title}
-                                onChange={e => setJcForm(f => ({ ...f, title: e.target.value }))}
-                                className="rounded-xl h-10 col-span-full md:col-span-1"
-                                autoFocus
-                            />
-                            <Select value={jcForm.priority} onValueChange={v => setJcForm(f => ({ ...f, priority: v }))}>
-                                <SelectTrigger className="rounded-xl h-10 font-bold text-xs">
-                                    <SelectValue placeholder="Priority" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl">
-                                    <SelectItem value="low">Low</SelectItem>
-                                    <SelectItem value="medium">Medium</SelectItem>
-                                    <SelectItem value="high" className="text-amber-500">High</SelectItem>
-                                    <SelectItem value="urgent" className="text-rose-500">Urgent</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Input
-                                type="date"
-                                value={jcForm.expectedDelivery}
-                                onChange={e => setJcForm(f => ({ ...f, expectedDelivery: e.target.value }))}
-                                className="rounded-xl h-10 font-medium"
-                            />
-                        </div>
-                        <div className="flex gap-3">
-                            <Button variant="outline" onClick={() => setShowJCForm(false)} className="rounded-xl font-bold text-xs">Cancel</Button>
-                            <Button
-                                onClick={handleCreateJC}
-                                disabled={!jcForm.title || createJC.isPending}
-                                className="rounded-xl font-black text-xs gap-2"
-                            >
-                                {createJC.isPending && <Loader2 size={13} className="animate-spin" />}
-                                Create Job Card
-                            </Button>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
             {/* Job Cards */}
             <div className="space-y-4">
                 <div className="flex items-center gap-3">
@@ -303,9 +257,7 @@ export default function ProjectDetailPage() {
                     <div className="py-16 text-center bg-muted/10 border-2 border-dashed border-border/30 rounded-3xl">
                         <Package size={32} className="mx-auto text-muted-foreground/20 mb-3" />
                         <p className="text-muted-foreground/50 font-bold text-sm">No job cards yet</p>
-                        <Button onClick={() => setShowJCForm(true)} variant="outline" className="mt-4 rounded-xl font-black text-xs gap-2">
-                            <Plus size={12} /> Create First Job Card
-                        </Button>
+                        <p className="text-muted-foreground/30 text-xs font-medium mt-1">Job cards are created automatically when a quotation is approved.</p>
                     </div>
                 ) : (
                     <div className="space-y-3">

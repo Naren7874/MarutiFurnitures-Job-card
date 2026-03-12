@@ -3,27 +3,29 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
     ArrowLeft, Download, Send, CheckCircle2, XCircle, RefreshCw,
     FileText, User2, MapPin, ReceiptText, AlertCircle, Loader2,
-    Building2, CalendarDays, Package, Rocket,
+    Building2, CalendarDays, Package, Users, X, Check,
 } from 'lucide-react';
 import {
     useQuotation, useSendQuotation, useApproveQuotation,
-    useRejectQuotation, useReviseQuotation, useCreateProject,
+    useRejectQuotation, useReviseQuotation, useAssignQuotationStaff,
 } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ImagePreview } from '@/components/ui/image-preview';
+import { apiGet } from '../lib/axios';
+import { useQuery } from '@tanstack/react-query';
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-    draft: { label: 'Draft', color: 'text-slate-500', bg: 'bg-slate-500/10', border: 'border-slate-500/20' },
-    sent: { label: 'Sent', color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-    approved: { label: 'Approved', color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-    rejected: { label: 'Rejected', color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
-    revised: { label: 'Revised', color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-    converted: { label: 'Converted', color: 'text-violet-500', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
+    draft:     { label: 'Draft',     color: 'text-slate-500',  bg: 'bg-slate-500/10',  border: 'border-slate-500/20'  },
+    sent:      { label: 'Sent',      color: 'text-blue-500',   bg: 'bg-blue-500/10',  border: 'border-blue-500/20'   },
+    approved:  { label: 'Approved',  color: 'text-emerald-500',bg: 'bg-emerald-500/10',border: 'border-emerald-500/20'},
+    rejected:  { label: 'Rejected',  color: 'text-rose-500',   bg: 'bg-rose-500/10',  border: 'border-rose-500/20'   },
+    revised:   { label: 'Revised',   color: 'text-amber-500',  bg: 'bg-amber-500/10', border: 'border-amber-500/20'  },
+    converted: { label: 'Converted', color: 'text-violet-500', bg: 'bg-violet-500/10',border: 'border-violet-500/20' },
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -35,41 +37,63 @@ export default function QuotationDetailPage() {
     const { data: raw, isLoading } = useQuotation(id!);
     const q: any = (raw as any)?.data;
 
-    const sendMutation = useSendQuotation(id!);
+    const sendMutation    = useSendQuotation(id!);
     const approveMutation = useApproveQuotation(id!);
-    const rejectMutation = useRejectQuotation(id!);
-    const reviseMutation = useReviseQuotation(id!);
-    const createProjectMut = useCreateProject();
+    const rejectMutation  = useRejectQuotation(id!);
+    const reviseMutation  = useReviseQuotation(id!);
+    const assignStaffMut  = useAssignQuotationStaff(id!);
 
-    const [confirmAction, setConfirmAction] = useState<null | 'send' | 'approve' | 'reject' | 'revise' | 'convert'>(null);
+    const [confirmAction, setConfirmAction] = useState<null | 'send' | 'approve' | 'reject' | 'revise'>(null);
     const [pdfLoading, setPdfLoading] = useState(false);
-    const isBusy = sendMutation.isPending || approveMutation.isPending || rejectMutation.isPending || reviseMutation.isPending || createProjectMut.isPending;
+    const [showStaffPanel, setShowStaffPanel] = useState(false);
+    const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
+    const [staffInitialized, setStaffInitialized] = useState(false);
+
+    const isBusy = sendMutation.isPending || approveMutation.isPending || rejectMutation.isPending || reviseMutation.isPending || assignStaffMut.isPending;
 
     // Permission flags
     const { hasPermission } = useAuthStore();
-    const canEdit = hasPermission('quotation.edit');    // sales
-    const canSend = hasPermission('quotation.send');    // sales
-    const canApprove = hasPermission('quotation.approve'); // super_admin (*.*)
-    const canConvert = hasPermission('project.create');    // super_admin
+    const canEdit    = hasPermission('quotation.edit');
+    const canSend    = hasPermission('quotation.send');
+    const canApprove = hasPermission('quotation.edit');
+    const canAssign  = hasPermission('jobcard.assign');
 
-    const handleAction = async (action: 'send' | 'approve' | 'reject' | 'revise' | 'convert') => {
+    // Load company users for staff assignment
+    const { data: usersRaw } = useQuery({
+        queryKey: ['users', 'all'],
+        queryFn: () => apiGet('/users'),
+        enabled: showStaffPanel,
+    });
+    const allUsers: any[] = (usersRaw as any)?.data ?? [];
+
+    // Initialize selectedStaff from quotation when staff panel is opened
+    const openStaffPanel = () => {
+        if (!staffInitialized && q?.assignedStaff) {
+            setSelectedStaff(q.assignedStaff.map((s: any) => s._id || s));
+            setStaffInitialized(true);
+        }
+        setShowStaffPanel(true);
+    };
+
+    const toggleStaff = (userId: string) => {
+        setSelectedStaff(prev =>
+            prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+        );
+    };
+
+    const handleSaveStaff = async () => {
+        await assignStaffMut.mutateAsync(selectedStaff);
+        setShowStaffPanel(false);
+    };
+
+    const handleAction = async (action: 'send' | 'approve' | 'reject' | 'revise') => {
         setConfirmAction(null);
-        if (action === 'send') await sendMutation.mutateAsync(undefined as any);
+        if (action === 'send')    await sendMutation.mutateAsync(undefined as any);
         if (action === 'approve') await approveMutation.mutateAsync(undefined as any);
-        if (action === 'reject') await rejectMutation.mutateAsync(undefined as any);
+        if (action === 'reject')  await rejectMutation.mutateAsync(undefined as any);
         if (action === 'revise') {
             const res: any = await reviseMutation.mutateAsync({});
             if (res?.data?._id) navigate(`/quotations/${res.data._id}`);
-        }
-        if (action === 'convert') {
-            const res: any = await createProjectMut.mutateAsync({
-                quotationId: id,
-                projectName: q.projectName,
-                clientId: q.clientId?._id || q.clientId,
-                siteAddress: q.siteAddress,
-            });
-            const projId = res?.data?._id || res?._id;
-            if (projId) navigate(`/projects/${projId}`);
         }
     };
 
@@ -105,10 +129,13 @@ export default function QuotationDetailPage() {
     }
 
     const status = q.status || 'draft';
-    const cfg = STATUS_CFG[status] || STATUS_CFG.draft;
+    const cfg    = STATUS_CFG[status] || STATUS_CFG.draft;
     const client = q.clientId;
-    const fmt = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
+    const fmt    = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
     const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+    // Editable statuses: draft, sent, approved (admin can add items post-approval)
+    const canEditNow = canEdit && !['converted', 'rejected', 'revised'].includes(status);
 
     return (
         <motion.div
@@ -149,26 +176,28 @@ export default function QuotationDetailPage() {
                         )}
                     </Button>
 
-                    {status === 'draft' && canEdit && (
-                        <>
-                            <Link to={`/quotations/${id}/edit`}>
-                                <Button variant="outline" className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-border/60">
-                                    <FileText size={14} /> Edit
-                                </Button>
-                            </Link>
-                            {canSend && (
-                                <Button
-                                    onClick={() => setConfirmAction('send')}
-                                    disabled={isBusy}
-                                    className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-blue-500 text-white hover:bg-blue-600"
-                                >
-                                    {sendMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                                    Send to Client
-                                </Button>
-                            )}
-                        </>
+                    {/* Edit button — visible for draft, sent, AND approved */}
+                    {canEditNow && (
+                        <Link to={`/quotations/${id}/edit`}>
+                            <Button variant="outline" className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-border/60">
+                                <FileText size={14} /> Edit
+                            </Button>
+                        </Link>
                     )}
 
+                    {/* Send to Client — only for draft */}
+                    {status === 'draft' && canSend && (
+                        <Button
+                            onClick={() => setConfirmAction('send')}
+                            disabled={isBusy}
+                            className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-blue-500 text-white hover:bg-blue-600"
+                        >
+                            {sendMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                            Send to Client
+                        </Button>
+                    )}
+
+                    {/* Approve / Reject — for draft or sent */}
                     {(status === 'sent' || status === 'draft') && canApprove && (
                         <>
                             <Button
@@ -190,6 +219,7 @@ export default function QuotationDetailPage() {
                         </>
                     )}
 
+                    {/* Create Revision — for sent or rejected */}
                     {(status === 'sent' || status === 'rejected') && canEdit && (
                         <Button
                             variant="outline"
@@ -202,14 +232,14 @@ export default function QuotationDetailPage() {
                         </Button>
                     )}
 
-                    {status === 'approved' && canConvert && (
+                    {/* Assign Staff — admin only, visible always */}
+                    {canAssign && (
                         <Button
-                            onClick={() => setConfirmAction('convert')}
-                            disabled={isBusy}
-                            className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-violet-500 text-white hover:bg-violet-600"
+                            variant="outline"
+                            onClick={openStaffPanel}
+                            className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-violet-500/30 text-violet-500 hover:bg-violet-500/10"
                         >
-                            {createProjectMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <Rocket size={13} />}
-                            Convert to Project
+                            <Users size={13} /> Assign Staff
                         </Button>
                     )}
                 </div>
@@ -225,11 +255,10 @@ export default function QuotationDetailPage() {
                         className="bg-card border border-border rounded-2xl p-5 flex items-center justify-between gap-4"
                     >
                         <p className="text-sm font-bold text-foreground">
-                            {confirmAction === 'send' && 'Send this quotation to the client via email & WhatsApp?'}
-                            {confirmAction === 'approve' && 'Mark this quotation as Approved?'}
-                            {confirmAction === 'reject' && 'Mark this quotation as Rejected?'}
-                            {confirmAction === 'revise' && 'Create a new revision copy from this quotation?'}
-                            {confirmAction === 'convert' && `Convert this approved quotation into a live project for ${q.clientId?.firmName || q.clientId?.name}?`}
+                            {confirmAction === 'send'    && 'Send this quotation to the client via email & WhatsApp?'}
+                            {confirmAction === 'approve' && `Approve this quotation? A Project and Job Cards will be automatically created for ${q.items?.length || 0} item(s).`}
+                            {confirmAction === 'reject'  && 'Mark this quotation as Rejected?'}
+                            {confirmAction === 'revise'  && 'Create a new revision copy from this quotation?'}
                         </p>
                         <div className="flex gap-3 shrink-0">
                             <Button variant="outline" size="sm" onClick={() => setConfirmAction(null)} className="rounded-xl font-bold text-xs">Cancel</Button>
@@ -238,6 +267,104 @@ export default function QuotationDetailPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Staff Assignment Panel */}
+            <AnimatePresence>
+                {showStaffPanel && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="bg-card border border-violet-500/20 rounded-2xl p-5 space-y-4"
+                    >
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-black text-foreground flex items-center gap-2">
+                                <Users size={14} className="text-violet-500" /> Assign Staff to This Quotation
+                            </p>
+                            <button onClick={() => setShowStaffPanel(false)} className="text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+                                <X size={14} />
+                            </button>
+                        </div>
+                        <p className="text-xs text-muted-foreground/60 font-medium">
+                            Selected staff will be assigned to the design & production stages of all job cards for this quotation.
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+                            {allUsers.map((user: any) => {
+                                const selected = selectedStaff.includes(user._id);
+                                return (
+                                    <button
+                                        key={user._id}
+                                        type="button"
+                                        onClick={() => toggleStaff(user._id)}
+                                        className={cn(
+                                            'flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all text-xs font-bold',
+                                            selected
+                                                ? 'border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-400'
+                                                : 'border-border/60 text-muted-foreground hover:border-violet-500/30 hover:bg-violet-500/5'
+                                        )}
+                                    >
+                                        <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-[10px] font-black shrink-0">
+                                            {user.name?.[0]?.toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="truncate">{user.name}</p>
+                                            <p className="text-[9px] font-medium text-muted-foreground/50 uppercase tracking-wider truncate">{user.role}</p>
+                                        </div>
+                                        {selected && <Check size={10} className="ml-auto shrink-0" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div className="flex items-center gap-3 pt-2 border-t border-border/30">
+                            <Button
+                                onClick={handleSaveStaff}
+                                disabled={assignStaffMut.isPending}
+                                className="h-9 px-5 rounded-xl text-xs font-black gap-2 bg-violet-500 hover:bg-violet-600 text-white"
+                            >
+                                {assignStaffMut.isPending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                                Save Assignment ({selectedStaff.length} selected)
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => setShowStaffPanel(false)} className="rounded-xl text-xs font-bold text-muted-foreground">
+                                Cancel
+                            </Button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Assigned Staff display */}
+            {q.assignedStaff?.length > 0 && (
+                <div className="bg-violet-500/5 border border-violet-500/15 rounded-2xl px-5 py-4 flex items-center gap-4 flex-wrap">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-violet-500/70 shrink-0 flex items-center gap-1.5">
+                        <Users size={10} /> Assigned Staff
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                        {q.assignedStaff.map((staff: any) => (
+                            <span key={staff._id || staff} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400 text-xs font-bold border border-violet-500/20">
+                                <div className="w-4 h-4 rounded-md bg-violet-500/20 flex items-center justify-center text-[9px] font-black">
+                                    {(staff.name || '?')[0]?.toUpperCase()}
+                                </div>
+                                {staff.name || staff}
+                                {staff.role && <span className="text-violet-400/60 font-medium capitalize">· {staff.role}</span>}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Approval success note */}
+            {status === 'approved' && q.projectId && (
+                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl px-5 py-4 flex items-center gap-3">
+                    <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+                    <div>
+                        <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">Quotation Approved — Project & Job Cards Created</p>
+                        <p className="text-xs text-muted-foreground/60 font-medium mt-0.5">
+                            A project and individual job cards were automatically created for each item.{' '}
+                            <Link to={`/projects/${q.projectId}`} className="text-primary font-bold hover:underline">View Project →</Link>
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Main Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -305,8 +432,9 @@ export default function QuotationDetailPage() {
                                             <td className="px-5 py-4">
                                                 {item.category && <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/40 mb-0.5">{item.category}</p>}
                                                 <div className="flex gap-4">
-                                                    {(item.photo || item.fabricPhoto) && (
-                                                        <div className="flex gap-2 shrink-0">
+                                                    {/* Images: main, fabric, and extra photos */}
+                                                    {(item.photo || item.fabricPhoto || item.photos?.length > 0) && (
+                                                        <div className="flex gap-2 shrink-0 flex-wrap">
                                                             {item.photo && (
                                                                 <div className="w-16 h-16">
                                                                     <ImagePreview src={item.photo} alt="Main" />
@@ -317,6 +445,11 @@ export default function QuotationDetailPage() {
                                                                     <ImagePreview src={item.fabricPhoto} alt="Fabric" />
                                                                 </div>
                                                             )}
+                                                            {item.photos?.map((url: string, i: number) => (
+                                                                <div key={i} className="w-16 h-16">
+                                                                    <ImagePreview src={url} alt={`Photo ${i + 1}`} />
+                                                                </div>
+                                                            ))}
                                                         </div>
                                                     )}
                                                     <div className="flex-1">

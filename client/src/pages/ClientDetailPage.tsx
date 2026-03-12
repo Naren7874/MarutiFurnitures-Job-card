@@ -58,9 +58,11 @@ export default function ClientDetailPage() {
                     Back to Registry
                 </Link>
                 <div className="flex gap-2 flex-wrap">
-                    <Button variant="outline" className="h-10 px-6 rounded-xl border-border/60 text-[10px] font-black uppercase tracking-widest hover:text-primary">
-                        Edit Entity
-                    </Button>
+                    <Link to={`/clients/${id}/edit`}>
+                        <Button variant="outline" className="h-10 px-6 rounded-xl border-amber-500/40 text-amber-500 hover:bg-amber-500/10 font-black text-[10px] uppercase tracking-widest gap-2">
+                            ✏ Edit Client
+                        </Button>
+                    </Link>
                     <Button className="h-10 px-6 rounded-xl bg-primary font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">
                         Create Transaction
                     </Button>

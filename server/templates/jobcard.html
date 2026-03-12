@@ -11,7 +11,6 @@
     background: #fff;
     padding: 20px;
   }
-  
   /* HEADER */
   .header {
     display: flex;
@@ -21,7 +20,37 @@
     padding-bottom: 12px;
     margin-bottom: 20px;
   }
-  .header-left {
+  .header-brand {
+    display: flex;
+    align-items: center;
+  }
+  .header-logo {
+    height: 100px;
+    width: 200px;
+    object-fit: contain;
+    margin-left: -65px; /* Pull left to align with page margin */
+  }
+  .header-info {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-left: -70px; /* Pull text tighter to logo */
+  }
+  .company-name {
+    font-size: 26px;
+    font-weight: 900;
+    color: #e53935; /* Red color matching Maruti brand */
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  .company-tagline {
+    font-size: 12px;
+    color: #1a1a1a;
+    font-weight: 800;
+  }
+  .header-right {
+    text-align: right;
     font-size: 11px;
     line-height: 1.6;
     color: #333;
@@ -30,18 +59,8 @@
     color: #e53935;
     margin-right: 5px;
     font-weight: bold;
-  }
-  .header-right {
-    text-align: right;
-  }
-  .header-right img {
-    height: 50px;
-    object-fit: contain;
-    margin-bottom: 4px;
-  }
-  .company-tagline {
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 14px;
+    vertical-align: middle;
   }
 
   /* DOCUMENT TITLE */
@@ -105,15 +124,56 @@
   /* ITEM CELL */
   .photo-grid {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    align-items: flex-end;
+  }
+  .photo-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .photo-label {
+    font-size: 8px;
+    color: #888;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
   .item-photo {
     width: 160px;
     height: 160px;
     object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    display: block;
   }
-  
+  .item-photo-md {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    display: block;
+  }
+  .item-photo-sm {
+    width: 90px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 3px;
+    border: 1px solid #ccc;
+    display: block;
+  }
+  .extra-photos-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+    margin-bottom: 10px;
+  }
+
   .item-title {
     font-size: 14px;
     color: #2e6073;
@@ -141,18 +201,19 @@
 
   <!-- HEADER -->
   <div class="header">
-    <div class="header-left">
+    <div class="header-brand">
+      <% if (company.logo) { %>
+        <img class="header-logo" src="<%= company.logo %>" alt="logo"/>
+      <% } %>
+      <div class="header-info">
+        <div class="company-name"><%= company.name %></div>
+        <div class="company-tagline"><%= company.tagline || 'The Solid Wood Furniture Makers' %></div>
+      </div>
+    </div>
+    <div class="header-right">
       <div><span class="header-icon">📞</span> <%= company.phone %></div>
       <% if(company.email) { %><div><span class="header-icon">✉</span> <%= company.email %></div><% } %>
       <% if(company.website) { %><div><span class="header-icon">🌐</span> <%= company.website %></div><% } %>
-    </div>
-    <div class="header-right">
-      <% if (company.logo) { %>
-        <img src="<%= company.logo %>" alt="logo"/>
-      <% } else { %>
-        <div style="font-size:24px; font-weight:900; color:#e53935;"><%= company.name %></div>
-      <% } %>
-      <div class="company-tagline"><%= company.tagline || 'The Solid Wood Furniture Makers' %></div>
     </div>
   </div>
 
@@ -177,8 +238,8 @@
       <td class="value"><%= jobCard.salesperson && jobCard.salesperson.name ? jobCard.salesperson.name : '—' %></td>
     </tr>
     <tr>
-      <td class="label">Location:</td>
-      <td class="value"><%= client.address ? client.address.city : '—' %></td>
+      <td class="label">Site Location:</td>
+      <td class="value"><%= jobCard.projectId?.siteAddress?.location || '—' %></td>
       <td class="label">Delivery Date:</td>
       <td class="value">
         <%= jobCard.expectedDelivery ? new Date(jobCard.expectedDelivery).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'2-digit'}) : '—' %>
@@ -200,15 +261,33 @@
           <td class="col-no"><%= item.srNo %></td>
           <td>
             <!-- Photos -->
+            <!-- Primary: Design photo (large) -->
             <div class="photo-grid">
               <% if (item.photo) { %>
-                <img src="<%= item.photo %>" class="item-photo" alt="Item Photo"/>
+                <div class="photo-wrap">
+                  <img src="<%= item.photo %>" class="item-photo" alt="Design"/>
+                  <span class="photo-label">Design</span>
+                </div>
               <% } %>
+              <!-- Fabric photo (medium) -->
               <% if (item.fabricPhoto) { %>
-                <img src="<%= item.fabricPhoto %>" class="item-photo" alt="Fabric Photo"/>
+                <div class="photo-wrap">
+                  <img src="<%= item.fabricPhoto %>" class="item-photo-md" alt="Fabric"/>
+                  <span class="photo-label">Fabric / Material</span>
+                </div>
               <% } %>
             </div>
-
+            <!-- Extra reference photos -->
+            <% if (item.photos && item.photos.length > 0) { %>
+              <div class="extra-photos-row">
+                <% item.photos.forEach(function(url, pi) { %>
+                  <div class="photo-wrap">
+                    <img src="<%= url %>" class="item-photo-sm" alt="Ref <%= pi+1 %>"/>
+                    <span class="photo-label">Ref <%= pi+1 %></span>
+                  </div>
+                <% }); %>
+              </div>
+            <% } %>
             <!-- Description -->
             <div class="item-title"><%= item.description %></div>
 

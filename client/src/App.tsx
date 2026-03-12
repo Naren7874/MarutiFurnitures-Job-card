@@ -30,6 +30,7 @@ const DashboardPage = lazy(() => import('./pages/dashboard'));
 const ClientsPage = lazy(() => import('./pages/ClientsPage'));
 const ClientDetailPage = lazy(() => import('./pages/ClientDetailPage'));
 const NewClientPage = lazy(() => import('./pages/NewClientPage'));
+const EditClientPage = lazy(() => import('./pages/EditClientPage'));
 
 // Quotations
 const QuotationsPage = lazy(() => import('./pages/QuotationsPage'));
@@ -122,6 +123,7 @@ export default function App() {
                       <Route path="clients" element={<ClientsPage />} />
                       <Route path="clients/new" element={<NewClientPage />} />
                       <Route path="clients/:id" element={<ClientDetailPage />} />
+                      <Route path="clients/:id/edit" element={<EditClientPage />} />
                     </Route>
 
                     {/* Quotations — requires quotation.view */}

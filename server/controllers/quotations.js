@@ -1,7 +1,10 @@
 import Quotation from '../models/Quotation.js';
 import Company from '../models/Company.js';
 import Client from '../models/Client.js';
-import { generateQuotationNumber } from '../utils/autoNumber.js';
+import Project from '../models/Project.js';
+import JobCard from '../models/JobCard.js';
+import DesignRequest from '../models/DesignRequest.js';
+import { generateQuotationNumber, generateProjectNumber, generateJobCardNumber } from '../utils/autoNumber.js';
 import { generateAndUploadPDF } from '../utils/generatePDF.js';
 import { sendEmail, quotationEmailHTML } from '../utils/sendEmail.js';
 import { sendWhatsApp, WA_TEMPLATES } from '../utils/sendWhatsApp.js';
@@ -83,6 +86,7 @@ export const getQuotationById = async (req, res, next) => {
   try {
     const quotation = await Quotation.findOne({ _id: req.params.id, ...req.companyFilter })
       .populate('clientId')
+      .populate('assignedStaff', 'name role department profilePhoto')
       .lean();
     if (!quotation) return res.status(404).json({ success: false, message: 'Quotation not found' });
     res.status(200).json({ success: true, data: quotation });
@@ -92,14 +96,20 @@ export const getQuotationById = async (req, res, next) => {
 };
 
 // ── PUT /api/quotations/:id ──────────────────────────────────────────────────
+// Allows editing draft, sent, AND approved quotations (admin can add items post-approval)
 
 export const updateQuotation = async (req, res, next) => {
   try {
-    const PROTECTED = ['companyId', 'quotationNumber', 'createdBy', 'revisionOf', 'status'];
+    const PROTECTED = ['companyId', 'quotationNumber', 'createdBy', 'revisionOf'];
     PROTECTED.forEach((f) => delete req.body[f]);
 
+    // Allow editing all statuses except converted/rejected/revised
     const quotation = await Quotation.findOneAndUpdate(
-      { _id: req.params.id, ...req.companyFilter, status: { $in: ['draft', 'sent'] } },
+      {
+        _id: req.params.id,
+        ...req.companyFilter,
+        status: { $nin: ['converted', 'rejected', 'revised'] },
+      },
       req.body,
       { new: true, runValidators: true }
     );
@@ -180,28 +190,126 @@ export const sendQuotationPDF = async (req, res, next) => {
 };
 
 // ── PATCH /api/quotations/:id/approve ───────────────────────────────────────
+// Approves quotation AND auto-creates Project + one Job Card per item
 
 export const approveQuotation = async (req, res, next) => {
   try {
-    const prev = await Quotation.findOne({ _id: req.params.id, ...req.companyFilter }).lean();
-    const quotation = await Quotation.findOneAndUpdate(
-      { _id: req.params.id, ...req.companyFilter, status: { $in: ['sent', 'draft'] } },
-      { status: 'approved' },
+    const prev = await Quotation.findOne({ _id: req.params.id, ...req.companyFilter })
+      .populate('clientId', 'gstin name')
+      .lean();
+
+    if (!prev) {
+      return res.status(404).json({ success: false, message: 'Quotation not found' });
+    }
+
+    if (!['sent', 'draft'].includes(prev.status)) {
+      return res.status(400).json({ success: false, message: 'Quotation already approved or processed' });
+    }
+
+    const company = await Company.findById(req.user.companyId).lean();
+
+    // 1. Auto-create Project
+    const projectNumber = await generateProjectNumber(req.user.companyId, company.projectPrefix);
+    const project = await Project.create({
+      companyId:    req.user.companyId,
+      projectNumber,
+      clientId:     prev.clientId._id || prev.clientId,
+      quotationId:  prev._id,
+      projectName:  prev.projectName,
+      architect:    prev.architect,
+      siteAddress:  prev.siteAddress,
+      clientGstin:  prev.clientId?.gstin,
+      priority:     'medium',
+      assignedStaff: prev.assignedStaff || [],
+      status:       'active',
+      createdBy:    req.user.userId,
+    });
+
+    // 2. Auto-create one Job Card per quotation item
+    const jobCards = [];
+    for (const item of prev.items || []) {
+      const jobCardNumber = await generateJobCardNumber(req.user.companyId, company.jobCardPrefix);
+
+      // Build assignedTo from quotation's assignedStaff (put all in design stage initially)
+      const assignedTo = {
+        design:     prev.assignedStaff || [],
+        store:      [],
+        production: prev.assignedStaff || [],
+        qc:         [],
+        dispatch:   [],
+        accountant: [],
+      };
+
+      const jobCard = await JobCard.create({
+        companyId:   req.user.companyId,
+        jobCardNumber,
+        projectId:   project._id,
+        clientId:    prev.clientId._id || prev.clientId,
+        quotationId: prev._id,
+        title:       item.description || `Item ${item.srNo}`,
+        items: [{
+          srNo:           item.srNo,
+          description:    item.description,
+          photo:          item.photo,
+          fabricPhoto:    item.fabricPhoto,
+          photos:         item.photos || [],             // all extra photos from quotation item
+          specifications: item.specifications,
+          qty:            item.qty,
+          unit:           item.unit || 'pcs',
+        }],
+        assignedTo,
+        priority:    'medium',
+        orderDate:   new Date(),
+        status:      'active',
+        activityLog: [{
+          action:    'created',
+          doneBy:    req.user.userId,
+          newStatus: 'active',
+          note:      `Auto-created on quotation approval: ${prev.quotationNumber}`,
+          timestamp: new Date(),
+        }],
+        createdBy: req.user.userId,
+      });
+
+      // Auto-create DesignRequest for each job card
+      const designRequest = await DesignRequest.create({
+        companyId:  req.user.companyId,
+        jobCardId:  jobCard._id,
+        projectId:  project._id,
+        clientId:   prev.clientId._id || prev.clientId,
+        status:     'pending',
+        createdBy:  req.user.userId,
+      });
+
+      jobCard.designRequestId = designRequest._id;
+      await jobCard.save();
+
+      jobCards.push(jobCard);
+    }
+
+    // 3. Update quotation: mark approved + link project
+    const quotation = await Quotation.findByIdAndUpdate(
+      prev._id,
+      { status: 'approved', approvedAt: new Date(), projectId: project._id },
       { new: true }
     );
-    if (!quotation) {
-      return res.status(404).json({ success: false, message: 'Quotation not found or already processed' });
-    }
 
     auditLog(req, {
       action: 'update',
       resourceType: 'Quotation',
       resourceId: quotation._id,
       resourceLabel: quotation.quotationNumber,
-      changes: { status: { from: prev?.status, to: 'approved' } },
+      changes: { status: { from: prev.status, to: 'approved' } },
+      metadata: { projectId: project._id, jobCardsCreated: jobCards.length },
     });
 
-    res.status(200).json({ success: true, data: quotation });
+    res.status(200).json({
+      success: true,
+      data: quotation,
+      project,
+      jobCards,
+      message: `Quotation approved. Project ${projectNumber} and ${jobCards.length} job card(s) created automatically.`,
+    });
   } catch (err) {
     next(err);
   }
@@ -307,6 +415,54 @@ export const getQuotationPDF = async (req, res, next) => {
   }
 };
 
+// ── PATCH /api/quotations/:id/assign-staff ──────────────────────────────────
+// Admin assigns staff to a quotation → syncs to linked job cards too
+
+export const assignStaffToQuotation = async (req, res, next) => {
+  try {
+    const { staffIds } = req.body;
+
+    if (!Array.isArray(staffIds)) {
+      return res.status(400).json({ success: false, message: 'staffIds must be an array' });
+    }
+
+    const quotation = await Quotation.findOneAndUpdate(
+      { _id: req.params.id, ...req.companyFilter },
+      { assignedStaff: staffIds },
+      { new: true }
+    ).populate('assignedStaff', 'name role department profilePhoto');
+
+    if (!quotation) {
+      return res.status(404).json({ success: false, message: 'Quotation not found' });
+    }
+
+    // Sync assigned staff to all linked job cards (design + production stages)
+    if (quotation.projectId) {
+      await JobCard.updateMany(
+        { projectId: quotation.projectId, companyId: req.user.companyId },
+        {
+          $set: {
+            'assignedTo.design':     staffIds,
+            'assignedTo.production': staffIds,
+          },
+        }
+      );
+    }
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Quotation',
+      resourceId: quotation._id,
+      resourceLabel: quotation.quotationNumber,
+      metadata: { action: 'staff_assigned', staffCount: staffIds.length },
+    });
+
+    res.status(200).json({ success: true, data: quotation });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // ── Template data flattener ──────────────────────────────────────────────────
 
 const flattenForTemplate = (quotation, company) => ({
@@ -321,7 +477,7 @@ const flattenForTemplate = (quotation, company) => ({
   CLIENT_FIRM:       quotation.clientId?.firmName || '',
   CLIENT_PHONE:      quotation.clientId?.phone || '',
   PROJECT_NAME:      quotation.projectName,
-  SITE_ADDRESS:      `${quotation.siteAddress?.line1 || ''}, ${quotation.siteAddress?.city || ''}`,
+  SITE_ADDRESS:      `${quotation.siteAddress?.location || ''}`,
   SUBTOTAL:          quotation.subtotal?.toLocaleString('en-IN') || '0',
   DISCOUNT:          quotation.discount?.toLocaleString('en-IN') || '0',
   GST_AMOUNT:        quotation.gstAmount?.toLocaleString('en-IN') || '0',

@@ -3,9 +3,10 @@ import mongoose from "mongoose";
 const itemSchema = new mongoose.Schema(
   {
     srNo:        { type: Number, required: true },
-    description: { type: String, required: true },
-    photo:       { type: String },                       // Cloudinary URL — printed on PDF
+    description: { type: String },
+    photo:       { type: String },                       // Cloudinary URL — primary design image
     fabricPhoto: { type: String },                       // Secondary photo for fabric/texture
+    photos:      [{ type: String }],                    // All extra reference photos from quotation
 
     specifications: {
       size:     String,

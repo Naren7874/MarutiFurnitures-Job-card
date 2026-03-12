@@ -1,0 +1,16 @@
+{
+  "name": "Maruti Furniture ERP",
+  "short_name": "MarutiERP",
+  "description": "Job card and management system for Maruti Furniture",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#c8a84b",
+  "icons": [
+    {
+      "src": "/Maruti icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

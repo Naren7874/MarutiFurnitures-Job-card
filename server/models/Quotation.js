@@ -12,9 +12,10 @@ const quotationItemSchema = new mongoose.Schema(
   {
     srNo:        { type: Number, required: true },
     category:    { type: String },                       // "Reception Area", "Director's Cabin 1"
-    description: { type: String, required: true },       // "2 Seater Sofa"
-    photo:       { type: String },                       // Cloudinary URL — printed on PDF
+    description: { type: String },                       // "2 Seater Sofa"
+    photo:       { type: String },                       // Cloudinary URL — printed on PDF (primary)
     fabricPhoto: { type: String },                       // Client's requested secondary photo
+    photos:      [{ type: String }],                     // Additional Cloudinary URLs (multiple images)
 
     specifications: {
       size:     String,                                  // "L-59\" x D-30\""
@@ -56,11 +57,10 @@ const quotationSchema = new mongoose.Schema(
     projectName: { type: String, required: true },       // "GMP Office"
     architect:   { type: String },                       // "Ar. Dreamscape"
     siteAddress: {
-      line1:   String,
-      line2:   String,
-      city:    String,
-      state:   String,
-      pincode: String,
+      location: String,
+      line1:    String,
+      line2:    String,
+      pincode:  String,
     },
 
     // Initial requirements + reference material
@@ -129,6 +129,9 @@ const quotationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
     },
+
+    // Staff assigned to this quotation — carries over to job cards on approval
+    assignedStaff: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
     // Who handled this
     handledBy: {

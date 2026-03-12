@@ -63,90 +63,95 @@ export default function ClientsPage() {
 
             {/* Content List */}
             {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="flex flex-col gap-4">
                     {[...Array(6)].map((_, i) => (
-                        <div key={i} className="h-48 bg-muted/40 rounded-[32px] animate-pulse border border-border/30" />
+                        <div key={i} className="h-24 bg-muted/40 rounded-3xl animate-pulse border border-border/30" />
                     ))}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="flex flex-col gap-4">
                     <AnimatePresence mode="popLayout">
                         {clients.map((c: any, idx: number) => (
                             <motion.div
                                 key={c._id}
                                 layout
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
+                                initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.98, y: -10 }}
                                 transition={{ delay: idx * 0.05 }}
                             >
-                                <Link to={`/clients/${c._id}`} className="group block h-full">
-                                    <div className="bg-white dark:bg-card/20 border border-border dark:border-border/50 rounded-[32px] p-6 h-full transition-all group-hover:bg-card/80 group-hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.1)] group-hover:border-primary/20 group-hover:-translate-y-1 relative overflow-hidden backdrop-blur-xl">
+                                <Link to={`/clients/${c._id}`} className="group block">
+                                    <div className="bg-white dark:bg-card/20 border border-border dark:border-border/50 rounded-[28px] p-4 transition-all hover:bg-card/80 hover:shadow-lg hover:border-primary/20 hover:-translate-y-0.5 relative overflow-hidden backdrop-blur-xl group">
 
-                                        <div className="absolute top-0 right-0 w-20 h-20 bg-linear-to-bl from-primary/5 to-transparent rounded-bl-[80px] opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-bl from-primary/5 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                                        <div className="flex items-start justify-between mb-6">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-xl shadow-inner group-hover:scale-110 transition-transform">
+                                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                            
+                                            {/* Avatar & Name & Firm */}
+                                            <div className="flex items-center gap-4 lg:w-[35%]">
+                                                <div className="w-12 h-12 rounded-[18px] bg-primary/10 text-primary flex items-center justify-center font-black text-xl shadow-inner group-hover:scale-105 transition-transform shrink-0">
                                                     {c.name?.charAt(0) ?? '?'}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <h3 className="text-foreground font-black tracking-tight text-lg truncate group-hover:text-primary transition-colors">
+                                                    <h3 className="text-foreground font-black tracking-tight text-[15px] truncate group-hover:text-primary transition-colors">
                                                         {c.name}
                                                     </h3>
-                                                    <div className="flex items-center gap-1.5 text-muted-foreground/60">
+                                                    {c.firmName && (
+                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground/80 mt-1 mb-1 font-semibold truncate">
+                                                            <Building2 size={12} className="text-muted-foreground/40 shrink-0" />
+                                                            <span className="truncate">{c.firmName}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex items-center gap-1.5 text-muted-foreground/50">
                                                         {c.clientType === 'company' ? (
-                                                            <Building2 size={12} className="text-primary/50" />
+                                                            <Building2 size={10} />
                                                         ) : (
-                                                            <Users size={12} className="text-indigo-500/50" />
+                                                            <Users size={10} className="text-indigo-500/50" />
                                                         )}
                                                         <span className="text-[10px] font-black uppercase tracking-widest">{c.clientType ?? 'Individual'}</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="bg-muted px-2 py-2 rounded-xl text-muted-foreground/40 group-hover:bg-primary group-hover:text-white transition-all">
-                                                <ArrowUpRight size={16} />
-                                            </div>
-                                        </div>
 
-                                        <div className="space-y-4">
-                                            {c.firmName && (
-                                                <div className="flex items-center gap-3 text-sm">
-                                                    <Building2 size={14} className="text-muted-foreground/30" />
-                                                    <span className="text-muted-foreground/80 font-bold truncate">{c.firmName}</span>
-                                                </div>
-                                            )}
-
-                                            <div className="grid grid-cols-1 gap-2 border-t border-border/30 pt-4">
-                                                {c.phone && (
-                                                    <div className="flex items-center gap-3 text-[11px] font-black tracking-wider text-muted-foreground/60 uppercase">
-                                                        <Phone size={12} className="text-blue-500/40" />
-                                                        {c.phone}
+                                            {/* Contact Info */}
+                                            <div className="flex flex-col gap-2 lg:w-[25%]">
+                                                {c.phone ? (
+                                                    <div className="flex items-center gap-2.5 text-[13px] font-bold text-muted-foreground/80">
+                                                        <Phone size={14} className="text-blue-500/60" /> {c.phone}
                                                     </div>
-                                                )}
+                                                ) : <span className="text-xs text-muted-foreground/40 italic">No phone</span>}
+
                                                 {c.email && (
-                                                    <div className="flex items-center gap-3 text-[11px] font-black tracking-wider text-muted-foreground/60 uppercase">
-                                                        <Mail size={12} className="text-violet-500/40" />
-                                                        {c.email}
+                                                    <div className="flex items-center gap-2.5 text-[13px] font-bold text-muted-foreground/80 truncate">
+                                                        <Mail size={14} className="text-violet-500/60 shrink-0" /> <span className="truncate">{c.email}</span>
                                                     </div>
                                                 )}
                                             </div>
 
-                                            <div className="flex items-center justify-between pt-2">
-                                                <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest">
-                                                    <MapPin size={12} className="text-rose-500/40" />
-                                                    <span className="text-muted-foreground/40">{c.city || 'Not Set'}</span>
+                                            {/* Location & GSTIN */}
+                                            <div className="flex flex-col gap-2 lg:w-[25%]">
+                                                <div className="flex items-center gap-2 text-[13px] font-bold">
+                                                    <MapPin size={14} className="text-rose-500/60 shrink-0" />
+                                                    <span className="text-muted-foreground/80 truncate">{c.city || 'Location not specified'}</span>
                                                 </div>
                                                 {c.gstin && (
                                                     <div className={cn(
-                                                        "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-colors",
-                                                        c.gstVerified ? "bg-emerald-500/5 text-emerald-600 border-emerald-500/10" : "bg-muted text-muted-foreground/40 border-border"
+                                                        "inline-flex w-fit items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-colors",
+                                                        c.gstVerified ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-muted text-muted-foreground/50 border-border"
                                                     )}>
                                                         {c.gstVerified ? <CheckCircle size={10} /> : <XCircle size={10} />}
                                                         {c.gstin}
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {/* Action Arrow */}
+                                            <div className="hidden lg:flex items-center justify-end shrink-0 pl-6 border-l border-border/40 h-10 lg:w-[15%]">
+                                                <div className="bg-muted w-10 h-10 rounded-xl text-muted-foreground/50 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shadow-sm group-hover:scale-110">
+                                                    <ArrowUpRight size={18} strokeWidth={3} />
+                                                </div>
+                                            </div>
+
                                         </div>
                                     </div>
                                 </Link>
