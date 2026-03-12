@@ -40,14 +40,26 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+const ALLOWED_ORIGINS = process.env.NODE_ENV === 'production'
+  ? [
+      'http://jobcard.marutifurniture.com',                                           // Custom subdomain (HTTP)
+      'https://jobcard.marutifurniture.com',                                          // Custom subdomain (HTTPS)
+      'http://34.54.108.11',                                                          // GCP Load Balancer IP (fallback)
+      'https://maruti-furniture-backend-43053062057.asia-south1.run.app',             // Cloud Run (self)
+      process.env.FRONTEND_URL,                                                       // custom domain override via env
+    ].filter(Boolean)
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
 app.use(cors({
-  // In production (served via ngrok) accept any origin.
-  // In dev, restrict to the Vite dev server.
-  origin: process.env.NODE_ENV === 'production'
-    ? '*'
-    : (process.env.FRONTEND_URL || 'http://localhost:5173'),
+  origin: (origin, cb) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return cb(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS blocked: ${origin}`));
+  },
   credentials: true,
 }));
+
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));

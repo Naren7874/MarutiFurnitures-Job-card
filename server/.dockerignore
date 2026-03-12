@@ -1,0 +1,26 @@
+# Dependencies (installed fresh inside Docker)
+node_modules/
+
+# Environment files — NEVER bake secrets into the image
+.env
+.env.*
+.env.local
+.env.production
+.env.development
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dev tools
+.vscode/
+.git/
+.gitignore
+
+# Documentation
+*.md
+README*
+
+# OS artifacts
+.DS_Store
+Thumbs.db

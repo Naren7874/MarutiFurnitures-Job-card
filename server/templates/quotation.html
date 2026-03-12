@@ -439,24 +439,15 @@
                   <%= item.description %>
                 </strong>
                 <div class="specs">
-                  <% if(item.specifications.size) { %><span>Size: <%= item.specifications.size %></span>
-                    <% } %>
-                      <% if(item.specifications.polish) { %><span>Polish: <%= item.specifications.polish %></span>
-                        <% } %>
-                          <% if(item.specifications.fabric) { %><span>Fabric: <%= item.specifications.fabric %></span>
-                            <% } %>
-                              <% if(item.specifications.material) { %><span>Material: <%= item.specifications.material
-                                    %></span>
-                                <% } %>
-                                  <% if(item.specifications.finish) { %><span>Finish: <%= item.specifications.finish %>
-                                    </span>
-                                    <% } %>
-                                      <% if(item.specifications.hardware) { %><span>Hardware: <%=
-                                            item.specifications.hardware %></span>
-                                        <% } %>
-                                          <% if(item.specifications.notes) { %><span>Note: <%= item.specifications.notes
-                                                %></span>
-                                            <% } %>
+                  <% if(item.specifications) { %>
+                    <% if(item.specifications.size) { %><span>Size: <%= item.specifications.size %></span><% } %>
+                    <% if(item.specifications.polish) { %><span>Polish: <%= item.specifications.polish %></span><% } %>
+                    <% if(item.specifications.fabric) { %><span>Fabric: <%= item.specifications.fabric %></span><% } %>
+                    <% if(item.specifications.material) { %><span>Material: <%= item.specifications.material %></span><% } %>
+                    <% if(item.specifications.finish) { %><span>Finish: <%= item.specifications.finish %></span><% } %>
+                    <% if(item.specifications.hardware) { %><span>Hardware: <%= item.specifications.hardware %></span><% } %>
+                    <% if(item.specifications.notes) { %><span>Note: <%= item.specifications.notes %></span><% } %>
+                  <% } %>
                 </div>
               </td>
               <td class="col-qty">

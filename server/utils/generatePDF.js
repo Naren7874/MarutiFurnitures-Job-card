@@ -9,30 +9,37 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.join(__dirname, '../templates');
 
 /**
- * Find Chrome executable — prefers Puppeteer bundled, falls back to system Chrome.
+ * Find Chrome executable.
+ * Priority: PUPPETEER_EXECUTABLE_PATH env var → system paths → puppeteer bundled
  */
 const findChrome = () => {
-  try {
-    const bundled = puppeteer.executablePath();
-    if (bundled && existsSync(bundled)) return bundled;
-  } catch { /* bundled not found */ }
+  // 1. Env var set in Dockerfile / Cloud Run: /usr/bin/chromium
+  if (process.env.PUPPETEER_EXECUTABLE_PATH &&
+      existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
 
+  // 2. Known system paths
   const paths = [
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome',
     // Windows paths
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
     path.join(process.env.LOCALAPPDATA || '', 'Google/Chrome/Application/chrome.exe'),
-    path.join(process.env.USERPROFILE || '', 'AppData/Local/Google/Chrome/Application/chrome.exe'),
-    // Linux paths
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-    '/usr/bin/chromium-browser',
-    '/usr/bin/chromium'
   ];
-
   for (const p of paths) {
     if (p && existsSync(p)) return p;
   }
+
+  // 3. Puppeteer bundled (local dev only)
+  try {
+    const bundled = puppeteer.executablePath();
+    if (bundled && existsSync(bundled)) return bundled;
+  } catch { /* not found */ }
+
   return undefined;
 };
 
@@ -51,10 +58,22 @@ export const renderPDF = async (templateName, data = {}, options = {}) => {
   // Render EJS template with data
   const html = ejs.render(template, data, { filename: templatePath });
 
+  const execPath = findChrome();
+  console.log('[PDF] Using Chrome at:', execPath);
+
   const browser = await puppeteer.launch({
     headless: true,
-    executablePath: findChrome(),
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
+    executablePath: execPath,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-crash-reporter',
+      '--disable-software-rasterizer',
+      '--disable-seccomp-filter-sandbox',
+      '--font-render-hinting=none',
+    ],
   });
 
   try {
@@ -73,6 +92,7 @@ export const renderPDF = async (templateName, data = {}, options = {}) => {
     await browser.close();
   }
 };
+
 
 /**
  * Generate a PDF and upload it directly to Cloudinary.
