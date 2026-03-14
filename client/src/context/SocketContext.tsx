@@ -44,7 +44,9 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Real-time job card status → refetch the affected job card and the list
         socket.on('jobcard:status', ({ jobCardId }: { jobCardId: string; status: string }) => {
-            qc.invalidateQueries({ queryKey: QK.jobCard(jobCardId) });
+            if (user?.companyId) {
+                qc.invalidateQueries({ queryKey: QK.jobCard(user.companyId, jobCardId) });
+            }
             qc.invalidateQueries({ queryKey: ['jobcards'] });
         });
 

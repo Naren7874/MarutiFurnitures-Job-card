@@ -266,8 +266,13 @@ export const exportReport = async (req, res, next) => {
 export const getDashboardStats = async (req, res, next) => {
   try {
     const companyId = req.user.companyId;
-
     const oid = toOid(companyId);
+
+    // Date ranges for trend analysis
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+    const sixtyDaysAgo  = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
+
     const [
       activeProjects,
       totalProjects,
@@ -276,6 +281,16 @@ export const getDashboardStats = async (req, res, next) => {
       quotationSummary,
       pendingPOs,
       lowStockCount,
+      // Trend data (Current 30 days)
+      currProjects,
+      currJobCards,
+      currSentQuotes,
+      currQCPending,
+      // Trend data (Previous 30 days)
+      prevProjects,
+      prevJobCards,
+      prevSentQuotes,
+      prevQCPending,
     ] = await Promise.all([
       Project.countDocuments({ companyId, status: 'active' }),
       Project.countDocuments({ companyId }),
@@ -301,6 +316,18 @@ export const getDashboardStats = async (req, res, next) => {
       ]),
       PurchaseOrder.countDocuments({ companyId, status: 'raised' }),
       Inventory.countDocuments({ companyId, $expr: { $lte: ['$currentStock', '$minStock'] } }),
+
+      // Trend: Current 30 days
+      Project.countDocuments({ companyId, createdAt: { $gte: thirtyDaysAgo } }),
+      JobCard.countDocuments({ companyId, createdAt: { $gte: thirtyDaysAgo } }),
+      Quotation.countDocuments({ companyId, status: 'sent', updatedAt: { $gte: thirtyDaysAgo } }),
+      JobCard.countDocuments({ companyId, status: 'qc_pending', updatedAt: { $gte: thirtyDaysAgo } }),
+
+      // Trend: Previous 30 days
+      Project.countDocuments({ companyId, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
+      JobCard.countDocuments({ companyId, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
+      Quotation.countDocuments({ companyId, status: 'sent', updatedAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
+      JobCard.countDocuments({ companyId, status: 'qc_pending', updatedAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
     ]);
 
     const statusMap = {};
@@ -309,6 +336,12 @@ export const getDashboardStats = async (req, res, next) => {
     quotationSummary.forEach(q => { qMap[q._id] = q.count; });
 
     const inv = invoiceSummary[0] || {};
+
+    // Helper to calculate % change
+    const calcChange = (curr, prev) => {
+      if (prev === 0) return curr > 0 ? 100 : 0;
+      return parseFloat(((curr - prev) / prev * 100).toFixed(1));
+    };
 
     // Revenue this month from invoices
     const { start, end } = monthRange(0);
@@ -320,18 +353,30 @@ export const getDashboardStats = async (req, res, next) => {
     res.json({
       success: true,
       data: {
-        projects:  { active: activeProjects, total: totalProjects },
-        jobCards:  { byStage: statusMap, total: Object.values(statusMap).reduce((a, b) => a + b, 0) },
-        invoices:  {
+        projects: {
+          active: activeProjects,
+          total: totalProjects,
+          change: calcChange(currProjects, prevProjects)
+        },
+        jobCards: {
+          byStage: statusMap,
+          total: Object.values(statusMap).reduce((a, b) => a + b, 0),
+          change: calcChange(currJobCards, prevJobCards),
+          qcPending: statusMap['qc_pending'] || 0,
+          qcPendingChange: calcChange(currQCPending, prevQCPending)
+        },
+        invoices: {
           totalAmount:   inv.totalAmount   || 0,
           received:      inv.received      || 0,
           overdue:       inv.overdueCount  || 0,
           overdueAmount: inv.overdueAmount || 0,
         },
-        revenue:   { thisMonth: monthlyInv?.thisMonth || 0 },
+        revenue: { thisMonth: monthlyInv?.thisMonth || 0 },
         quotations: {
           total:    Object.values(qMap).reduce((a, b) => a + b, 0),
-          pending:  (qMap['draft'] || 0) + (qMap['sent'] || 0),
+          pending:  qMap['sent'] || 0, // Specifically "Awaiting client approval"
+          change:   calcChange(currSentQuotes, prevSentQuotes),
+          draft:    qMap['draft'] || 0,
           approved: qMap['approved'] || 0,
           rejected: qMap['rejected'] || 0,
           converted: qMap['converted'] || 0,

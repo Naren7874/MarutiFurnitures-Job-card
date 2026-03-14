@@ -186,24 +186,28 @@
     <div class="header">
         <div class="header-left">
             <% if(typeof company !=='undefined' ) { %>
-                <div><span class="header-icon">📍</span>
-                    <%= company.address?.line1 %>, <%= company.address?.city %>
+                <div style="font-weight: 700;">
+                    <%= company.address?.line1 %>, <%= company.address?.line2 || '' %>
                 </div>
-                <div><span class="header-icon">📞</span>
+                <div>
+                    <%= company.address?.city %>, <%= company.address?.state %> - <%= company.address?.pincode %>
+                </div>
+                <div style="margin-top: 4px;"><span class="header-icon">📞</span>
                     <%= company.phone %>
                 </div>
+                <% if(company.email) { %>
                 <div><span class="header-icon">✉</span>
                     <%= company.email %>
                 </div>
                 <% } %>
+            <% } %>
         </div>
         <div class="header-right">
             <% if (typeof company !=='undefined' && company.logo) { %>
                 <img src="<%= company.logo %>" alt="logo" />
-                <% } else { %>
-                    <div style="font-size:24px; font-weight:900; color:#e53935;">MARUTI FURNITURES</div>
-                    <% } %>
-                        <div class="company-tagline">Quality Furniture Manufacturers</div>
+            <% } %>
+            <div style="font-size: 18px; font-weight: 900; color: #333;"><%= (typeof company !=='undefined' ? company.name : 'MARUTI FURNITURE').toUpperCase() %></div>
+            <div class="company-tagline"><%= (typeof company !=='undefined' ? company.tagline : 'Quality Furniture Manufacturers') %></div>
         </div>
     </div>
 
@@ -277,7 +281,7 @@
             <div class="sign-label">Receiver's Signature / Stamp<br />(Sign ONLY after verifying quantity)</div>
         </div>
         <div class="sign-box" style="margin-top: 20px;">
-            <div style="font-size: 10px; margin-bottom: 40px; text-align: right;">For <strong>MARUTI FURNITURES</strong>
+            <div style="font-size: 10px; margin-bottom: 40px; text-align: right;">For <strong><%= (typeof company !=='undefined' ? company.name : 'MARUTI FURNITURE').toUpperCase() %></strong>
             </div>
             <div class="sign-line"></div>
             <div class="sign-label">Authorized Signatory</div>

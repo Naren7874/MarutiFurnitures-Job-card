@@ -136,14 +136,9 @@ export const sendInvoice = async (req, res, next) => {
     const pdfUrl = await generateAndUploadPDF(
       'invoice',
       {
-        INVOICE_NUMBER:   invoice.invoiceNumber,
-        CLIENT_NAME:      invoice.clientId?.name,
-        CLIENT_GSTIN:     invoice.clientGstinSnapshot,
-        COMPANY_GSTIN:    invoice.companyGstinSnapshot,
-        PLACE_OF_SUPPLY:  invoice.placeOfSupply,
-        GST_TYPE:         invoice.gstType === 'cgst_sgst' ? 'CGST + SGST' : 'IGST',
-        GRAND_TOTAL:      invoice.grandTotal?.toLocaleString('en-IN'),
-        BALANCE_DUE:      invoice.balanceDue?.toLocaleString('en-IN'),
+        company,
+        invoice,
+        client: invoice.clientId || {},
       },
       `${company.slug}/invoices`,
       invoice.invoiceNumber

@@ -23,6 +23,15 @@ export const updateChecklist = async (req, res, next) => {
       { new: true }
     );
     if (!stage) return res.status(404).json({ success: false, message: 'QC stage not found' });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'QcStage',
+      resourceId: stage._id,
+      resourceLabel: req.params.id,
+      metadata: { action: 'checklist_updated' },
+    });
+
     res.status(200).json({ success: true, data: stage });
   } catch (err) { next(err); }
 };
@@ -43,6 +52,15 @@ export const uploadDefectPhotos = async (req, res, next) => {
       { new: true }
     );
     if (!stage) return res.status(404).json({ success: false, message: 'QC stage not found' });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'QcStage',
+      resourceId: stage._id,
+      resourceLabel: req.params.id,
+      metadata: { action: 'defect_photos_uploaded', photoCount: photos.length },
+    });
+
     res.status(200).json({ success: true, data: stage });
   } catch (err) { next(err); }
 };

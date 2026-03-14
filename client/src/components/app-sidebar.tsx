@@ -47,35 +47,48 @@ interface Message {
 
 import { DUMMY_USERS, NAV_MAIN } from "@/lib/dummy-data"
 
-const data = {
-    user: {
-        name: "John Doe",
-        email: "john@maruti.com",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-        role: "Designer"
-    },
-    navMain: NAV_MAIN as NavItem[],
-    messages: DUMMY_USERS.map(u => ({
-        name: u.name,
-        avatar: u.avatar,
-        online: u.status === 'ACTIVE'
-    })) as Message[]
-}
+import { useAuthStore } from "@/stores/authStore"
 
 export function AppSidebar({ variant = "sidebar", ...props }: React.ComponentProps<typeof Sidebar>) {
     const { state } = useSidebar()
+    const { company, user: authUser } = useAuthStore()
     const isCollapsed = state === "collapsed"
+
+    const data = {
+        user: {
+            name: authUser?.name || "John Doe",
+            email: authUser?.email || "john@maruti.com",
+            avatar: authUser?.profilePhoto || "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
+            role: authUser?.role || "Designer"
+        },
+        navMain: NAV_MAIN as NavItem[],
+        messages: DUMMY_USERS.map(u => ({
+            name: u.name,
+            avatar: u.avatar,
+            online: u.status === 'ACTIVE'
+        })) as Message[]
+    }
+
+    const companyInitials = company?.name
+        ? company.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+        : 'MF'
 
     return (
         <Sidebar collapsible="icon" variant={variant} className="border-r-0 bg-sidebar/80 dark:bg-sidebar/95 backdrop-blur-xl border-sidebar-border transition-all duration-500 ease-in-out" {...props}>
-            <SidebarHeader className={cn("flex flex-col items-center transition-all duration-300", isCollapsed ? "p-0 py-5" : "p-4")}>
-                <div className={cn("flex items-center gap-3 w-full transition-all duration-300", isCollapsed ? "justify-center px-0" : "justify-start px-1.5")}>
-                    <div className="flex aspect-square size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all cursor-pointer">
-                        <span className="text-xs font-black">MF</span>
+            <SidebarHeader className={cn("flex flex-col items-center transition-all duration-300", isCollapsed ? "p-0 py-4" : "p-3")}>
+                <div className={cn("flex items-center gap-4 w-full transition-all duration-300", isCollapsed ? "justify-center px-0" : "justify-start px-2")}>
+                    <div className="flex aspect-square size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-xl shadow-primary/20 transition-all cursor-pointer overflow-hidden">
+                        {company?.logo ? (
+                            <img src={company.logo} alt={company.name} className="size-full object-contain p-2" />
+                        ) : (
+                            <span className="text-sm font-black">{companyInitials}</span>
+                        )}
                     </div>
                     {!isCollapsed && (
                         <div className="flex flex-col gap-0.5 overflow-hidden animate-in fade-in slide-in-from-left-4 duration-500">
-                            <span className="font-bold text-sm tracking-tight leading-none text-foreground">Maruti Furniture</span>
+                            <span className="font-bold text-sm tracking-tight leading-none text-foreground truncate max-w-[150px]">
+                                {company?.name || "Maruti Furniture"}
+                            </span>
                             <span className="text-[10px] font-medium text-muted-foreground leading-none">Job Card System</span>
                         </div>
                     )}

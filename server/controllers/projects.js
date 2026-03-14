@@ -178,6 +178,9 @@ export const updateProject = async (req, res, next) => {
     const PROTECTED = ['companyId', 'projectNumber', 'quotationId', 'createdBy'];
     PROTECTED.forEach((f) => delete req.body[f]);
 
+    // Snapshot for tracking changes
+    const prev = await Project.findOne({ _id: req.params.id, ...req.companyFilter }).lean();
+
     const project = await Project.findOneAndUpdate(
       { _id: req.params.id, ...req.companyFilter },
       req.body,
@@ -185,11 +188,20 @@ export const updateProject = async (req, res, next) => {
     );
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
+    const changes = {};
+    const tracked = ['projectName', 'architect', 'priority', 'status', 'expectedDelivery'];
+    tracked.forEach(f => {
+      if (prev && String(prev[f]) !== String(project[f])) {
+        changes[f] = { from: prev[f], to: project[f] };
+      }
+    });
+
     auditLog(req, {
       action: 'update',
       resourceType: 'Project',
       resourceId: project._id,
       resourceLabel: project.projectNumber,
+      changes: Object.keys(changes).length ? changes : undefined,
     });
 
     res.status(200).json({ success: true, data: project });

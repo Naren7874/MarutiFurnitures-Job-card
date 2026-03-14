@@ -5,6 +5,7 @@ import {
   getClientById,
   updateClient,
   deactivateClient,
+  deleteClient,
 } from '../controllers/clients.js';
 import { authenticateJWT }    from '../middleware/auth.js';
 import { injectCompanyScope } from '../middleware/scope.js';
@@ -19,6 +20,7 @@ router.post('/',          checkPermission('client.create'), createClient);
 router.get('/',           checkPermission('client.view'),   getClients);
 router.get('/:id',        checkPermission('client.view'),   getClientById);
 router.put('/:id',        checkPermission('client.edit'),   updateClient);
-router.delete('/:id',     checkPermission('client.edit'),   deactivateClient);
+router.delete('/:id',           checkPermission('client.edit'),   deactivateClient);
+router.delete('/:id/permanent', checkPermission('client.edit'),   deleteClient);
 
 export default router;

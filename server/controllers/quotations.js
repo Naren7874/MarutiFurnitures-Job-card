@@ -103,7 +103,12 @@ export const updateQuotation = async (req, res, next) => {
     const PROTECTED = ['companyId', 'quotationNumber', 'createdBy', 'revisionOf'];
     PROTECTED.forEach((f) => delete req.body[f]);
 
-    // Allow editing all statuses except converted/rejected/revised
+    // Snapshot previous for tracking changes
+    const prevSnapshot = await Quotation.findOne({
+      _id: req.params.id,
+      ...req.companyFilter
+    }).lean();
+
     const quotation = await Quotation.findOneAndUpdate(
       {
         _id: req.params.id,
@@ -121,11 +126,21 @@ export const updateQuotation = async (req, res, next) => {
       });
     }
 
+    // Compute changed fields
+    const changes = {};
+    const tracked = ['projectName', 'architect', 'grandTotal', 'status', 'validUntil'];
+    tracked.forEach(f => {
+      if (prevSnapshot && String(prevSnapshot[f]) !== String(quotation[f])) {
+        changes[f] = { from: prevSnapshot[f], to: quotation[f] };
+      }
+    });
+
     auditLog(req, {
       action: 'update',
       resourceType: 'Quotation',
       resourceId: quotation._id,
       resourceLabel: quotation.quotationNumber,
+      changes: Object.keys(changes).length ? changes : undefined,
       metadata: { grandTotal: quotation.grandTotal },
     });
 
@@ -149,7 +164,11 @@ export const sendQuotationPDF = async (req, res, next) => {
 
     const pdfUrl = await generateAndUploadPDF(
       'quotation',
-      { ...flattenForTemplate(quotation, company) },
+      { 
+        company,
+        quotation,
+        client: quotation.clientId || {},
+      },
       `${company.slug}/quotations`,
       quotation.quotationNumber
     );

@@ -10,7 +10,7 @@ const clientSchema = new mongoose.Schema(
 
     clientType: {
       type: String,
-      enum: ["architect", "designer", "direct_client", "contractor"],
+      enum: ["architect", "designer", "direct_client", "factory_manager"],
       required: true,
     },
 
@@ -21,6 +21,7 @@ const clientSchema = new mongoose.Schema(
     email:    { type: String, lowercase: true },
 
     address: {
+      houseNumber: String,
       line1:   String,
       line2:   String,
       city:    String,

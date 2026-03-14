@@ -387,9 +387,13 @@
       </div>
     </div>
     <div class="header-right">
-      <div><span class="header-icon">📞</span> <%= company.phone %></div>
+      <% if (company.address && company.address.line1) { %>
+        <div style="font-weight: 700;"><%= company.address.line1 %>, <%= company.address.line2 || '' %></div>
+        <div><%= company.address.city %>, <%= company.address.state %> - <%= company.address.pincode %></div>
+      <% } %>
+      <div style="margin-top: 4px;"><span class="header-icon">📞</span> <%= company.phone %></div>
       <% if(company.email) { %><div><span class="header-icon">✉</span> <%= company.email %></div><% } %>
-      <% if(company.website) { %><div><span class="header-icon">🌐</span> <%= company.website %></div><% } %>
+      <% if(company.gstin) { %><div style="font-weight: 700; margin-top: 2px;">GSTIN: <%= company.gstin %></div><% } %>
     </div>
   </div>
 
@@ -558,15 +562,48 @@
     </table>
   </div>
 
+  <!-- BANK DETAILS -->
+  <% if (company.bankDetails && company.bankDetails.accountNumber) { %>
+  <div style="margin-bottom: 14px; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #fdfdfd;">
+    <div style="font-weight: 800; font-size: 11px; color: #1a1a1a; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 3px; display: inline-block;">BANK DETAILS</div>
+    <div style="display: flex; gap: 40px; margin-top: 5px;">
+      <div>
+        <div style="font-size: 10px; color: #666;">Bank Name</div>
+        <div style="font-weight: 700; font-size: 10.5px;"><%= company.bankDetails.bankName %></div>
+      </div>
+      <div>
+        <div style="font-size: 10px; color: #666;">Account Name</div>
+        <div style="font-weight: 700; font-size: 10.5px;"><%= company.bankDetails.accountName %></div>
+      </div>
+      <div>
+        <div style="font-size: 10px; color: #666;">Account No.</div>
+        <div style="font-weight: 700; font-size: 10.5px;"><%= company.bankDetails.accountNumber %></div>
+      </div>
+      <div>
+        <div style="font-size: 10px; color: #666;">IFSC Code</div>
+        <div style="font-weight: 700; font-size: 10.5px;"><%= company.bankDetails.ifsc %></div>
+      </div>
+    </div>
+    <% if (company.bankDetails.branch) { %>
+      <div style="margin-top: 5px; font-size: 9px; color: #888;">Branch: <%= company.bankDetails.branch %></div>
+    <% } %>
+  </div>
+  <% } %>
+
   <!-- TERMS & CONDITIONS (static - Maruti Furniture) -->
   <div class="terms">
     <div class="terms-title">&#9733; Terms &amp; Conditions &#9733;</div>
     <ul>
-      <li>*18% GST extra on all above price.</li>
-      <li>*No Guarantee or Warranty of any kind is given on Imported furniture, glass, cloth, rexine.</li>
-      <li>*Delivery Time 120 days after Final &mdash; 50% Payment Advance &amp; 50% Before Delivery</li>
-      <li>*Transportation (Delivery) Charge, Packing Charge 2% &amp; Labour Charge (Floorwise) Will be Extra</li>
-      <li>*When the Goods arrive, after the arrangement is made, check &amp; Release the deliveryman. If there is any damage after that the Responsibility will not remain with The Company.</li>
+      <% if (company.defaultTermsAndConditions && company.defaultTermsAndConditions.length > 0) { %>
+        <% company.defaultTermsAndConditions.forEach(function(term) { %>
+          <li><%= term %></li>
+        <% }); %>
+      <% } else { %>
+        <li>18% GST extra on all above price.</li>
+        <li>No Guarantee or Warranty of any kind is given on Imported furniture, glass, cloth, rexine.</li>
+        <li>Delivery Time 120 days after Final &mdash; 50% Payment Advance &amp; 50% Before Delivery</li>
+        <li>Transportation (Delivery) Charge, Packing Charge 2% &amp; Labour Charge (Floorwise) Will be Extra</li>
+      <% } %>
     </ul>
   </div>
 

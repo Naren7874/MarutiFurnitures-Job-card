@@ -29,6 +29,14 @@ export const verifyGST = async (req, res, next) => {
       );
     }
 
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Client',
+      resourceId: clientId || undefined,
+      resourceLabel: gstin,
+      metadata: { action: 'gst_verification', legalName: gstData.legalName, clientId },
+    });
+
     res.status(200).json({ success: true, data: gstData });
   } catch (err) {
     if (err.response?.status === 404 || err.message?.includes('Invalid')) {

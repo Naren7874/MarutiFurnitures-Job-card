@@ -26,6 +26,15 @@ export const updateBOM = async (req, res, next) => {
       { new: true }
     );
     if (!store) return res.status(404).json({ success: false, message: 'Store stage not found' });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'StoreStage',
+      resourceId: store._id,
+      resourceLabel: req.params.id,
+      metadata: { action: 'bom_updated', itemCount: bom?.length || 0 },
+    });
+
     res.status(200).json({ success: true, data: store });
   } catch (err) { next(err); }
 };

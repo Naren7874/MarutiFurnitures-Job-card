@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -6,17 +7,19 @@ import {
 import { motion } from "motion/react"
 
 const actions = [
-    { label: 'New Job Card', icon: Plus, color: '#1315E5', bg: '#1315E515' },
-    { label: 'New Quotation', icon: FileText, color: '#8B5CF6', bg: '#8B5CF615' },
-    { label: 'Add Client', icon: Users, color: '#10B981', bg: '#10B98115' },
-    { label: 'Purchase Order', icon: Package, color: '#F59E0B', bg: '#F59E0B15' },
-    { label: 'Schedule Delivery', icon: Truck, color: '#F97316', bg: '#F9731615' },
-    { label: 'WhatsApp Blast', icon: MessageCircle, color: '#25D366', bg: '#25D36615' },
-    { label: 'Reports', icon: BarChart3, color: '#767A8C', bg: '#767A8C15' },
-    { label: 'Settings', icon: Settings, color: '#485666', bg: '#48566615' },
+    { label: 'New Job Card', icon: Plus, color: '#1315E5', bg: '#1315E515', path: '/jobcards/new' },
+    { label: 'New Quotation', icon: FileText, color: '#8B5CF6', bg: '#8B5CF615', path: '/quotations/new' },
+    { label: 'Add Client', icon: Users, color: '#10B981', bg: '#10B98115', path: '/clients/new' },
+    { label: 'Purchase Order', icon: Package, color: '#F59E0B', bg: '#F59E0B15', path: '/purchase-orders/new' },
+    { label: 'Schedule Delivery', icon: Truck, color: '#F97316', bg: '#F9731615', path: '/jobcards' },
+    { label: 'WhatsApp Blast', icon: MessageCircle, color: '#25D366', bg: '#25D36615', path: '/projects' },
+    { label: 'Reports', icon: BarChart3, color: '#767A8C', bg: '#767A8C15', path: '/reports' },
+    { label: 'Settings', icon: Settings, color: '#485666', bg: '#48566615', path: '/settings' },
 ]
 
 export function QuickActions() {
+    const navigate = useNavigate()
+
     return (
         <Card className="flex flex-col border-border bg-card shadow-sm">
             <CardHeader className="pb-3 pt-5 px-6">
@@ -36,6 +39,7 @@ export function QuickActions() {
                         >
                             <Button
                                 variant="ghost"
+                                onClick={() => navigate(action.path)}
                                 className="w-full h-auto py-3 px-3 flex flex-col items-center gap-2 rounded-xl border border-border hover:border-(--action-color) transition-all group"
                                 style={{ '--action-color': action.color } as React.CSSProperties}
                             >

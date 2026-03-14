@@ -6,14 +6,14 @@
  *                            if omitted, switches to CREATE mode
  */
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft, Plus, Trash2, Save, Loader2,
     User2, ReceiptText, Search, X, ImagePlus, List,
 } from 'lucide-react';
 import {
     useCreateQuotation, useUpdateQuotation,
-    useCreateClient, useClients, useQuotation,
+    useCreateClient, useClients, useQuotation, useClient,
 } from '../../hooks/useApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -88,6 +88,8 @@ const dbItemToLocal = (dbItem: any): Item => ({
 
 export default function QuotationForm({ quotationId }: QuotationFormProps) {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const urlClientId = searchParams.get('clientId');
     const isEditMode = !!quotationId;
 
     // ── API hooks ─────────────────────────────────────────────────────────────
@@ -96,7 +98,9 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     const createClient = useCreateClient();
 
     const { data: raw, isLoading: loadingQuotation } = useQuotation(quotationId ?? '');
+    const { data: preRaw } = useClient(urlClientId ?? '');
     const existingQ: any = (raw as any)?.data;
+    const preClient: any = (preRaw as any)?.data;
 
     // ── Client search ─────────────────────────────────────────────────────────
     const [clientSearch, setClientSearch] = useState('');
@@ -147,6 +151,13 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
             setLoaded(true);
         }
     }, [isEditMode, existingQ, loaded]);
+
+    // Handle pre-client selection from URL
+    useEffect(() => {
+        if (!isEditMode && preClient && !selectedClient) {
+            setSelectedClient(preClient);
+        }
+    }, [isEditMode, preClient, selectedClient]);
 
     // ── Calculations ──────────────────────────────────────────────────────────
     const subtotal = useMemo(() => items.reduce((s, i) => s + i.qty * i.sellingPrice, 0), [items]);

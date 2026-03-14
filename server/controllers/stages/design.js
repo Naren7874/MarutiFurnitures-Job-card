@@ -64,6 +64,15 @@ export const updateDesign = async (req, res, next) => {
       { new: true, runValidators: true }
     );
     if (!design) return res.status(404).json({ success: false, message: 'Design request not found' });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'DesignRequest',
+      resourceId: design._id,
+      resourceLabel: req.params.id,
+      metadata: { action: 'design_details_updated' },
+    });
+
     res.status(200).json({ success: true, data: design });
   } catch (err) { next(err); }
 };
@@ -85,6 +94,15 @@ export const uploadDesignFiles = async (req, res, next) => {
       { new: true }
     );
     if (!design) return res.status(404).json({ success: false, message: 'Design request not found' });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'DesignRequest',
+      resourceId: design._id,
+      resourceLabel: req.params.id,
+      metadata: { action: 'files_uploaded', fileCount: uploaded.length },
+    });
+
     res.status(200).json({ success: true, data: design });
   } catch (err) { next(err); }
 };
@@ -202,6 +220,21 @@ export const submitSignoff = async (req, res, next) => {
       clientIp:    req.ip,
     };
     await design.save();
+
+    // Audit as the client (actor: { id, name, role, companyId })
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'DesignRequest',
+      resourceId: design._id,
+      resourceLabel: req.params.token,
+      metadata: { action: 'client_signoff_submitted', status, remarks },
+      actor: { 
+        id: 'CLIENT', 
+        name: 'Client', 
+        role: 'external', 
+        companyId: design.companyId 
+      },
+    });
 
     res.json({ success: true, message: `Design ${status} successfully`, data: { status } });
   } catch (err) { next(err); }

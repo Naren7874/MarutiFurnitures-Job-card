@@ -78,6 +78,7 @@ export const login = async (req, res, next) => {
         id: c._id,
         name: c.name,
         slug: c.slug,
+        logo: c.logo,
         gstin: c.gstin,
         plan: c.plan,
       }));
@@ -104,6 +105,7 @@ export const login = async (req, res, next) => {
         id: loginCompany._id,
         name: loginCompany.name,
         slug: loginCompany.slug,
+        logo: loginCompany.logo,
         gstin: loginCompany.gstin,
         plan: loginCompany.plan,
       } : null,
@@ -145,9 +147,23 @@ export const getMe = async (req, res, next) => {
 
     const effectivePermissions = await resolvePermissions(user._id);
 
+    let allCompanies = [];
+    if (user.isSuperAdmin) {
+      const companies = await Company.find({ isActive: true }).lean();
+      allCompanies = companies.map(c => ({
+        id: c._id,
+        name: c.name,
+        slug: c.slug,
+        logo: c.logo,
+        gstin: c.gstin,
+        plan: c.plan,
+      }));
+    }
+
     res.status(200).json({
       success: true,
       user: { ...user, effectivePermissions },
+      allCompanies,
     });
   } catch (err) {
     next(err);
@@ -245,10 +261,17 @@ export const switchCompany = async (req, res, next) => {
     const newPayload = { ...buildTokenPayload(user), companyId: company._id };
     const token = signToken(newPayload);
 
+    auditLog(req, {
+      action: 'switch_company',
+      resourceType: 'Company',
+      resourceId: company._id,
+      resourceLabel: company.name,
+    });
+
     res.status(200).json({
       success: true,
       token,
-      company: { id: company._id, name: company.name, slug: company.slug },
+      company: { id: company._id, name: company.name, slug: company.slug, logo: company.logo },
     });
   } catch (err) {
     next(err);

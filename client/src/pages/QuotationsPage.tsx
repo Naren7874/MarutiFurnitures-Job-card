@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Search, FileText, Clock, MoreHorizontal } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Plus, Search, FileText, Clock, MoreHorizontal, XCircle } from 'lucide-react';
 import { useQuotations } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { Input } from '@/components/ui/input';
@@ -21,13 +21,21 @@ const STATUS_BADGE: Record<string, { bg: string; text: string; border: string }>
 };
 
 export default function QuotationsPage() {
+    const [searchParams] = useSearchParams();
+    const urlClientId = searchParams.get('clientId');
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('');
     const [page, setPage] = useState(1);
     const { hasPermission } = useAuthStore();
     const canCreate = hasPermission('quotation.create');
 
-    const { data: raw, isLoading } = useQuotations({ search, status, page, limit: 20 });
+    const { data: raw, isLoading } = useQuotations({ 
+        search, 
+        status, 
+        page, 
+        clientId: urlClientId || undefined,
+        limit: 20 
+    });
     const resp: any = raw;
     const quotations: any[] = resp?.data ?? [];
     const pagination: any = resp?.pagination ?? {};
@@ -58,34 +66,43 @@ export default function QuotationsPage() {
                 )}
             </motion.div>
 
-            {/* Filters Section */}
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
                 className="grid grid-cols-1 md:grid-cols-4 gap-4"
             >
-                <div className="md:col-span-3 relative group">
-                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                <div className="md:col-span-3 relative group flex items-center">
+                    <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-muted-foreground/30 group-focus-within:text-primary transition-colors z-10" />
                     <Input
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                        placeholder="Search by quote number, project name or client..."
-                        className="pl-12 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground h-12 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/30 shadow-sm"
+                        placeholder="SEARCH BY QUOTE, PROJECT OR CLIENT..."
+                        className="pl-14 pr-6 bg-white dark:bg-card/50 border border-border dark:border-border/60 text-foreground h-[52px] rounded-full focus:ring-4 focus:ring-primary/10 transition-all font-black text-[10px] uppercase tracking-widest placeholder:text-muted-foreground/20 shadow-sm w-full"
                     />
                 </div>
+                <div>
                 <Select value={status || 'all'} onValueChange={(v: string) => { setStatus(v === 'all' ? '' : v); setPage(1); }}>
-                    <SelectTrigger className="h-12 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground rounded-2xl font-bold text-xs uppercase tracking-widest px-6 shadow-sm focus:ring-primary/10 transition-all">
-                        <SelectValue placeholder="Status Filter" />
+                    <SelectTrigger className="h-[52px]! bg-white dark:bg-card/50 border border-border dark:border-border/60 text-foreground rounded-full font-black text-[10px] uppercase tracking-widest px-8 shadow-sm focus:ring-4 focus:ring-primary/10 transition-all">
+                        <SelectValue placeholder="STATUS FILTER" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl shadow-2xl">
-                        <SelectItem value="all" className="rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-colors">All Quotes</SelectItem>
-                        <SelectItem value="draft" className="rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-colors">Drafts</SelectItem>
-                        <SelectItem value="sent" className="rounded-xl font-bold text-[10px] uppercase tracking-widest text-blue-500 hover:bg-blue-500/10 transition-colors">Sent to Client</SelectItem>
-                        <SelectItem value="approved" className="rounded-xl font-bold text-[10px] uppercase tracking-widest text-emerald-500 hover:bg-emerald-500/10 transition-colors">Approved</SelectItem>
-                        <SelectItem value="rejected" className="rounded-xl font-bold text-[10px] uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 transition-colors">Rejected</SelectItem>
+                    <SelectContent className="rounded-3xl shadow-2xl border-border/50">
+                        <SelectItem value="all" className="rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-2.5">All Quotes</SelectItem>
+                        <SelectItem value="draft" className="rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-2.5">Drafts</SelectItem>
+                        <SelectItem value="sent" className="rounded-xl font-black text-[9px] uppercase tracking-widest text-blue-500 hover:bg-blue-500/10 transition-colors py-2.5">Sent to Client</SelectItem>
+                        <SelectItem value="approved" className="rounded-xl font-black text-[9px] uppercase tracking-widest text-emerald-500 hover:bg-emerald-500/10 transition-colors py-2.5">Approved</SelectItem>
+                        <SelectItem value="rejected" className="rounded-xl font-black text-[9px] uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 transition-colors py-2.5">Rejected</SelectItem>
                     </SelectContent>
                 </Select>
+                </div>
+                {urlClientId && (
+                    <div className="flex items-center gap-2 px-6 py-2 bg-primary/10 border border-primary/20 rounded-full w-fit">
+                        <span className="text-[10px] font-black uppercase text-primary tracking-widest">Filtered by Client</span>
+                        <Link to="/quotations" className="text-primary hover:text-primary/70 transition-colors">
+                            <XCircle size={14} />
+                        </Link>
+                    </div>
+                )}
             </motion.div>
 
             {/* Main Content Table */}
@@ -197,7 +214,7 @@ export default function QuotationsPage() {
                                 variant="outline"
                                 size="sm"
                                 disabled={page <= 1}
-                                onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                onClick={() => { setPage((p: number) => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                                 className="h-9 px-4 rounded-xl border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30 transition-all font-bold text-[10px] uppercase tracking-widest"
                             >
                                 Previous
@@ -206,7 +223,7 @@ export default function QuotationsPage() {
                                 variant="outline"
                                 size="sm"
                                 disabled={page >= pagination.pages}
-                                onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                onClick={() => { setPage((p: number) => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                                 className="h-9 px-4 rounded-xl border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30 transition-all font-bold text-[10px] uppercase tracking-widest"
                             >
                                 Next

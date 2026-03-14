@@ -7,15 +7,16 @@ import {
 import { useCreateClient, useVerifyGST } from '../hooks/useApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
 const CLIENT_TYPES = [
     { value: 'direct_client', label: 'Direct Client', desc: 'Homeowner or individual buyer' },
-    { value: 'architect', label: 'Architect', desc: 'Design professional' },
-    { value: 'designer', label: 'Interior Designer', desc: 'Design studio or firm' },
-    { value: 'contractor', label: 'Contractor', desc: 'Construction or builder company' },
+    { value: 'architect', label: 'Architect Firm Name', desc: 'Design professional / Studio' },
+    { value: 'designer', label: 'Project Designer', desc: 'Individual interior designer' },
+    { value: 'factory_manager', label: 'Factory Manager', desc: 'Production or operations lead' },
 ];
 
 export default function NewClientPage() {
@@ -23,6 +24,7 @@ export default function NewClientPage() {
     const create = useCreateClient();
     const verifyGST = useVerifyGST();
     const [gstStatus, setGstStatus] = useState<'idle' | 'verifying' | 'verified' | 'failed'>('idle');
+    const [isSameAsWhatsapp, setIsSameAsWhatsapp] = useState(true);
 
     const [form, setForm] = useState({
         clientType: 'direct_client',
@@ -33,7 +35,7 @@ export default function NewClientPage() {
         email: '',
         gstin: '',
         notes: '',
-        address: { line1: '', line2: '', city: '', state: '', pincode: '' },
+        address: { houseNumber: '', line1: '', line2: '', city: '', pincode: '' },
     });
 
     const set = (field: string, value: string) => setForm(f => ({ ...f, [field]: value }));
@@ -51,7 +53,8 @@ export default function NewClientPage() {
                     firmName: res.data.legalName || f.firmName,
                     address: {
                         ...f.address,
-                        state: res.data.stateName || f.address.state,
+                        // state is removed from UI but kept in schema for API compatibility if needed
+                        // although we are removing it from input, keep it in state if auto-filled
                     },
                 }));
                 setGstStatus('verified');
@@ -65,7 +68,11 @@ export default function NewClientPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await create.mutateAsync(form);
+        const payload = {
+            ...form,
+            whatsappNumber: isSameAsWhatsapp ? form.phone : form.whatsappNumber
+        };
+        await create.mutateAsync(payload);
         navigate('/clients');
     };
 
@@ -193,7 +200,7 @@ export default function NewClientPage() {
                         {/* Communication */}
                         <Section title="Communication Channels" icon={Phone}>
                             <div className="grid gap-6 sm:grid-cols-2">
-                                <FormField label="Phone *">
+                                <FormField label="Phone Number *">
                                     <Input
                                         required
                                         type="tel"
@@ -203,15 +210,27 @@ export default function NewClientPage() {
                                         className={inputCls}
                                     />
                                 </FormField>
-                                <FormField label="WhatsApp Number">
-                                    <Input
-                                        type="tel"
-                                        value={form.whatsappNumber}
-                                        onChange={(e) => set('whatsappNumber', e.target.value)}
-                                        placeholder="+91 98765 43210"
-                                        className={inputCls}
+                                <div className="flex items-center space-x-2 py-2">
+                                    <Checkbox 
+                                        id="whatsapp-toggle" 
+                                        checked={isSameAsWhatsapp}
+                                        onCheckedChange={(checked) => setIsSameAsWhatsapp(checked === true)}
                                     />
-                                </FormField>
+                                    <label htmlFor="whatsapp-toggle" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 cursor-pointer">
+                                        Use same number for WhatsApp
+                                    </label>
+                                </div>
+                                {!isSameAsWhatsapp && (
+                                    <FormField label="WhatsApp Number">
+                                        <Input
+                                            type="tel"
+                                            value={form.whatsappNumber}
+                                            onChange={(e) => set('whatsappNumber', e.target.value)}
+                                            placeholder="+91 98765 43210"
+                                            className={inputCls}
+                                        />
+                                    </FormField>
+                                )}
                                 <FormField label="Email" className="sm:col-span-2">
                                     <Input
                                         type="email"
@@ -229,17 +248,17 @@ export default function NewClientPage() {
                     <div className="md:col-span-4 space-y-6">
                         <Section title="Address" icon={MapPin}>
                             <div className="space-y-4">
-                                <FormField label="Address Line 1">
-                                    <Input value={form.address.line1} onChange={(e) => setAddr('line1', e.target.value)} placeholder="Street / Building" className={inputCls} />
+                                <FormField label="House / Flat / Unit Number">
+                                    <Input value={form.address.houseNumber} onChange={(e) => setAddr('houseNumber', e.target.value)} placeholder="e.g. #402, 4th Floor" className={inputCls} />
                                 </FormField>
-                                <FormField label="Address Line 2">
-                                    <Input value={form.address.line2} onChange={(e) => setAddr('line2', e.target.value)} placeholder="Area / Locality" className={inputCls} />
+                                <FormField label="Address Line 1 (Street/Building)">
+                                    <Input value={form.address.line1} onChange={(e) => setAddr('line1', e.target.value)} placeholder="e.g. MG Road, Maruti Towers" className={inputCls} />
+                                </FormField>
+                                <FormField label="Address Line 2 (Area)">
+                                    <Input value={form.address.line2} onChange={(e) => setAddr('line2', e.target.value)} placeholder="e.g. Indiranagar" className={inputCls} />
                                 </FormField>
                                 <FormField label="City">
                                     <Input value={form.address.city} onChange={(e) => setAddr('city', e.target.value)} placeholder="City" className={inputCls} />
-                                </FormField>
-                                <FormField label="State">
-                                    <Input value={form.address.state} onChange={(e) => setAddr('state', e.target.value)} placeholder="State" className={inputCls} />
                                 </FormField>
                                 <FormField label="Pincode">
                                     <Input value={form.address.pincode} onChange={(e) => setAddr('pincode', e.target.value)} placeholder="400001" className={inputCls} />

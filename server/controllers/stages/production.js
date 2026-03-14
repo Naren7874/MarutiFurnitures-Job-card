@@ -54,6 +54,15 @@ export const addProgressNote = async (req, res, next) => {
       { new: true }
     );
     if (!stage) return res.status(404).json({ success: false, message: 'Production stage not found' });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'ProductionStage',
+      resourceId: stage._id,
+      resourceLabel: req.params.id,
+      metadata: { action: 'progress_note_added', note: req.body.note },
+    });
+
     res.status(200).json({ success: true, data: stage });
   } catch (err) { next(err); }
 };

@@ -1,7 +1,8 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, FileText, ClipboardList, CheckCircle, XCircle, Building2, Phone, Mail, Globe, MessageSquare, ChevronRight, PowerOff } from 'lucide-react';
-import { useClient, useDeactivateClient } from '../hooks/useApi';
+import { ArrowLeft, User, MapPin, FileText, ClipboardList, CheckCircle, XCircle, Building2, Phone, Mail, Globe, MessageSquare, PowerOff, Clock, EditIcon } from 'lucide-react';
+import { useClient, useDeactivateClient, useQuotations, useJobCards, useInvoices } from '../hooks/useApi';
 import { useState } from 'react';
+import { useAuthStore } from '../stores/authStore';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { Button } from '@/components/ui/button';
@@ -20,10 +21,28 @@ const FIELD = ({ label, value, icon: Icon }: { label: string; value?: string | n
 export default function ClientDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { user } = useAuthStore();
     const { data: raw, isLoading } = useClient(id ?? '');
-    const client: any = (raw as any) ?? {};
+    const client: any = (raw as any)?.data ?? {};
+    
+    // Scoped Data Hooks
+    const { data: quotesData } = useQuotations({ clientId: id, limit: 100 }) as any;
+    const { data: jobCardsData } = useJobCards({ clientId: id, limit: 100 }) as any;
+    const { data: invoicesData } = useInvoices({ clientId: id, limit: 100 }) as any;
+
+    const quotations = quotesData?.data || [];
+    const jobCards = jobCardsData?.data || [];
+    const invoices = invoicesData?.data || [];
+
+    // Financial calculations
+    const totalInvoiced = invoices.reduce((sum: number, inv: any) => sum + (inv.grandTotal || 0), 0);
+    const totalPaid = invoices.reduce((sum: number, inv: any) => sum + (inv.advancePaid || 0), 0);
+    const balanceDue = totalInvoiced - totalPaid;
+
     const deactivateMut = useDeactivateClient(id ?? '');
     const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+
+    const isSales = user?.role === 'sales' && !user?.isSuperAdmin;
 
     const handleDeactivate = async () => {
         await deactivateMut.mutateAsync();
@@ -60,13 +79,16 @@ export default function ClientDetailPage() {
                 <div className="flex gap-2 flex-wrap">
                     <Link to={`/clients/${id}/edit`}>
                         <Button variant="outline" className="h-10 px-6 rounded-xl border-amber-500/40 text-amber-500 hover:bg-amber-500/10 font-black text-[10px] uppercase tracking-widest gap-2">
-                            ✏ Edit Client
+                            <EditIcon size={16} />
+                            Edit Client
                         </Button>
                     </Link>
-                    <Button className="h-10 px-6 rounded-xl bg-primary font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">
-                        Create Transaction
-                    </Button>
-                    {client.isActive !== false && (
+                    <Link to={`/quotations/new?clientId=${id}`}>
+                        <Button className="h-10 px-6 rounded-xl bg-primary font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">
+                            Create Quotation
+                        </Button>
+                    </Link>
+                    {client.isActive !== false && !isSales && (
                         <Button
                             variant="outline"
                             onClick={() => setConfirmDeactivate(true)}
@@ -124,8 +146,9 @@ export default function ClientDetailPage() {
                         <div className="flex flex-wrap gap-4 items-center justify-center md:justify-start pt-2 border-t border-border/30">
                             {[
                                 { label: 'Client ID', value: id?.slice(-6).toUpperCase(), color: 'text-indigo-500' },
-                                { label: 'Lifecycle', value: 'Active Portfolio', color: 'text-emerald-500' },
-                                { label: 'Category', value: client.clientType?.toUpperCase() || 'CORE', color: 'text-rose-500' },
+                                { label: 'Invoiced', value: `₹${totalInvoiced.toLocaleString('en-IN')}`, color: 'text-primary' },
+                                { label: 'Status', value: client.isActive ? 'ACTIVE' : 'INACTIVE', color: client.isActive ? 'text-emerald-500' : 'text-rose-500' },
+                                { label: 'Type', value: client.clientType?.replace('_', ' ').toUpperCase() || 'CORE', color: 'text-amber-500' },
                             ].map((s, idx) => (
                                 <div key={idx} className="flex flex-col">
                                     <p className="text-muted-foreground/40 text-[9px] font-black uppercase tracking-widest">{s.label}</p>
@@ -157,7 +180,7 @@ export default function ClientDetailPage() {
                             <div className="grid grid-cols-1 gap-4">
                                 <FIELD icon={Phone} label="Primary Contact" value={client.phone} />
                                 <FIELD icon={Mail} label="Corporate Email" value={client.email} />
-                                <FIELD icon={MessageSquare} label="Instant Messaging" value={client.whatsapp} />
+                                <FIELD icon={MessageSquare} label="Instant Messaging" value={client.whatsappNumber || client.whatsapp} />
                             </div>
                         </motion.section>
 
@@ -176,54 +199,137 @@ export default function ClientDetailPage() {
                             <div className="space-y-4">
                                 <div className="p-6 rounded-2xl bg-muted/20 border border-border/40">
                                     <p className="text-foreground text-sm font-bold leading-relaxed">
-                                        {client.address?.street},<br />
-                                        {client.address?.city}, {client.address?.state}<br />
+                                        {client.address?.line1 || client.address?.street}{client.address?.line2 ? `, ${client.address.line2}` : ''},<br />
+                                        {client.address?.city}, {client.address?.state} {client.address?.pincode}<br />
+                                        <span className="text-primary/40 text-[10px] font-black uppercase tracking-widest">Postal Code: </span>
                                         <span className="text-primary font-black tracking-widest">{client.address?.pincode}</span>
                                     </p>
                                 </div>
-                                <Button variant="ghost" className="w-full justify-start h-10 px-0 hover:bg-transparent text-primary hover:text-primary/70 font-black text-[10px] uppercase tracking-widest gap-2">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${client.address?.line1 || ''} ${client.address?.line2 || ''} ${client.address?.city || ''} ${client.address?.state || ''} ${client.address?.pincode || ''}`)}`, '_blank')}
+                                    className="w-full justify-start h-10 px-0 hover:bg-transparent text-primary hover:text-primary/70 font-black text-[10px] uppercase tracking-widest gap-2"
+                                >
                                     <Globe size={14} /> Navigate on Map
                                 </Button>
                             </div>
                         </motion.section>
                     </div>
 
-                    {/* Operational Summary */}
+                    {/* Financial Matrix */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {[
+                            { label: 'Total Invoiced', value: totalInvoiced, icon: FileText, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                            { label: 'Total Paid', value: totalPaid, icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                            { label: 'Outstanding', value: balanceDue, icon: Clock, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+                        ].map((fin, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 + (i * 0.1) }}
+                                className="p-5 rounded-[24px] border border-border bg-card/40 flex flex-col gap-3"
+                            >
+                                <div className={cn("p-2 rounded-xl w-fit", fin.bg)}>
+                                    <fin.icon size={16} className={fin.color} />
+                                </div>
+                                <div>
+                                    <p className="text-muted-foreground/60 text-[9px] font-black uppercase tracking-widest">{fin.label}</p>
+                                    <p className="text-xl font-black tracking-tight text-foreground">₹{fin.value.toLocaleString('en-IN')}</p>
+                                </div>
+                                {fin.label === 'Total Invoiced' && totalInvoiced > 0 && (
+                                    <div className="mt-auto pt-4 border-t border-border/20">
+                                        <div className="flex justify-between items-center text-[8px] font-black uppercase mb-1">
+                                            <span className="text-emerald-500">Collected: {Math.round((totalPaid / totalInvoiced) * 100)}%</span>
+                                        </div>
+                                        <div className="h-1 bg-muted rounded-full overflow-hidden">
+                                            <div 
+                                                className="h-full bg-emerald-500 transition-all duration-1000" 
+                                                style={{ width: `${Math.min(100, (totalPaid / totalInvoiced) * 100)}%` }} 
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    {/* Recent Quotations */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                        className="bg-white dark:bg-card/40 border border-border dark:border-border/50 rounded-[32px] p-8 shadow-xl"
+                        transition={{ delay: 0.5 }}
+                        className="bg-card/40 border border-border rounded-[32px] p-8"
                     >
-                        <div className="flex items-center justify-between mb-8">
-                            <h3 className="text-foreground text-sm font-black uppercase tracking-[0.2em]">Operational History</h3>
-                            <button className="text-primary font-black text-[9px] uppercase tracking-widest hover:underline">Full Audit Trail</button>
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-foreground text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                                <FileText size={16} className="text-primary" /> Recent Quotations
+                            </h3>
+                            <Link to={`/quotations?clientId=${id}`} className="px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors">
+                                <span className="text-[10px] font-black uppercase tracking-widest">Explore All</span>
+                            </Link>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Link to={`/quotations?clientId=${id}`} className="group flex items-center justify-between p-6 rounded-[24px] bg-muted/20 border border-border/40 hover:bg-primary hover:border-primary transition-all duration-500">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 rounded-2xl bg-card text-primary group-hover:bg-white/20 group-hover:text-white transition-colors">
-                                        <FileText size={20} />
-                                    </div>
+                        <div className="space-y-3">
+                            {quotations.slice(0, 3).map((q: any) => (
+                                <Link key={q._id} to={`/quotations/${q._id}`} className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 hover:bg-muted/40 transition-colors group">
                                     <div>
-                                        <p className="text-foreground font-black tracking-tight group-hover:text-white transition-colors">Estimates</p>
-                                        <p className="text-muted-foreground/60 text-[10px] uppercase font-black group-hover:text-white/60 transition-colors">8 Total Generated</p>
+                                        <p className="text-sm font-black text-foreground group-hover:text-primary transition-colors">{q.quotationNumber}</p>
+                                        <p className="text-[10px] text-muted-foreground font-bold">{q.projectName}</p>
                                     </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-black text-foreground">₹{q.grandTotal?.toLocaleString('en-IN')}</p>
+                                        <span className={cn(
+                                            "text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest",
+                                            q.status === 'approved' ? "bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground"
+                                        )}>{q.status}</span>
+                                    </div>
+                                </Link>
+                            ))}
+                            {quotations.length === 0 && (
+                                <div className="flex flex-col items-center justify-center py-10 opacity-30">
+                                    <FileText size={24} className="mb-2" />
+                                    <p className="text-[10px] font-black uppercase tracking-widest italic">No quotations found</p>
                                 </div>
-                                <ChevronRight size={18} className="text-muted-foreground/30 group-hover:text-white transition-all transform group-hover:translate-x-1" />
+                            )}
+                        </div>
+                    </motion.div>
+
+                    {/* Active Job Cards */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.6 }}
+                        className="bg-card/40 border border-border rounded-[32px] p-8"
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-foreground text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                                <ClipboardList size={16} className="text-violet-500" /> Recent Job Cards
+                            </h3>
+                            <Link to={`/jobcards?clientId=${id}`} className="px-3 py-1 bg-violet-500/10 hover:bg-violet-500/20 text-violet-500 rounded-lg transition-colors">
+                                <span className="text-[10px] font-black uppercase tracking-widest">View All</span>
                             </Link>
-                            <Link to={`/jobcards?clientId=${id}`} className="group flex items-center justify-between p-6 rounded-[24px] bg-muted/20 border border-border/40 hover:bg-violet-600 hover:border-violet-600 transition-all duration-500">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 rounded-2xl bg-card text-violet-600 group-hover:bg-white/20 group-hover:text-white transition-colors">
-                                        <ClipboardList size={20} />
-                                    </div>
+                        </div>
+                        <div className="space-y-3">
+                            {jobCards.slice(0, 3).map((jc: any) => (
+                                <Link key={jc._id} to={`/jobcards/${jc._id}`} className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 hover:bg-muted/40 transition-colors group">
                                     <div>
-                                        <p className="text-foreground font-black tracking-tight group-hover:text-white transition-colors">Engagements</p>
-                                        <p className="text-muted-foreground/60 text-[10px] uppercase font-black group-hover:text-white/60 transition-colors">12 Active Cards</p>
+                                        <p className="text-sm font-black text-foreground group-hover:text-violet-500 transition-colors">{jc.jobCardNumber}</p>
+                                        <p className="text-[10px] text-muted-foreground font-bold">{jc.title}</p>
                                     </div>
+                                    <div className="text-right">
+                                        <span className={cn(
+                                            "text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest",
+                                            jc.status === 'delivered' ? "bg-emerald-500/10 text-emerald-500" : "bg-violet-500/10 text-violet-500"
+                                        )}>{jc.status}</span>
+                                    </div>
+                                </Link>
+                            ))}
+                            {jobCards.length === 0 && (
+                                <div className="flex flex-col items-center justify-center py-10 opacity-30">
+                                    <ClipboardList size={24} className="mb-2" />
+                                    <p className="text-[10px] font-black uppercase tracking-widest italic">No active job cards found</p>
                                 </div>
-                                <ChevronRight size={18} className="text-muted-foreground/30 group-hover:text-white transition-all transform group-hover:translate-x-1" />
-                            </Link>
+                            )}
                         </div>
                     </motion.div>
                 </div>
@@ -238,24 +344,27 @@ export default function ClientDetailPage() {
                     <div className="bg-primary/5 rounded-[32px] p-6 border border-primary/10">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-1.5 h-6 rounded-full bg-primary" />
-                            <h4 className="text-foreground text-xs font-black uppercase tracking-widest italic">Strategic Notes</h4>
+                            <h4 className="text-foreground text-xs font-black uppercase tracking-widest italic">Client Notes</h4>
                         </div>
                         <p className="text-muted-foreground text-sm font-bold leading-relaxed italic opacity-80">
-                            {client.notes || "Establish deeper strategic alignment with this entity. Key interests include large scale infrastructure projects and high-volume procurement."}
+                            {client.notes || "No additional strategic notes available for this entity. Click edit to add documentation."}
                         </p>
                     </div>
 
-                    <div className="bg-card/40 rounded-[32px] p-6 border border-border animate-pulse">
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Entity Credit Limit</span>
-                            <span className="text-emerald-500 text-[10px] font-black uppercase">Elite Tier</span>
+                    <div className="bg-card/40 rounded-[32px] p-6 border border-border">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-1.5 h-6 rounded-full bg-emerald-500" />
+                            <h4 className="text-foreground text-xs font-black uppercase tracking-widest">History Summary</h4>
                         </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden mb-2">
-                            <div className="h-full bg-primary w-[75%]" />
-                        </div>
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                            <span className="text-foreground/40">Used: ₹4.5L</span>
-                            <span className="text-primary">Limit: ₹10L</span>
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                                <span className="text-muted-foreground/40">Registered</span>
+                                <span className="text-foreground">{new Date(client.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                                <span className="text-muted-foreground/40">Total Orders</span>
+                                <span className="text-foreground">{quotations.length}</span>
+                            </div>
                         </div>
                     </div>
                 </motion.aside>

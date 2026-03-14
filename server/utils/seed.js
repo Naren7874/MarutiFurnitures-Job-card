@@ -23,10 +23,25 @@ const COMPANIES = [
   {
     name: 'Maruti Furniture',
     slug: 'maruti-furniture',
-    tagline: 'Crafting Excellence',
-    phone: '9876543210',
+    logo: '/Maruti icon_New.svg',
+    tagline: 'The Solid Wood Furniture Makers',
+    gstin: '24ABLFM2535N1ZY',
+    address: { 
+      line1: '"V.M." HOUSE, OPP-HOMEOPATHIC COLLAGE',
+      line2: 'NEW BUS STAND, ROAD',
+      city: 'Anand', 
+      state: 'Gujarat', 
+      pincode: '388001' 
+    },
+    phone: '+91 72260 06767',
     email: 'info@marutifurniture.com',
-    address: { city: 'Ahmedabad', state: 'Gujarat', pincode: '380001' },
+    bankDetails: {
+      bankName: 'HDFC BANK',
+      accountName: 'MARUTI FURNITURE',
+      branch: 'SANKET 2, LAMBHVEL ROAD, ANAND',
+      accountNumber: '50200039164993',
+      ifsc: 'HDFC0000183'
+    },
     quotationPrefix: 'MF',
     jobCardPrefix: 'MF',
     invoicePrefix: 'MF',
@@ -42,16 +57,31 @@ const COMPANIES = [
     isActive: true,
   },
   {
-    name: 'Brand Two Furniture',
-    slug: 'brand-two',
-    tagline: 'Modern Living Solutions',
-    phone: '9876543211',
-    email: 'info@brandtwo.com',
-    address: { city: 'Ahmedabad', state: 'Gujarat', pincode: '380059' },
-    quotationPrefix: 'BT',
-    jobCardPrefix: 'BT',
-    invoicePrefix: 'BT',
-    projectPrefix: 'BT',
+    name: 'Furnituno',
+    slug: 'furnituno',
+    logo: '/Furnituno Logo_New.svg',
+    tagline: 'Discover a World of Luxury',
+    gstin: '24AAKFF5517B1ZT',
+    address: { 
+      line1: 'Plot No.7/D, Anand Audhyogik Vasahat',
+      line2: 'Borsad Chowkdi, Jitodia',
+      city: 'Anand', 
+      state: 'Gujarat', 
+      pincode: '388001' 
+    },
+    phone: '+91 94090 40767',
+    email: 'info@furnituno.com',
+    bankDetails: {
+      bankName: 'IDFC FIRST BANK',
+      accountName: 'FURNITUNO',
+      branch: 'Anand Branch, Amul Dairy Road',
+      accountNumber: '50000026764',
+      ifsc: 'IDFB0040352'
+    },
+    quotationPrefix: 'FT',
+    jobCardPrefix: 'FT',
+    invoicePrefix: 'FT',
+    projectPrefix: 'FT',
     gstRates: { cgst: 9, sgst: 9, igst: 18 },
     defaultTermsAndConditions: [
       '50% advance payment required before production begins.',
@@ -190,12 +220,13 @@ const seed = async () => {
   await mongoose.connect(process.env.MONGO_URI);
   console.log('✅ Connected to MongoDB');
 
-  // Check if already seeded
-  const existingCompany = await Company.findOne({ slug: 'maruti-furniture' });
-  if (existingCompany) {
-    console.log('⚠️  Already seeded. Companies exist. Exiting.');
-    process.exit(0);
-  }
+  // Clear existing base data for a clean seed
+  console.log('🧹 Cleaning existing collections...');
+  await Company.deleteMany({});
+  await Role.deleteMany({});
+  await User.deleteMany({});
+  await UserPermission.deleteMany({});
+  console.log('✅ Collections cleared');
 
   const createdCompanies = [];
 

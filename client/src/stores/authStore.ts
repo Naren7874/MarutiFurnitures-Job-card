@@ -31,6 +31,7 @@ export interface CompanyInfo {
     id: string;
     name: string;
     slug: string;
+    logo?: string;
     gstin?: string;
     plan?: string;
 }
@@ -49,6 +50,7 @@ interface AuthState {
     setToken: (token: string) => void;
     logout: () => void;
     hasPermission: (permission: string) => boolean;
+    updateCompanies: (companies: CompanyInfo[]) => void;
 }
 
 // ── Store ────────────────────────────────────────────────────────────────────
@@ -103,6 +105,10 @@ export const useAuthStore = create<AuthState>()(
                     const [r, a] = p.split('.');
                     return r === resource && (a === '*' || a === action);
                 });
+            },
+
+            updateCompanies: (companies) => {
+                set({ allCompanies: companies });
             },
         }),
         {

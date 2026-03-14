@@ -113,12 +113,13 @@ export const createJobCard = async (req, res, next) => {
 
 export const getJobCards = async (req, res, next) => {
   try {
-    const { status, priority, projectId, search, page = 1, limit = 20 } = req.query;
+    const { status, priority, projectId, clientId, search, page = 1, limit = 20 } = req.query;
     const filter = { ...req.companyFilter };
 
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
     if (projectId) filter.projectId = projectId;
+    if (clientId) filter.clientId = clientId;
     if (search) {
       filter.$or = [
         { jobCardNumber: new RegExp(search, 'i') },
@@ -196,6 +197,7 @@ export const updateJobCard = async (req, res, next) => {
       return res.status(400).json({ success: false, message: `Cannot edit a ${jobCard.status} job card` });
     }
 
+    const prev = jobCard.toObject();
     const updates = {};
     if (title !== undefined) updates.title = title;
     if (priority !== undefined) updates.priority = priority;
@@ -213,11 +215,21 @@ export const updateJobCard = async (req, res, next) => {
       note: 'Job card details updated',
     });
 
+    // Compute changed fields for audit log
+    const changedFields = {};
+    const tracked = ['title', 'priority', 'expectedDelivery'];
+    tracked.forEach(f => {
+      if (updates[f] !== undefined && String(prev[f]) !== String(jobCard[f])) {
+        changedFields[f] = { from: prev[f], to: jobCard[f] };
+      }
+    });
+
     auditLog(req, {
       action: 'update',
       resourceType: 'JobCard',
       resourceId: jobCard._id,
       resourceLabel: jobCard.jobCardNumber,
+      changes: Object.keys(changedFields).length ? changedFields : undefined,
       metadata: { action: 'jobcard_edited' },
     });
 

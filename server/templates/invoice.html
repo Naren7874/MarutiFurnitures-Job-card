@@ -67,8 +67,10 @@
       </div>
     </div>
     <div class="company-contact">
-      <%= company.address?.line1 || '' %><br/>
-      <%= company.address?.city || '' %>, <%= company.address?.state || '' %> - <%= company.address?.pincode || '' %><br/>
+      <% if (company.address && company.address.line1) { %>
+        <strong><%= company.address.line1 %>, <%= company.address.line2 || '' %></strong><br/>
+        <%= company.address.city %>, <%= company.address.state %> - <%= company.address.pincode %><br/>
+      <% } %>
       GSTIN: <%= company.gstin || '—' %>
     </div>
   </div>
@@ -189,6 +191,29 @@
       <% }); %>
     </tbody>
   </table>
+  <% } %>
+  <% if (company.bankDetails && company.bankDetails.accountNumber) { %>
+  <div style="margin-bottom: 12px; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #fafafa;">
+    <h4 style="font-size: 11px; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 2px;">Bank Details</h4>
+    <div style="display: flex; gap: 30px;">
+      <div>
+        <div style="font-size: 9px; color: #666;">Bank</div>
+        <div style="font-weight: 700; font-size: 10px;"><%= company.bankDetails.bankName %></div>
+      </div>
+      <div>
+        <div style="font-size: 9px; color: #666;">Account Name</div>
+        <div style="font-weight: 700; font-size: 10px;"><%= company.bankDetails.accountName %></div>
+      </div>
+      <div>
+        <div style="font-size: 9px; color: #666;">A/c No.</div>
+        <div style="font-weight: 700; font-size: 10px;"><%= company.bankDetails.accountNumber %></div>
+      </div>
+      <div>
+        <div style="font-size: 9px; color: #666;">IFSC Code</div>
+        <div style="font-weight: 700; font-size: 10px;"><%= company.bankDetails.ifsc %></div>
+      </div>
+    </div>
+  </div>
   <% } %>
 
   <!-- FOOTER -->

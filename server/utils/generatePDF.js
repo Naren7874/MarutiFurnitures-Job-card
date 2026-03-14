@@ -55,6 +55,22 @@ export const renderPDF = async (templateName, data = {}, options = {}) => {
   const templatePath = path.join(TEMPLATES_DIR, `${templateName}.html`);
   const template = readFileSync(templatePath, 'utf-8');
 
+  // Handle company logo — if it's a local path, convert to Base64 for Puppeteer
+  if (data.company?.logo && data.company.logo.startsWith('/')) {
+    try {
+      const publicDirPath = path.join(__dirname, '../../client/public');
+      const logoPath = path.join(publicDirPath, data.company.logo);
+      if (existsSync(logoPath)) {
+        const logoBuffer = readFileSync(logoPath);
+        const ext = path.extname(logoPath).slice(1) || 'png';
+        const mimeType = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
+        data.company.logo = `data:${mimeType};base64,${logoBuffer.toString('base64')}`;
+      }
+    } catch (err) {
+      console.error('[PDF] Logo Base64 conversion failed:', err);
+    }
+  }
+
   // Render EJS template with data
   const html = ejs.render(template, data, { filename: templatePath });
 

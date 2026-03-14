@@ -14,17 +14,14 @@ import { WhatsAppLog } from "@/components/dashboard/whatsapp-log"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 
 import {
-    DUMMY_JOB_CARDS,
-    DUMMY_WHATSAPP_LOGS,
     DUMMY_ACTIVITIES,
-    DUMMY_DELIVERIES,
-    STATUS_STATS,
-    DASHBOARD_STATS,
     DUMMY_USERS,
 } from "@/lib/dummy-data"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAuthStore } from "@/stores/authStore"
+import { useDashboardStats, useJobCards, useNotificationsApi } from "@/hooks/useApi"
 
 const container = {
     hidden: { opacity: 0 },
@@ -42,64 +39,93 @@ const roleColors: Record<string, string> = {
     DISPATCH: '#6366F1', ACCOUNTANT: '#EC4899',
 }
 
+const statusColorMap: Record<string, string> = {
+    ENQUIRY: "#767A8C",
+    DESIGN: "#8B5CF6",
+    STORE: "#F59E0B",
+    PRODUCTION: "#1315E5",
+    QC: "#10B981",
+    DISPATCH: "#F97316",
+    CLOSED: "#131415",
+};
+
 export default function Dashboard() {
     const hour = new Date().getHours()
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-    const currentUser = DUMMY_USERS[0]
+    const { user: currentUser, company } = useAuthStore()
+
+    const { data: statsContent } = useDashboardStats() as any;
+
+    const stats = statsContent?.data;
+
+    const { data: jobCardsContent } = useJobCards({ limit: 100 }) as any;
+    const allJobCards = jobCardsContent?.data || [];
 
     const { data: priorities } = useQuery({
-        queryKey: ["priority-queue"],
-        queryFn: async () => DUMMY_JOB_CARDS
-            .filter(jc => jc.priority === 'URGENT' || jc.priority === 'HIGH')
-            .sort((a, b) => (b.priority === 'URGENT' ? 1 : 0) - (a.priority === 'URGENT' ? 1 : 0))
+        queryKey: ["priority-queue", company?.id],
+        queryFn: async () => allJobCards
+            .filter((jc: any) => jc.priority === 'urgent' || jc.priority === 'high')
+            .sort((a: any, b: any) => (b.priority === 'urgent' ? 1 : 0) - (a.priority === 'urgent' ? 1 : 0))
             .slice(0, 8)
-            .map(jc => ({
-                id: jc.id,
-                jobNumber: jc.jobNumber,
-                client: jc.clientName,
-                priority: jc.priority as 'HIGH' | 'URGENT',
-                stage: jc.currentStage,
-                completionPercent: jc.completionPercent,
+            .map((jc: any) => ({
+                id: jc._id,
+                jobNumber: jc.jobCardNumber,
+                client: jc.clientId?.name || 'Unknown',
+                priority: jc.priority.toUpperCase() as 'HIGH' | 'URGENT',
+                stage: jc.status.toUpperCase(),
+                completionPercent: jc.status === 'delivered' ? 100 : jc.status === 'qc_passed' ? 90 : 50,
             }))
     })
 
-    const { data: statusStats } = useQuery({
-        queryKey: ["status-stats"],
-        queryFn: async () => STATUS_STATS
-    })
+    const statusStats = stats ? Object.entries(stats.jobCards.byStage).map(([status, count]) => ({
+        status,
+        count: count as number,
+        color: statusColorMap[status] || "#767A8C"
+    })) : []
 
     const { data: bottlenecks } = useQuery({
-        queryKey: ["bottlenecks"],
-        queryFn: async () => DUMMY_JOB_CARDS
-            .filter(jc => jc.daysInCurrentStage > 7)
-            .slice(0, 4)
-            .map(jc => ({
-                id: jc.id,
-                jobNumber: jc.jobNumber,
-                stageName: jc.currentStage,
-                daysInStage: jc.daysInCurrentStage
-            }))
-    })
-
-    const { data: activeProjectsCount } = useQuery({
-        queryKey: ["active-projects-count"],
-        queryFn: async () => DASHBOARD_STATS.activeProjects.value
-    })
-
-    const { data: pendingQuotationsCount } = useQuery({
-        queryKey: ["pending-quotations-count"],
-        queryFn: async () => DASHBOARD_STATS.pendingQuotations.value
+        queryKey: ["bottlenecks", company?.id],
+        queryFn: async () => {
+            const now = new Date();
+            return allJobCards
+                .filter((jc: any) => {
+                    const stageAge = (now.getTime() - new Date(jc.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+                    return stageAge > 7 && !['closed', 'cancelled', 'delivered'].includes(jc.status);
+                })
+                .slice(0, 4)
+                .map((jc: any) => ({
+                    id: jc._id,
+                    jobNumber: jc.jobCardNumber,
+                    stageName: jc.status.toUpperCase(),
+                    daysInStage: Math.floor((now.getTime() - new Date(jc.updatedAt).getTime()) / (1000 * 60 * 60 * 24))
+                }))
+        }
     })
 
     const { data: deliveries } = useQuery({
-        queryKey: ["upcoming-deliveries"],
-        queryFn: async () => DUMMY_DELIVERIES
+        queryKey: ["upcoming-deliveries", company?.id],
+        queryFn: async () => allJobCards
+            .filter((jc: any) => jc.status === 'dispatch_pending' || jc.status === 'out_for_delivery')
+            .map((jc: any) => ({
+                id: jc._id,
+                date: jc.expectedDelivery,
+                clientName: jc.clientId?.name || 'Unknown',
+                address: jc.clientId?.city || '',
+                timeSlot: 'Morning',
+                status: jc.status === 'out_for_delivery' ? 'IN_TRANSIT' : 'SCHEDULED'
+            }))
     })
 
-    const { data: whatsappLogs } = useQuery({
-        queryKey: ["whatsapp-logs"],
-        queryFn: async () => DUMMY_WHATSAPP_LOGS
-    })
+    const { data: notificationsContent } = useNotificationsApi() as any;
+    const whatsappLogs = (notificationsContent?.data || [])
+        .filter((n: any) => n.channel === 'whatsapp')
+        .map((n: any) => ({
+            id: n._id,
+            type: n.type,
+            recipient: n.waTemplateName,
+            status: n.deliveryStatus.toUpperCase(),
+            timestamp: new Date(n.createdAt).toLocaleTimeString()
+        }));
 
     return (
         <motion.div
@@ -112,54 +138,35 @@ export default function Dashboard() {
             <motion.div variants={itemFade} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                     <Avatar className="size-10 border-2 border-border shadow-sm shrink-0">
-                        <AvatarImage src={currentUser.avatar} />
-                        <AvatarFallback className="text-sm font-bold">{currentUser.name[0]}</AvatarFallback>
+                        <AvatarImage src={currentUser?.profilePhoto} />
+                        <AvatarFallback className="text-sm font-bold">{currentUser?.name?.[0] || 'U'}</AvatarFallback>
                     </Avatar>
                     <div>
                         <p className="text-sm text-muted-foreground">
-                            {greeting}, <span className="font-bold text-foreground">{currentUser.name.split(' ')[0]}</span> 👋
+                            {greeting}, <span className="font-bold text-foreground">{currentUser?.name?.split(' ')[0] || 'User'}</span> 👋
                         </p>
                         <h1 className="text-xl font-bold tracking-tight text-foreground">Admin Dashboard</h1>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="hidden md:flex items-center gap-2">
-                        <div className="flex -space-x-2">
-                            {DUMMY_USERS.slice(1, 5).map((user) => (
-                                <Avatar key={user.id} className="size-7 border-2 border-background">
-                                    <AvatarImage src={user.avatar} />
-                                    <AvatarFallback className="text-[9px] font-bold">{user.name[0]}</AvatarFallback>
-                                </Avatar>
-                            ))}
-                        </div>
-                        <span className="text-xs text-muted-foreground font-medium">
-                            {DUMMY_USERS.filter(u => u.status === 'ACTIVE').length} active
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-semibold">
-                        <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-muted-foreground">Live</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-medium text-muted-foreground">
-                        <CalendarDays className="size-3" />
-                        <span>28 Feb 2024</span>
-                    </div>
+                <div className="flex items-center gap-3 px-6 py-3 rounded-full border border-border bg-card text-lg font-medium text-muted-foreground">
+                    <CalendarDays className="size-6" />
+                    <span>{new Date().toLocaleDateString()}</span>
                 </div>
             </motion.div>
 
             {/* ── KPI Row — Summary Analytics ────────────────── */}
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
                 <motion.div variants={itemFade}>
-                    <KPICard title="Active Projects" value={activeProjectsCount || 0} change={14.2} icon={LayoutGrid} description="Ongoing client mandates" />
+                    <KPICard title="Active Projects" value={stats?.projects.active || 0} change={stats?.projects.change} icon={LayoutGrid} description="Ongoing client mandates" />
                 </motion.div>
                 <motion.div variants={itemFade}>
-                    <KPICard title="Active Job Cards" value={DASHBOARD_STATS.activeJobs.value} change={DASHBOARD_STATS.activeJobs.change} icon={ClipboardCheck} accentColor="#1315E5" description="Total jobs in system" />
+                    <KPICard title="Active Job Cards" value={stats?.jobCards.total || 0} change={stats?.jobCards.change} icon={ClipboardCheck} accentColor="#1315E5" description="Total jobs in system" />
                 </motion.div>
                 <motion.div variants={itemFade}>
-                    <KPICard title="Pending Quotations" value={pendingQuotationsCount || 0} change={-2.4} icon={FileText} accentColor="#F59E0B" description="Awaiting client approval" />
+                    <KPICard title="Pending Quotations" value={stats?.quotations.pending || 0} change={stats?.quotations.change} icon={FileText} accentColor="#F59E0B" description="Awaiting client approval" />
                 </motion.div>
                 <motion.div variants={itemFade}>
-                    <KPICard title="QC Pending" value={DASHBOARD_STATS.pendingQC.value} change={DASHBOARD_STATS.pendingQC.change} icon={ShieldCheck} accentColor="#10B981" description="Quality verification" />
+                    <KPICard title="QC Pending" value={stats?.jobCards.qcPending || 0} change={stats?.jobCards.qcPendingChange} icon={ShieldCheck} accentColor="#10B981" description="Quality verification" />
                 </motion.div>
             </div>
 
@@ -178,45 +185,49 @@ export default function Dashboard() {
                         <WhatsAppLog logs={whatsappLogs || []} />
                     </motion.div>
                     <motion.div variants={itemFade}>
-                        <KPICard title="Low Stock" value={DASHBOARD_STATS.lowStockAlerts.value} icon={Package} accentColor="#F59E0B" description="Materials below threshold" />
+                        <KPICard title="Low Stock" value={stats?.inventory.lowStock || 0} icon={Package} accentColor="#F59E0B" description="Materials below threshold" />
                     </motion.div>
                 </div>
 
                 {/* ─ Column B (4/12): PERFORMANCE & HEALTH (The "Flow" Flow) ─ */}
                 <div className="xl:col-span-4 flex flex-col gap-5">
                     <motion.div variants={itemFade}>
-                        <StatusDistribution data={statusStats || []} />
+                        <StatusDistribution data={statusStats} />
                     </motion.div>
                     <motion.div variants={itemFade}>
                         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
                             <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Stage Distribution Load</div>
                             <div className="space-y-3.5">
                                 {[
-                                    { label: 'Design', count: 2, color: '#8B5CF6' },
-                                    { label: 'Production', count: 4, color: '#1315E5' },
-                                    { label: 'QC', count: 2, color: '#10B981' },
-                                    { label: 'Dispatch', count: 2, color: '#F97316' },
-                                ].map(s => (
-                                    <div key={s.label} className="flex items-center gap-3">
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <span className="text-[10px] font-bold text-foreground/80">{s.label}</span>
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="text-[9px] font-black text-muted-foreground">{s.count} Jobs</span>
+                                    { label: 'Design', status: 'DESIGN', color: '#8B5CF6' },
+                                    { label: 'Production', status: 'PRODUCTION', color: '#1315E5' },
+                                    { label: 'QC', status: 'QC', color: '#10B981' },
+                                    { label: 'Dispatch', status: 'DISPATCH', color: '#F97316' },
+                                ].map(s => {
+                                    const count = stats?.jobCards.byStage[s.status] || 0;
+                                    const total = stats?.jobCards.total || 1;
+                                    return (
+                                        <div key={s.label} className="flex items-center gap-3">
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="text-[10px] font-bold text-foreground/80">{s.label}</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-[9px] font-black text-muted-foreground">{count} Jobs</span>
+                                                    </div>
+                                                </div>
+                                                <div className="h-1 bg-muted rounded-full overflow-hidden">
+                                                    <motion.div
+                                                        className="h-full rounded-full"
+                                                        style={{ backgroundColor: s.color }}
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${(count / total) * 100}%` }}
+                                                        transition={{ duration: 1, delay: 0.5 }}
+                                                    />
                                                 </div>
                                             </div>
-                                            <div className="h-1 bg-muted rounded-full overflow-hidden">
-                                                <motion.div
-                                                    className="h-full rounded-full"
-                                                    style={{ backgroundColor: s.color }}
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: `${(s.count / 8) * 100}%` }}
-                                                    transition={{ duration: 1, delay: 0.5 }}
-                                                />
-                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </div>
                         </div>
                     </motion.div>
@@ -228,7 +239,7 @@ export default function Dashboard() {
                 {/* ─ Column C (4/12): LOGISTICS & AUDIT (The "Movement" Flow) ─ */}
                 <div className="xl:col-span-4 flex flex-col gap-5">
                     <motion.div variants={itemFade}>
-                        <UpcomingDeliveries deliveries={(deliveries || []).map(d => ({
+                        <UpcomingDeliveries deliveries={(deliveries || []).map((d: any) => ({
                             id: d.id,
                             date: d.date,
                             client: d.clientName,
@@ -251,8 +262,8 @@ export default function Dashboard() {
                             <CardContent className="p-0">
                                 <ScrollArea className="h-[340px]">
                                     <div className="divide-y divide-border/50">
-                                        {DUMMY_ACTIVITIES.map((activity) => {
-                                            const user = DUMMY_USERS.find(u => u.name === activity.actor)
+                                        {DUMMY_ACTIVITIES.map((activity: any) => {
+                                            const user = DUMMY_USERS.find((u: any) => u.name === activity.actor)
                                             const roleColor = roleColors[activity.actorRole] || '#767A8C'
                                             return (
                                                 <div key={activity.id} className="p-4 hover:bg-muted/30 transition-colors cursor-pointer group">
@@ -263,7 +274,7 @@ export default function Dashboard() {
                                                                 className="text-[10px] font-bold"
                                                                 style={{ backgroundColor: `${roleColor}20`, color: roleColor }}
                                                             >
-                                                                {activity.actor[0]}
+                                                                 {activity.actor[0]}
                                                             </AvatarFallback>
                                                         </Avatar>
                                                         <div className="flex-1 min-w-0">

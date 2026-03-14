@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useJobCards } from '../hooks/useApi';
 import { useJobCardStore } from '../stores/jobCardStore';
 import { Input } from '@/components/ui/input';
@@ -43,6 +43,8 @@ const KANBAN_COLS = [
 ];
 
 export default function JobCardsPage() {
+    const [searchParams] = useSearchParams();
+    const urlClientId = searchParams.get('clientId');
     const { filters, setFilter, resetFilters, viewMode, setViewMode } = useJobCardStore();
 
     const { data: raw, isLoading } = useJobCards({
@@ -50,6 +52,7 @@ export default function JobCardsPage() {
         priority: filters.priority,
         search: filters.search,
         page: filters.page,
+        clientId: urlClientId || undefined,
         limit: 30,
     });
 
@@ -157,6 +160,14 @@ export default function JobCardsPage() {
                 >
                     <FilterX size={14} className="mr-2" /> Reset
                 </Button>
+                {urlClientId && (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-xl">
+                        <span className="text-[10px] font-black uppercase text-primary tracking-widest">Filtered by Client</span>
+                        <Link to="/jobcards" className="text-primary hover:text-primary/70 transition-colors">
+                            <XCircle size={14} />
+                        </Link>
+                    </div>
+                )}
             </motion.div>
 
             {/* Main Content */}
