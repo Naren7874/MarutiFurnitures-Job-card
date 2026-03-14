@@ -56,7 +56,7 @@ export default function NotificationSheet() {
 
     return (
         <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
-            <SheetContent side="right" className="w-[380px] p-0 flex flex-col bg-background border-l border-border">
+            <SheetContent side="right" showCloseButton={false} className="w-[380px] p-0 flex flex-col bg-background border-l border-border">
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                     <div className="flex items-center gap-2">
