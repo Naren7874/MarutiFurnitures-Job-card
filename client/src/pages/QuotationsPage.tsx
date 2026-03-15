@@ -1,6 +1,4 @@
-import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Search, FileText, Clock, MoreHorizontal, XCircle } from 'lucide-react';
+import { Plus, Search, FileText, Clock, XCircle } from 'lucide-react';
 import { useQuotations } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { Input } from '@/components/ui/input';
@@ -10,6 +8,8 @@ import {
 } from '@/components/ui/select';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 const STATUS_BADGE: Record<string, { bg: string; text: string; border: string }> = {
     draft: { bg: 'bg-slate-500/10', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-500/20' },
@@ -125,10 +125,8 @@ export default function QuotationsPage() {
                                 <tr className="border-b border-border/40 bg-muted/20">
                                     <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Quotation Identity</th>
                                     <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden sm:table-cell">Client Name</th>
-                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden md:table-cell">Project Detail</th>
                                     <th className="text-right px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden md:table-cell">Total Value</th>
                                     <th className="text-center px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Lifecycle</th>
-                                    <th className="w-16"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/20">
@@ -161,10 +159,7 @@ export default function QuotationsPage() {
                                                 </td>
                                                 <td className="px-8 py-5 hidden sm:table-cell">
                                                     <p className="text-foreground/80 font-bold text-xs">{q.clientId?.name || 'N/A'}</p>
-                                                    <p className="text-muted-foreground/40 text-[10px] font-semibold">{q.clientId?.city || 'Corporate'}</p>
-                                                </td>
-                                                <td className="px-8 py-5 hidden md:table-cell">
-                                                    <p className="text-muted-foreground/60 text-[11px] font-bold uppercase tracking-tight truncate max-w-[200px]">{q.projectName || '—'}</p>
+                                                    <p className="text-muted-foreground/40 text-[10px] font-semibold uppercase tracking-tight truncate max-w-[200px]">{q.projectName || '—'}</p>
                                                 </td>
                                                 <td className="px-8 py-5 hidden md:table-cell text-right">
                                                     <p className="text-foreground font-black text-sm">₹{q.grandTotal?.toLocaleString('en-IN')}</p>
@@ -179,18 +174,13 @@ export default function QuotationsPage() {
                                                         {q.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-8 py-5 text-right">
-                                                    <button className="text-muted-foreground/30 hover:text-primary transition-colors">
-                                                        <MoreHorizontal size={20} />
-                                                    </button>
-                                                </td>
                                             </motion.tr>
                                         );
                                     })}
                                 </AnimatePresence>
                                 {quotations.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="px-8 py-20 text-center">
+                                        <td colSpan={4} className="px-8 py-20 text-center">
                                             <div className="flex flex-col items-center gap-3">
                                                 <FileText size={48} className="text-muted-foreground/10" />
                                                 <p className="text-muted-foreground/40 text-sm font-black uppercase tracking-widest italic">No Estimates Found</p>

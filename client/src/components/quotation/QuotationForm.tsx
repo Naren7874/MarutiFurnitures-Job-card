@@ -13,8 +13,9 @@ import {
 } from 'lucide-react';
 import {
     useCreateQuotation, useUpdateQuotation,
-    useCreateClient, useClients, useQuotation, useClient,
+    useClients, useQuotation, useClient,
 } from '../../hooks/useApi';
+import CreateClientModal from '../clients/CreateClientModal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -95,7 +96,6 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     // ── API hooks ─────────────────────────────────────────────────────────────
     const createQuotation = useCreateQuotation();
     const updateQuotation = useUpdateQuotation(quotationId ?? '');
-    const createClient = useCreateClient();
 
     const { data: raw, isLoading: loadingQuotation } = useQuotation(quotationId ?? '');
     const { data: preRaw } = useClient(urlClientId ?? '');
@@ -106,9 +106,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     const [clientSearch, setClientSearch] = useState('');
     const [selectedClient, setSelectedClient] = useState<any>(null);
     const [showClientDrop, setShowClientDrop] = useState(false);
-    const [showNewClientForm, setShowNewClientForm] = useState(false);
-    const [newClient, setNewClient] = useState({ name: '', phone: '', clientType: 'direct_client', firmName: '' });
-    const [creatingClient, setCreatingClient] = useState(false);
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
     const { data: clientsRaw } = useClients({ search: clientSearch, limit: 10 });
     const clients: any[] = (clientsRaw as any)?.data ?? [];
@@ -214,16 +212,10 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         ));
     }, []);
 
-    // ── Inline client create ──────────────────────────────────────────────────
-    const handleCreateClient = async () => {
-        if (!newClient.name || !newClient.phone) return;
-        setCreatingClient(true);
-        try {
-            const res: any = await createClient.mutateAsync(newClient);
-            setSelectedClient(res?.data);
-            setShowNewClientForm(false);
-            setShowClientDrop(false);
-        } finally { setCreatingClient(false); }
+    // ── Client Creation Modal Handler ────────────────────────────────────────
+    const handleClientCreated = (client: any) => {
+        setSelectedClient(client);
+        setShowCreateModal(false);
     };
 
     // ── Build payload ─────────────────────────────────────────────────────────
@@ -357,82 +349,49 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                                 className="absolute z-50 w-full mt-2 bg-card border border-border rounded-2xl shadow-xl overflow-hidden"
                                             >
                                                 <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
-                                                    {clients.map((c: any) => (
-                                                    <button
-                                                        key={c._id}
-                                                        type="button"
-                                                        onClick={() => { setSelectedClient(c); setShowClientDrop(false); setClientSearch(''); }}
-                                                        className="w-full flex items-start gap-3 px-5 py-3.5 hover:bg-primary/5 transition-colors text-left border-b border-border/30 last:border-0"
-                                                    >
-                                                        <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xs font-black mt-0.5">
-                                                            {c.name?.[0]?.toUpperCase()}
+                                                    {clients.length > 0 ? (
+                                                        clients.map((c: any) => (
+                                                            <button
+                                                                key={c._id}
+                                                                type="button"
+                                                                onClick={() => { setSelectedClient(c); setShowClientDrop(false); setClientSearch(''); }}
+                                                                className="w-full flex items-start gap-3 px-5 py-3.5 hover:bg-primary/5 transition-colors text-left border-b border-border/30 last:border-0"
+                                                            >
+                                                                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xs font-black mt-0.5">
+                                                                    {c.name?.[0]?.toUpperCase()}
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <p className="text-sm font-black text-foreground leading-tight">{c.name}</p>
+                                                                    <p className="text-[10px] text-muted-foreground/50 font-medium mt-0.5">{c.phone}</p>
+                                                                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                                                        <span className="text-[9px] font-black uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded">{c.clientType?.replace(/_/g, ' ')}</span>
+                                                                        {c.firmName && <span className="text-[9px] text-muted-foreground/40 font-semibold italic">{c.firmName}</span>}
+                                                                    </div>
+                                                                </div>
+                                                            </button>
+                                                        ))
+                                                    ) : (
+                                                        <div className="px-5 py-8 text-center">
+                                                            <p className="text-xs text-muted-foreground font-medium italic">No clients found matching "{clientSearch}"</p>
                                                         </div>
-                                                        <div className="flex-1">
-                                                            <p className="text-sm font-black text-foreground leading-tight">{c.name}</p>
-                                                            <p className="text-[10px] text-muted-foreground/50 font-medium mt-0.5">{c.phone}</p>
-                                                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                                                <span className="text-[9px] font-black uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded">{c.clientType?.replace(/_/g, ' ')}</span>
-                                                                {c.firmName && <span className="text-[9px] text-muted-foreground/40 font-semibold italic">{c.firmName}</span>}
-                                                            </div>
-                                                        </div>
-                                                    </button>
-                                                ))}
+                                                    )}
                                                 </div>
                                                 <button
                                                     type="button"
-                                                    onClick={() => { setShowNewClientForm(v => !v); setShowClientDrop(false); }}
-                                                    className="w-full flex items-center gap-3 px-5 py-3.5 text-primary hover:bg-primary/5 transition-colors text-sm font-black"
+                                                    onClick={() => { setShowCreateModal(true); setShowClientDrop(false); }}
+                                                    className="w-full flex items-center gap-3 px-5 py-3.5 text-primary hover:bg-primary/5 transition-colors text-sm font-black bg-primary/3"
                                                 >
                                                     <Plus size={14} /> Create New Client
                                                 </button>
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
-                                    {/* Inline new client form */}
-                                    <AnimatePresence>
-                                        {showNewClientForm && (
-                                            <motion.div
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: 'auto' }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                className="mt-4 p-5 rounded-2xl border border-primary/20 bg-primary/3 space-y-4 overflow-hidden"
-                                            >
-                                                <p className="text-xs font-black uppercase tracking-wider text-primary">Quick Create Client</p>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label className={labelCls}>Name *</label>
-                                                        <Input value={newClient.name} onChange={e => setNewClient(p => ({ ...p, name: e.target.value }))} placeholder="Contact name" className={inputCls} />
-                                                    </div>
-                                                    <div>
-                                                        <label className={labelCls}>Phone *</label>
-                                                        <Input value={newClient.phone} onChange={e => setNewClient(p => ({ ...p, phone: e.target.value }))} placeholder="+91..." className={inputCls} />
-                                                    </div>
-                                                    <div>
-                                                        <label className={labelCls}>Firm Name</label>
-                                                        <Input value={newClient.firmName} onChange={e => setNewClient(p => ({ ...p, firmName: e.target.value }))} placeholder="Company name" className={inputCls} />
-                                                    </div>
-                                                    <div>
-                                                        <label className={labelCls}>Type</label>
-                                                        <Select value={newClient.clientType} onValueChange={v => setNewClient(p => ({ ...p, clientType: v }))}>
-                                                            <SelectTrigger className={cn(inputCls, 'w-full')}><SelectValue /></SelectTrigger>
-                                                            <SelectContent className="rounded-2xl">
-                                                                <SelectItem value="direct_client">Direct Client</SelectItem>
-                                                                <SelectItem value="architect">Architect</SelectItem>
-                                                                <SelectItem value="designer">Designer</SelectItem>
-                                                                <SelectItem value="contractor">Contractor</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-3">
-                                                    <Button type="button" onClick={handleCreateClient} disabled={creatingClient || !newClient.name || !newClient.phone} className="h-10 px-5 rounded-xl font-bold text-xs gap-2">
-                                                        {creatingClient ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Create & Select
-                                                    </Button>
-                                                    <Button type="button" variant="ghost" onClick={() => setShowNewClientForm(false)} className="h-10 px-4 rounded-xl text-xs font-bold text-muted-foreground">Cancel</Button>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+
+                                    <CreateClientModal 
+                                        open={showCreateModal}
+                                        onOpenChange={setShowCreateModal}
+                                        onSuccess={handleClientCreated}
+                                    />
                                 </div>
                             )}
                         </div>

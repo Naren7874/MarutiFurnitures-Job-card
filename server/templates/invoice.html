@@ -6,12 +6,90 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: Arial, sans-serif; font-size: 11px; color: #1a1a1a; background: #fff; }
 
-  .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #1a1a1a; padding-bottom: 10px; margin-bottom: 10px; }
-  .header-left { display: flex; align-items: center; gap: 12px; }
-  .header-left img { height: 55px; object-fit: contain; }
-  .company-name { font-size: 18px; font-weight: 800; }
-  .company-sub { font-size: 9.5px; color: #555; margin-top: 2px; }
-  .company-contact { font-size: 9.5px; color: #333; text-align: right; line-height: 1.7; }
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start; /* top align both sides */
+      border-bottom: 3px solid #c8a84b;
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .header-left {
+      display: flex;
+      align-items: flex-start; /* top align logo and info */
+      gap: 15px;
+    }
+    .header-logo {
+      height: 90px;
+      width: auto;
+      object-fit: contain;
+      border: none !important;
+      padding: 0 !important;
+      background: transparent !important;
+      margin: 0;
+    }
+    .company-info-block {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .company-name {
+      font-size: 26px;
+      font-weight: 900;
+      color: #1a1a1a;
+      text-transform: uppercase;
+      letter-spacing: -0.5px;
+      line-height: 1; /* minimize top/bottom space */
+      margin-top: 2px; /* Slight adjustment to align with small icons */
+    }
+    .contact-line {
+      font-size: 11px;
+      color: #1a1a1a;
+      font-weight: 700;
+    }
+    .contact-line span {
+      color: #c8a84b;
+      margin: 0 4px;
+    }
+    .address-line {
+      font-size: 10px;
+      color: #555;
+      font-weight: 500;
+      line-height: 1.4;
+      max-width: 400px;
+    }
+    .header-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .social-icons {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      align-items: flex-end;
+      margin-top: 4px; /* Move down slightly to match text baseline */
+    }
+    .social-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #444;
+      line-height: 1;
+    }
+    .social-icon {
+      width: 14px;
+      height: 14px;
+    }
+    .header-icon {
+      color: #c8a84b;
+      margin-right: 4px;
+      font-weight: 1000;
+    }
 
   .doc-title { text-align: center; font-size: 17px; font-weight: 900; letter-spacing: 4px; background: #1a1a1a; color: #fff; padding: 6px 0; margin-bottom: 10px; }
 
@@ -58,20 +136,54 @@
   <div class="header">
     <div class="header-left">
       <% if (company.logo) { %>
-        <img src="<%= company.logo %>" alt="logo"/>
+        <img class="header-logo" src="<%= company.logo %>" alt="logo" />
       <% } %>
-      <div>
+      
+      <div class="company-info-block">
         <div class="company-name"><%= company.name %></div>
-        <div class="company-sub"><%= company.tagline || '' %></div>
-        <div class="company-sub"><%= company.phone %><% if(company.email) { %> &nbsp;|&nbsp; <%= company.email %><% } %></div>
+        
+        <div class="contact-line">
+          Contact: <%= company.phone %> <span>|</span> Email: <%= company.email %>
+        </div>
+        <% if (company.address && company.address.line1) { %>
+          <div class="address-line">
+            <%= company.address.line1 %>, <%= company.address.line2 || '' %><br/>
+            <%= company.address.city %>, <%= company.address.state %> - <%= company.address.pincode %>
+          </div>
+        <% } %>
+        <div class="address-line" style="font-weight: 700;">GSTIN: <%= company.gstin || '—' %></div>
       </div>
     </div>
-    <div class="company-contact">
-      <% if (company.address && company.address.line1) { %>
-        <strong><%= company.address.line1 %>, <%= company.address.line2 || '' %></strong><br/>
-        <%= company.address.city %>, <%= company.address.state %> - <%= company.address.pincode %><br/>
-      <% } %>
-      GSTIN: <%= company.gstin || '—' %>
+
+    <div class="header-right">
+      <div class="social-icons">
+        <% if (company.socialLinks) { %>
+          <% if (company.socialLinks.instagram) { %>
+            <div class="social-item">
+              <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" class="social-icon" />
+              <span><%= company.socialLinks.instagram %></span>
+            </div>
+          <% } %>
+          <% if (company.socialLinks.youtube) { %>
+            <div class="social-item">
+              <img src="https://cdn-icons-png.flaticon.com/512/174/174883.png" class="social-icon" />
+              <span><%= company.socialLinks.youtube %></span>
+            </div>
+          <% } %>
+          <% if (company.socialLinks.whatsapp) { %>
+            <div class="social-item">
+              <img src="https://cdn-icons-png.flaticon.com/512/174/174879.png" class="social-icon" />
+              <span><%= company.socialLinks.whatsapp %></span>
+            </div>
+          <% } %>
+          <% if (company.socialLinks.facebook) { %>
+            <div class="social-item">
+              <img src="https://cdn-icons-png.flaticon.com/512/174/174848.png" class="social-icon" />
+              <span><%= company.socialLinks.facebook %></span>
+            </div>
+          <% } %>
+        <% } %>
+      </div>
     </div>
   </div>
 

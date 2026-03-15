@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-    Plus, Search, LayoutGrid, List, Clock, FilterX, MoreHorizontal,
+    Plus, Search, LayoutGrid, List, Clock, FilterX,
     Package, Home, Factory, FlaskConical, CheckCircle, Truck, Archive, PauseCircle, XCircle
 } from 'lucide-react';
 
@@ -28,7 +28,7 @@ const STATUS_CONFIG: Record<string, { label: string; icon: any; color: string; b
     on_hold: { label: 'On Hold', icon: PauseCircle, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
     cancelled: { label: 'Cancelled', icon: XCircle, color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20' },
     closed: { label: 'Closed', icon: Archive, color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20' },
-    ENQUIRY: { label: 'Enquiry', icon: MoreHorizontal, color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20' }, // Default/Fallback
+    ENQUIRY: { label: 'Enquiry', icon: Clock, color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20' }, // Default/Fallback
 };
 
 const ALL_STATUSES = ['active', 'in_store', 'in_production', 'qc_pending', 'qc_passed', 'dispatched', 'delivered', 'on_hold', 'closed', 'cancelled'];
@@ -197,7 +197,7 @@ export default function JobCardsPage() {
                                     <TableHeader className="bg-muted/30">
                                         <TableRow className="border-border/40 hover:bg-transparent">
                                             <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Job Identity</TableHead>
-                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Client / Project</TableHead>
+                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Client Name</TableHead>
                                             <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Timeline</TableHead>
                                             <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Progress Stage</TableHead>
                                             <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest text-right">Operational Scale</TableHead>
@@ -228,7 +228,7 @@ export default function JobCardsPage() {
                                                     </TableCell>
                                                     <TableCell className="px-6 py-5">
                                                         <p className="text-foreground/80 font-bold text-xs">{jc.clientId?.name || 'External Vendor'}</p>
-                                                        <p className="text-muted-foreground/40 text-[10px] font-semibold">{jc.clientId?.city || 'Corporate Headquarters'}</p>
+                                                        <p className="text-muted-foreground/40 text-[10px] font-semibold">{jc.projectName || jc.title || 'Corporate'}</p>
                                                     </TableCell>
                                                     <TableCell className="px-6 py-5">
                                                         <div className="flex items-center gap-2">

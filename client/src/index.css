@@ -421,3 +421,30 @@
     animation: none;
     mix-blend-mode: normal;
 }
+
+@utility custom-scrollbar {
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: rgba(184, 196, 208, 0.4);
+        border-radius: 20px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+        background: rgba(184, 196, 208, 0.6);
+        background-clip: content-box;
+    }
+
+    .dark &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.12);
+    }
+    .dark &::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+}

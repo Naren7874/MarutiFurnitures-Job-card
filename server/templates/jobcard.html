@@ -12,55 +12,89 @@
     padding: 20px;
   }
   /* HEADER */
+  /* ── HEADER ── */
   .header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    border-bottom: 2px solid #e53935;
-    padding-bottom: 12px;
+    align-items: flex-start; /* top align both sides */
+    border-bottom: 3px solid #c8a84b;
+    padding-bottom: 15px;
     margin-bottom: 20px;
+    position: relative;
   }
-  .header-brand {
+  .header-left {
     display: flex;
-    align-items: center;
+    align-items: flex-start; /* top align logo and info */
+    gap: 15px;
   }
   .header-logo {
-    height: 100px;
-    width: 200px;
+    height: 90px;
+    width: auto;
     object-fit: contain;
-    margin-left: -65px; /* Pull left to align with page margin */
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+    margin: 0;
   }
-  .header-info {
-    text-align: left;
+  .company-info-block {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    margin-left: -70px; /* Pull text tighter to logo */
+    gap: 3px;
   }
   .company-name {
     font-size: 26px;
     font-weight: 900;
-    color: #e53935; /* Red color matching Maruti brand */
-    letter-spacing: 0.5px;
-    margin-bottom: 2px;
-  }
-  .company-tagline {
-    font-size: 12px;
     color: #1a1a1a;
-    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    line-height: 1; /* minimize top/bottom space */
+    margin-top: 2px; /* Slight adjustment to align with small icons */
+  }
+  .contact-line {
+    font-size: 11px;
+    color: #1a1a1a;
+    font-weight: 700;
+  }
+  .contact-line span {
+    color: #c8a84b;
+    margin: 0 4px;
+  }
+  .address-line {
+    font-size: 10px;
+    color: #555;
+    font-weight: 500;
+    line-height: 1.4;
+    max-width: 400px;
   }
   .header-right {
-    text-align: right;
-    font-size: 11px;
-    line-height: 1.6;
-    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .social-icons {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: flex-end;
+    margin-top: 4px; /* Move down slightly to match text baseline */
+  }
+  .social-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #444;
+    line-height: 1;
+  }
+  .social-icon {
+    width: 14px;
+    height: 14px;
   }
   .header-icon {
-    color: #333;
-    margin-right: 5px;
-    font-weight: bold;
-    font-size: 14px;
-    vertical-align: middle;
+    color: #c8a84b;
+    margin-right: 4px;
+    font-weight: 1000;
   }
 
   /* DOCUMENT TITLE */
@@ -201,22 +235,55 @@
 
   <!-- HEADER -->
   <div class="header">
-    <div class="header-brand">
+    <div class="header-left">
       <% if (company.logo) { %>
-        <img class="header-logo" src="<%= company.logo %>" alt="logo"/>
+        <img class="header-logo" src="<%= company.logo %>" alt="logo" />
       <% } %>
-      <div class="header-info">
+      
+      <div class="company-info-block">
         <div class="company-name"><%= company.name %></div>
-        <div class="company-tagline"><%= company.tagline || 'The Solid Wood Furniture Makers' %></div>
+        
+        <div class="contact-line">
+          Contact: <%= company.phone %> <span>|</span> Email: <%= company.email %>
+        </div>
+        <% if (company.address && company.address.line1) { %>
+          <div class="address-line">
+            <%= company.address.line1 %>, <%= company.address.line2 || '' %><br/>
+            <%= company.address.city %>, <%= company.address.state %> - <%= company.address.pincode %>
+          </div>
+        <% } %>
       </div>
     </div>
+
     <div class="header-right">
-      <% if (company.address && company.address.line1) { %>
-        <div style="font-weight: 700;"><%= company.address.line1 %>, <%= company.address.line2 || '' %></div>
-        <div><%= company.address.city %>, <%= company.address.state %> - <%= company.address.pincode %></div>
-      <% } %>
-      <div style="margin-top: 4px;"><span class="header-icon">📞</span> <%= company.phone %></div>
-      <% if(company.email) { %><div><span class="header-icon">✉</span> <%= company.email %></div><% } %>
+      <div class="social-icons">
+        <% if (company.socialLinks) { %>
+          <% if (company.socialLinks.instagram) { %>
+            <div class="social-item">
+              <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" class="social-icon" />
+              <span><%= company.socialLinks.instagram %></span>
+            </div>
+          <% } %>
+          <% if (company.socialLinks.youtube) { %>
+            <div class="social-item">
+              <img src="https://cdn-icons-png.flaticon.com/512/174/174883.png" class="social-icon" />
+              <span><%= company.socialLinks.youtube %></span>
+            </div>
+          <% } %>
+          <% if (company.socialLinks.whatsapp) { %>
+            <div class="social-item">
+              <img src="https://cdn-icons-png.flaticon.com/512/174/174879.png" class="social-icon" />
+              <span><%= company.socialLinks.whatsapp %></span>
+            </div>
+          <% } %>
+          <% if (company.socialLinks.facebook) { %>
+            <div class="social-item">
+              <img src="https://cdn-icons-png.flaticon.com/512/174/174848.png" class="social-icon" />
+              <span><%= company.socialLinks.facebook %></span>
+            </div>
+          <% } %>
+        <% } %>
+      </div>
     </div>
   </div>
 

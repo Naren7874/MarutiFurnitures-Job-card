@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Receipt, CheckCircle, Clock, XCircle, ArrowUpRight, FilterX, MoreHorizontal, Wallet, FileText, TrendingUp } from 'lucide-react';
+import { Plus, Search, Receipt, CheckCircle, Clock, XCircle, FilterX, Wallet, FileText, TrendingUp } from 'lucide-react';
 import { useInvoices } from '../hooks/useApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -171,12 +171,11 @@ export default function InvoicesPage() {
                             <thead>
                                 <tr className="border-b border-border/40 bg-muted/20">
                                     <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Invoice Unit</th>
-                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden sm:table-cell">Client Entity</th>
+                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden sm:table-cell">Client Name</th>
                                     <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden md:table-cell">Settlement Due</th>
                                     <th className="text-right px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Gross Total</th>
                                     <th className="text-right px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden md:table-cell">Balance Outstanding</th>
                                     <th className="text-center px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Status</th>
-                                    <th className="w-16"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/20">
@@ -205,7 +204,7 @@ export default function InvoicesPage() {
                                                 </td>
                                                 <td className="px-8 py-5 hidden sm:table-cell">
                                                     <p className="text-foreground font-bold text-xs">{inv.clientId?.name}</p>
-                                                    <p className="text-muted-foreground/40 text-[9px] font-black uppercase truncate max-w-[120px]">External Account</p>
+                                                    <p className="text-muted-foreground/40 text-[9px] font-black uppercase truncate max-w-[120px]">{inv.projectName || inv.jobCardId?.projectName || 'External Account'}</p>
                                                 </td>
                                                 <td className="px-8 py-5 hidden md:table-cell">
                                                     <div className="flex items-center gap-2">
@@ -234,16 +233,6 @@ export default function InvoicesPage() {
                                                         <StatusIcon size={12} className={cn("shrink-0", cfg.text)} />
                                                         {inv.status?.replace(/_/g, ' ')}
                                                     </span>
-                                                </td>
-                                                <td className="px-8 py-5 text-right">
-                                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border text-muted-foreground hover:text-primary transition-all">
-                                                            <MoreHorizontal size={18} />
-                                                        </button>
-                                                        <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20 hover:scale-110 active:scale-95 transition-all">
-                                                            <ArrowUpRight size={16} />
-                                                        </button>
-                                                    </div>
                                                 </td>
                                             </motion.tr>
                                         );
