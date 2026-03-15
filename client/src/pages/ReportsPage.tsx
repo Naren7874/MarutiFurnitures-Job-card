@@ -67,7 +67,7 @@ export default function ReportsPage() {
     const stageData = [
         { label: 'Active', value: stats.jobCards?.byStage?.active || 0, color: 'bg-blue-500' },
         { label: 'Store', value: stats.jobCards?.byStage?.in_store || 0, color: 'bg-amber-500' },
-        { label: 'Production', value: (stats.jobCards?.byStage?.in_production || 0) + (stats.jobCards?.byStage?.material_ready || 0), color: 'bg-orange-500' },
+        { label: 'Production', value: (stats.jobCards?.byStage?.in_production || 0) + (stats.jobCards?.byStage?.material_ready || 0), color: 'bg-primary' },
         { label: 'QC', value: (stats.jobCards?.byStage?.qc_pending || 0) + (stats.jobCards?.byStage?.qc_passed || 0), color: 'bg-purple-500' },
         { label: 'Dispatch', value: stats.jobCards?.byStage?.dispatched || 0, color: 'bg-cyan-500' },
         { label: 'Delivered', value: stats.jobCards?.byStage?.delivered || 0, color: 'bg-emerald-500' },
@@ -138,7 +138,7 @@ export default function ReportsPage() {
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
                     className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-6 space-y-5">
                     <div className="flex items-center gap-3 pb-3 border-b border-border/20">
-                        <div className="p-2 rounded-xl bg-orange-500/10 text-orange-500"><BarChart3 size={16} /></div>
+                        <div className="p-2 rounded-xl bg-primary/10 text-primary"><BarChart3 size={16} /></div>
                         <p className="font-black text-sm uppercase tracking-wider text-foreground">Job Card Pipeline</p>
                     </div>
                     {/* Stacked bar */}

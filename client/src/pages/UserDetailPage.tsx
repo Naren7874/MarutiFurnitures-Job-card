@@ -82,7 +82,7 @@ const ACTION_COLORS: Record<string, string> = {
     login: '#8B5CF6', logout: '#64748B', role_change: '#F59E0B',
     permission_grant: '#10B981', permission_deny: '#EF4444',
     deactivate: '#EF4444', activate: '#10B981',
-    password_reset: '#F97316',
+    password_reset: '#8ffb03',
 }
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ const fetchAllRoles = () => api.get('/privileges/roles').then(r => r.data.data a
 const SYSTEM_ROLE_COLORS: Record<string, string> = {
     super_admin: '#EF4444', sales: '#8B5CF6', design: '#6366F1',
     store: '#F59E0B', production: '#1315E5', qc: '#10B981',
-    dispatch: '#F97316', accountant: '#EC4899', client: '#64748B',
+    dispatch: '#8ffb03', accountant: '#EC4899', client: '#64748B',
 }
 function getRoleColor(name: string) { return SYSTEM_ROLE_COLORS[name] || '#767A8C' }
 

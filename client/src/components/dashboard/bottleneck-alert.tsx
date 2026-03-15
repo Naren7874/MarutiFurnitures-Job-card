@@ -16,7 +16,7 @@ interface BottleneckAlertProps {
 
 function getSeverity(days: number): { label: string; color: string; bg: string } {
     if (days >= 14) return { label: 'Critical', color: '#DC2626', bg: '#DC262615' }
-    if (days >= 7) return { label: 'High', color: '#F97316', bg: '#F9731615' }
+    if (days >= 7) return { label: 'High', color: '#8ffb03', bg: '#8ffb0315' }
     return { label: 'Warning', color: '#F59E0B', bg: '#F59E0B15' }
 }
 

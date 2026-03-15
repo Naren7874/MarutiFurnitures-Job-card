@@ -24,7 +24,7 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; bor
 const JC_STATUS: Record<string, { label: string; color: string }> = {
     active: { label: 'Active', color: 'text-blue-500' },
     in_store: { label: 'In Store', color: 'text-yellow-600' },
-    in_production: { label: 'Production', color: 'text-orange-500' },
+    in_production: { label: 'Production', color: 'text-primary' },
     qc_pending: { label: 'QC Pending', color: 'text-purple-500' },
     qc_passed: { label: 'QC Passed', color: 'text-emerald-500' },
     dispatched: { label: 'Dispatched', color: 'text-cyan-500' },

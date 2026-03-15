@@ -65,7 +65,7 @@ const SYSTEM_ROLES: Record<string, { label: string; color: string; bg: string }>
     'store': { label: 'Store', color: '#F59E0B', bg: '#F59E0B15' },
     'production': { label: 'Production', color: '#1315E5', bg: '#1315E515' },
     'qc': { label: 'Quality Control', color: '#10B981', bg: '#10B98115' },
-    'dispatch': { label: 'Dispatch', color: '#F97316', bg: '#F9731615' },
+    'dispatch': { label: 'Dispatch', color: '#8ffb03', bg: '#8ffb0315' },
     'accountant': { label: 'Accountant', color: '#EC4899', bg: '#EC489915' },
 }
 

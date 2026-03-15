@@ -20,7 +20,7 @@ import {
 const STATUS_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; border: string }> = {
     active: { label: 'Active', icon: Package, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
     in_store: { label: 'In Store', icon: Home, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-    in_production: { label: 'In Production', icon: Factory, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+    in_production: { label: 'In Production', icon: Factory, color: 'text-primary dark:text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
     qc_pending: { label: 'QC Pending', icon: FlaskConical, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
     qc_passed: { label: 'QC Passed', icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
     dispatched: { label: 'Dispatched', icon: Truck, color: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
@@ -36,7 +36,7 @@ const ALL_STATUSES = ['active', 'in_store', 'in_production', 'qc_pending', 'qc_p
 const KANBAN_COLS = [
     { key: 'active', label: 'Active', color: 'bg-blue-500' },
     { key: 'in_store', label: 'Store', color: 'bg-amber-500' },
-    { key: 'in_production', label: 'Production', color: 'bg-orange-500' },
+    { key: 'in_production', label: 'Production', color: 'bg-primary' },
     { key: 'qc_pending', label: 'QC Audit', color: 'bg-purple-500' },
     { key: 'dispatched', label: 'Transit', color: 'bg-cyan-500' },
     { key: 'delivered', label: 'Completed', color: 'bg-emerald-500' },
@@ -149,7 +149,7 @@ export default function JobCardsPage() {
                         <SelectItem value="all" className="text-[10px] font-black uppercase tracking-widest">All Priority</SelectItem>
                         <SelectItem value="low" className="text-[10px] font-black uppercase tracking-widest">Low Level</SelectItem>
                         <SelectItem value="medium" className="text-[10px] font-black uppercase tracking-widest text-yellow-500">Medium</SelectItem>
-                        <SelectItem value="high" className="text-[10px] font-black uppercase tracking-widest text-orange-500">High Priority</SelectItem>
+                        <SelectItem value="high" className="text-[10px] font-black uppercase tracking-widest text-primary">High Priority</SelectItem>
                         <SelectItem value="urgent" className="text-[10px] font-black uppercase tracking-widest text-red-500">Urgent Action</SelectItem>
                     </SelectContent>
                 </Select>

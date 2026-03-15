@@ -83,11 +83,7 @@ function CompanySwitcher() {
             </button>
 
             {open && (
-                <div className="absolute left-0 mt-4 w-80 bg-card/95 backdrop-blur-3xl border border-border/80 rounded-[2.5rem] shadow-[0_30px_70px_rgba(0,0,0,0.35)] z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
-                    <div className="px-8 py-6 border-b border-border/50 bg-muted/40 text-center">
-                        <p className="text-muted-foreground/40 text-[9px] font-black uppercase tracking-[0.4em]">WORKSPACE SWITCHER</p>
-                    </div>
-                    
+                <div className="absolute left-0 mt-4 w-80 bg-card/90 backdrop-blur-2xl border border-border/60 rounded-[2.5rem] shadow-[0_30px_70px_rgba(0,0,0,0.35)] z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
                     <div className="p-6 grid grid-cols-2 gap-4">
                         {allCompanies.map((c) => (
                             <button
@@ -98,37 +94,25 @@ function CompanySwitcher() {
                                     queryClient.invalidateQueries();
                                 }}
                                 className={cn(
-                                    "aspect-square rounded-[2rem] transition-all duration-500 group/item relative overflow-hidden border-2",
+                                    "aspect-square rounded-[2.5rem] transition-all duration-500 group/item relative overflow-visible border-4",
                                     company?.id === c.id 
-                                        ? "border-primary bg-primary/10 ring-4 ring-primary/10 shadow-2xl shadow-primary/20" 
-                                        : "border-border/40 bg-muted/30 hover:border-primary/40 hover:bg-muted/50 hover:shadow-2xl hover:shadow-primary/5"
+                                        ? "border-primary bg-white shadow-[0_20px_40px_rgba(var(--primary),0.15)] scale-[1.02]" 
+                                        : "border-transparent bg-white shadow-sm hover:border-gray-100 hover:shadow-xl hover:scale-[1.05]"
                                 )}
                             >
-                                {/* Background Logo Center - Square Orientation */}
-                                <div className="absolute inset-0 flex items-center justify-center bg-white p-5 transition-all duration-700 group-hover/item:scale-110">
+                                {/* White Logo Square */}
+                                <div className="absolute inset-0 flex items-center justify-center p-6 bg-white rounded-[2.2rem]">
                                     {renderLogo(c, "size-full object-contain")}
                                 </div>
 
-                                {/* Hover Overlay */}
-                                <div className="absolute inset-0 bg-black/90 backdrop-blur-[4px] flex flex-col items-center justify-center opacity-0 group-hover/item:opacity-100 transition-all duration-500 p-3">
-                                    <p className="text-white text-[10px] font-black uppercase tracking-widest text-center leading-tight mb-2 animate-in zoom-in-90 duration-500">
-                                        {c.name.split(' ')[0]}
-                                    </p>
-                                    <div className="h-0.5 w-8 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),1)]" />
-                                </div>
-
-                                {/* Active Marker - Corner Badge */}
+                                {/* Active Badge - Primary Circle with Checkmark */}
                                 {company?.id === c.id && (
-                                    <div className="absolute top-3 right-3 size-7 rounded-lg bg-primary flex items-center justify-center text-primary-foreground shadow-[0_4px_12px_rgba(var(--primary),0.6)] z-20 animate-in zoom-in-50 duration-500">
-                                        <Check size={14} strokeWidth={5} />
+                                    <div className="absolute -top-3 -right-3 size-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-[0_4px_12px_rgba(var(--primary),0.4)] z-30 animate-in zoom-in-50 duration-500 ring-4 ring-white">
+                                        <Check size={12} strokeWidth={4} />
                                     </div>
                                 )}
                             </button>
                         ))}
-                    </div>
-
-                    <div className="px-8 py-5 bg-muted/30 border-t border-border/40 text-center">
-                        <p className="text-[10px] text-muted-foreground/50 font-black uppercase tracking-[0.25em]">Switch to your desired company</p>
                     </div>
                 </div>
             )}

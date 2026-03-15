@@ -230,7 +230,7 @@
     /* Charts */
     --chart-1: #1315E5;
     --chart-2: #03369D;
-    --chart-3: #F97316;
+    --chart-3: #8ffb03;
     --chart-4: #10B981;
     --chart-5: #8B5CF6;
 
@@ -247,7 +247,7 @@
 
 /* ============================================================
    DARK THEME — Orange / Black palette
-   Orange: #F97316 | Black: #0A0A0A | Dark Gray: #111111
+   Orange: #8ffb03 | Black: #0A0A0A | Dark Gray: #111111
    ============================================================ */
 .dark {
     --background: #0A0A0A;
@@ -259,7 +259,7 @@
     --popover: #111111;
     --popover-foreground: #F2F4F7;
 
-    --primary: #F97316;
+    --primary: #8ffb03;
     --primary-foreground: #0A0A0A;
 
     --secondary: #1C1C1C;
@@ -268,30 +268,30 @@
     --muted: #1C1C1C;
     --muted-foreground: #767A8C;
 
-    --accent: #291500;
-    --accent-foreground: #F97316;
+    --accent: #0f1a00;
+    --accent-foreground: #8ffb03;
 
     --destructive: #EF4444;
     --destructive-foreground: #FFFFFF;
 
     --border: rgba(255, 255, 255, 0.08);
     --input: rgba(255, 255, 255, 0.1);
-    --ring: #F97316;
+    --ring: #8ffb03;
 
-    --chart-1: #F97316;
-    --chart-2: #FB923C;
+    --chart-1: #8ffb03;
+    --chart-2: #8ffb03dd;
     --chart-3: #1315E5;
     --chart-4: #10B981;
     --chart-5: #A78BFA;
 
     --sidebar: #0D0D0D;
     --sidebar-foreground: #F2F4F7;
-    --sidebar-primary: #F97316;
+    --sidebar-primary: #8ffb03;
     --sidebar-primary-foreground: #0A0A0A;
     --sidebar-accent: #1C1C1C;
     --sidebar-accent-foreground: #F2F4F7;
     --sidebar-border: rgba(255, 255, 255, 0.06);
-    --sidebar-ring: #F97316;
+    --sidebar-ring: #8ffb03;
 }
 
 @layer base {

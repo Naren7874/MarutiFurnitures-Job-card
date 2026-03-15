@@ -28,15 +28,15 @@ export function UpcomingDeliveries({ deliveries }: UpcomingDeliveriesProps) {
         <Card className="flex flex-col border-border bg-card shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between shrink-0 pb-3 pt-5 px-6">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-orange-500/10">
-                        <Truck className="size-4 text-orange-500" />
+                    <div className="p-2 rounded-xl bg-primary/10">
+                        <Truck className="size-4 text-primary" />
                     </div>
                     <div>
                         <CardTitle className="text-base font-bold">Deliveries</CardTitle>
                         <p className="text-xs text-muted-foreground mt-0.5">Upcoming & recent</p>
                     </div>
                 </div>
-                <Badge variant="outline" className="text-xs font-semibold border-orange-500/20 text-orange-600 dark:text-orange-400 bg-orange-500/5">
+                <Badge variant="outline" className="text-xs font-semibold border-primary/20 text-primary dark:text-primary bg-primary/5">
                     {deliveries.filter(d => d.status !== 'DELIVERED').length} pending
                 </Badge>
             </CardHeader>
@@ -67,11 +67,11 @@ export function UpcomingDeliveries({ deliveries }: UpcomingDeliveriesProps) {
                                         <div className="flex items-start gap-3 min-w-0">
                                             <div className={cn(
                                                 "mt-0.5 p-1.5 rounded-lg shrink-0",
-                                                isDelivered ? "bg-emerald-500/10" : "bg-orange-500/10"
+                                                isDelivered ? "bg-emerald-500/10" : "bg-primary/10"
                                             )}>
                                                 {isDelivered
                                                     ? <CheckCircle2 className="size-3.5 text-emerald-500" />
-                                                    : <Calendar className="size-3.5 text-orange-500" />
+                                                    : <Calendar className="size-3.5 text-primary" />
                                                 }
                                             </div>
                                             <div className="min-w-0">

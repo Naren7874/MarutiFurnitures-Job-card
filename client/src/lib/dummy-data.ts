@@ -410,7 +410,7 @@ export const STATUS_STATS = [
     { status: "STORE", count: DUMMY_JOB_CARDS.filter(j => j.status === 'STORE').length, color: "#F59E0B" },
     { status: "PRODUCTION", count: DUMMY_JOB_CARDS.filter(j => j.status === 'PRODUCTION').length, color: "#1315E5" },
     { status: "QC", count: DUMMY_JOB_CARDS.filter(j => j.status === 'QC').length, color: "#10B981" },
-    { status: "DISPATCH", count: DUMMY_JOB_CARDS.filter(j => j.status === 'DISPATCH').length, color: "#F97316" },
+    { status: "DISPATCH", count: DUMMY_JOB_CARDS.filter(j => j.status === 'DISPATCH').length, color: "#8ffb03" },
     { status: "CLOSED", count: DUMMY_JOB_CARDS.filter(j => j.status === 'CLOSED').length, color: "#131415" },
 ];
 

@@ -378,7 +378,7 @@ const ACTION_COLORS: Record<string, string> = {
     create: '#10B981', update: '#6366F1', delete: '#EF4444',
     login: '#8B5CF6', logout: '#64748B', role_change: '#F59E0B',
     permission_grant: '#10B981', permission_deny: '#EF4444',
-    deactivate: '#EF4444', activate: '#10B981', password_reset: '#F97316',
+    deactivate: '#EF4444', activate: '#10B981', password_reset: '#8ffb03',
 }
 
 interface AuditEntry {

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
 const TYPE_CFG: Record<string, { icon: any; color: string; bg: string }> = {
-    job_card: { icon: Package, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+    job_card: { icon: Package, color: 'text-primary', bg: 'bg-primary/10' },
     invoice: { icon: Receipt, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
     quotation: { icon: FileText, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     project: { icon: Folder, color: 'text-violet-500', bg: 'bg-violet-500/10' },

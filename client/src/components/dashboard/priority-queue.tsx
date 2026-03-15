@@ -32,7 +32,7 @@ const stageColors: Record<string, string> = {
     FABRICATION: '#06B6D4',
     ASSEMBLY: '#10B981',
     QC: '#10B981',
-    DISPATCH: '#F97316',
+    DISPATCH: '#8ffb03',
     ENQUIRY: '#767A8C',
 }
 

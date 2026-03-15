@@ -24,7 +24,7 @@ import { ImagePreview } from '@/components/ui/image-preview';
 const JOB_STATUS_BADGE: Record<string, string> = {
     active: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
     in_store: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
-    in_production: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
+    in_production: 'bg-primary/10 text-primary border-primary/20',
     qc_pending: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
     qc_passed: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
     qc_failed: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
@@ -615,13 +615,13 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
     };
 
     return (
-        <SectionCard title="Production Stage" icon={Wrench} color="text-orange-500">
+        <SectionCard title="Production Stage" icon={Wrench} color="text-primary">
             <div className="space-y-5">
                 {/* Progress bar */}
                 <div className="flex items-center gap-3">
                     <div className="flex-1 h-2 bg-muted/40 rounded-full overflow-hidden">
                         <motion.div animate={{ width: `${(doneCount / SUB_STAGE_ORDER.length) * 100}%` }} transition={{ duration: 0.5 }}
-                            className="h-full bg-orange-500 rounded-full" />
+                            className="h-full bg-primary rounded-full" />
                     </div>
                     <span className="text-xs font-black text-muted-foreground/60">{doneCount}/{SUB_STAGE_ORDER.length}</span>
                 </div>
@@ -637,14 +637,14 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
                                 className={cn('p-3 rounded-xl border text-left transition-all', {
                                     'opacity-60 cursor-default': !canEdit,
                                     'bg-muted/20 border-border/30 text-muted-foreground/50': s.status === 'pending',
-                                    'bg-orange-500/10 border-orange-500/30 text-orange-600': s.status === 'in_progress',
+                                    'bg-primary/10 border-primary/30 text-primary': s.status === 'in_progress',
                                     'bg-emerald-500/10 border-emerald-500/30 text-emerald-600': s.status === 'done',
                                 })}>
                                 <div className="flex items-center justify-between mb-1">
                                     <Icon size={12} />
                                     <span className={cn('text-[10px] font-black uppercase', {
                                         'text-muted-foreground/30': s.status === 'pending',
-                                        'text-orange-500': s.status === 'in_progress',
+                                        'text-primary': s.status === 'in_progress',
                                         'text-emerald-500': s.status === 'done',
                                     })}>{s.status === 'done' ? '✓' : i + 1}</span>
                                 </div>

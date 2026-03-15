@@ -35,7 +35,7 @@ const itemFade = {
 
 const roleColors: Record<string, string> = {
     ADMIN: '#1315E5', SALES: '#10B981', DESIGN: '#8B5CF6',
-    STORE: '#F59E0B', PRODUCTION: '#F97316', QC: '#06B6D4',
+    STORE: '#F59E0B', PRODUCTION: '#8ffb03', QC: '#06B6D4',
     DISPATCH: '#6366F1', ACCOUNTANT: '#EC4899',
 }
 
@@ -45,7 +45,7 @@ const statusColorMap: Record<string, string> = {
     STORE: "#F59E0B",
     PRODUCTION: "#1315E5",
     QC: "#10B981",
-    DISPATCH: "#F97316",
+    DISPATCH: "#8ffb03",
     CLOSED: "#131415",
 };
 
@@ -202,7 +202,7 @@ export default function Dashboard() {
                                     { label: 'Design', status: 'DESIGN', color: '#8B5CF6' },
                                     { label: 'Production', status: 'PRODUCTION', color: '#1315E5' },
                                     { label: 'QC', status: 'QC', color: '#10B981' },
-                                    { label: 'Dispatch', status: 'DISPATCH', color: '#F97316' },
+                                    { label: 'Dispatch', status: 'DISPATCH', color: '#8ffb03' },
                                 ].map(s => {
                                     const count = stats?.jobCards.byStage[s.status] || 0;
                                     const total = stats?.jobCards.total || 1;
