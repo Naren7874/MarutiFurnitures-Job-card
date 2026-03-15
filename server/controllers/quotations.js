@@ -14,8 +14,11 @@ import { auditLog } from '../utils/auditLogger.js';
 
 export const createQuotation = async (req, res, next) => {
   try {
-    const company = await Company.findById(req.user.companyId).lean();
-    const quotationNumber = await generateQuotationNumber(req.user.companyId, company.quotationPrefix);
+    const [company, client] = await Promise.all([
+      Company.findById(req.user.companyId).lean(),
+      Client.findById(req.body.clientId).lean()
+    ]);
+    const quotationNumber = await generateQuotationNumber(req.user.companyId, company.quotationPrefix, client?.name);
 
     const quotation = await Quotation.create({
       ...req.body,
@@ -368,8 +371,11 @@ export const reviseQuotation = async (req, res, next) => {
     const original = await Quotation.findOne({ _id: req.params.id, ...req.companyFilter }).lean();
     if (!original) return res.status(404).json({ success: false, message: 'Quotation not found' });
 
-    const company = await Company.findById(req.user.companyId).lean();
-    const quotationNumber = await generateQuotationNumber(req.user.companyId, company.quotationPrefix);
+    const [company, client] = await Promise.all([
+      Company.findById(req.user.companyId).lean(),
+      Client.findById(original.clientId).lean()
+    ]);
+    const quotationNumber = await generateQuotationNumber(req.user.companyId, company.quotationPrefix, client?.name);
 
     const revisionData = {
       ...original,
@@ -427,7 +433,11 @@ export const getQuotationPDF = async (req, res, next) => {
       client: quotation.clientId || {},
     });
 
-    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${quotation.quotationNumber}.pdf"` });
+    const safeFilename = quotation.quotationNumber.replace(/[^\x00-\x7F]/g, '-').replace(/\s+/g, '_');
+    res.set({ 
+      'Content-Type': 'application/pdf', 
+      'Content-Disposition': `inline; filename="${safeFilename}.pdf"` 
+    });
     res.send(pdfBuffer);
   } catch (err) {
     next(err);

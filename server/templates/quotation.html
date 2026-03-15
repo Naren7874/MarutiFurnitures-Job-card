@@ -21,50 +21,85 @@
     .header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start; /* top align both sides */
       border-bottom: 3px solid #c8a84b;
-      padding-bottom: 12px;
+      padding-bottom: 15px;
       margin-bottom: 20px;
+      position: relative;
     }
-    .header-brand {
+    .header-left {
       display: flex;
-      align-items: center;
-      /* Gap removed in favor of negative margin on .header-info to overlap SVG whitespace */
+      align-items: flex-start; /* top align logo and info */
+      gap: 15px;
     }
     .header-logo {
-      height: 100px; /* Restored size so it's not tiny */
-      width: 200px;
+      height: 90px;
+      width: auto;
       object-fit: contain;
-      margin-left: -65px; /* Pull left to align with page margin */
+      border: none !important;
+      padding: 0 !important;
+      background: transparent !important;
+      margin: 0;
     }
-    .header-info {
+    .company-info-block {
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      margin-left: -70px; /* Pull text tight against the SVG path, ignoring its large internal padding */
+      gap: 3px;
     }
     .company-name {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 900;
       color: #1a1a1a;
+      text-transform: uppercase;
+      letter-spacing: -0.5px;
+      line-height: 1; /* minimize top/bottom space */
+      margin-top: 2px; /* Slight adjustment to align with small icons */
     }
-    .company-tagline {
+    .contact-line {
       font-size: 11px;
+      color: #1a1a1a;
+      font-weight: 700;
+    }
+    .contact-line span {
+      color: #c8a84b;
+      margin: 0 4px;
+    }
+    .address-line {
+      font-size: 10px;
       color: #555;
-      margin-top: 2px;
+      font-weight: 500;
+      line-height: 1.4;
+      max-width: 400px;
     }
     .header-right {
-      text-align: right;
-      font-size: 11px;
-      line-height: 1.6;
-      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .social-icons {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      align-items: flex-end;
+      margin-top: 4px; /* Move down slightly to match text baseline */
+    }
+    .social-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #444;
+      line-height: 1;
+    }
+    .social-icon {
+      width: 14px;
+      height: 14px;
     }
     .header-icon {
-      color: #c8a84b; /* Gold color for quotation */
-      margin-right: 5px;
-      font-weight: bold;
-      font-size: 14px;
-      vertical-align: middle;
+      color: #c8a84b;
+      margin-right: 4px;
+      font-weight: 1000;
     }
 
     /* ── META ROW ── */
@@ -377,23 +412,55 @@
 
   <!-- HEADER -->
   <div class="header">
-    <div class="header-brand">
+    <div class="header-left">
       <% if (company.logo) { %>
         <img class="header-logo" src="<%= company.logo %>" alt="logo" />
       <% } %>
-      <div class="header-info">
+      
+      <div class="company-info-block">
         <div class="company-name"><%= company.name %></div>
-        <div class="company-tagline"><%= company.tagline || '' %></div>
+        
+        <div class="contact-line">
+          Contact: <%= company.phone %> <span>|</span> Email: <%= company.email %>
+        </div>
+        <% if (company.address && company.address.line1) { %>
+          <div class="address-line">
+            <%= company.address.line1 %>, <%= company.address.line2 || '' %><br/>
+            <%= company.address.city %>, <%= company.address.state %> - <%= company.address.pincode %>
+          </div>
+        <% } %>
       </div>
     </div>
+
     <div class="header-right">
-      <% if (company.address && company.address.line1) { %>
-        <div style="font-weight: 700;"><%= company.address.line1 %>, <%= company.address.line2 || '' %></div>
-        <div><%= company.address.city %>, <%= company.address.state %> - <%= company.address.pincode %></div>
-      <% } %>
-      <div style="margin-top: 4px;"><span class="header-icon">📞</span> <%= company.phone %></div>
-      <% if(company.email) { %><div><span class="header-icon">✉</span> <%= company.email %></div><% } %>
-      <% if(company.gstin) { %><div style="font-weight: 700; margin-top: 2px;">GSTIN: <%= company.gstin %></div><% } %>
+      <div class="social-icons">
+        <% if (company.socialLinks) { %>
+          <% if (company.socialLinks.instagram) { %>
+            <div class="social-item">
+              <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" class="social-icon" />
+              <span><%= company.socialLinks.instagram %></span>
+            </div>
+          <% } %>
+          <% if (company.socialLinks.youtube) { %>
+            <div class="social-item">
+              <img src="https://cdn-icons-png.flaticon.com/512/174/174883.png" class="social-icon" />
+              <span><%= company.socialLinks.youtube %></span>
+            </div>
+          <% } %>
+          <% if (company.socialLinks.whatsapp) { %>
+            <div class="social-item">
+              <img src="https://cdn-icons-png.flaticon.com/512/174/174879.png" class="social-icon" />
+              <span><%= company.socialLinks.whatsapp %></span>
+            </div>
+          <% } %>
+          <% if (company.socialLinks.facebook) { %>
+            <div class="social-item">
+              <img src="https://cdn-icons-png.flaticon.com/512/174/174848.png" class="social-icon" />
+              <span><%= company.socialLinks.facebook %></span>
+            </div>
+          <% } %>
+        <% } %>
+      </div>
     </div>
   </div>
 
@@ -407,9 +474,11 @@
       <td><strong>
           <%= quotation.quotationNumber %>
         </strong></td>
-      <td class="label">Date</td>
+      <td class="label">Date & Time</td>
       <td>
-        <%= new Date(quotation.createdAt).toLocaleDateString('en-IN') %>
+        <% var dateObj = new Date(quotation.createdAt); %>
+        <%= dateObj.toLocaleDateString('en-IN') %> <br/>
+        <small style="color: #666;"><%= dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) %></small>
       </td>
     </tr>
     <tr>
@@ -562,48 +631,15 @@
     </table>
   </div>
 
-  <!-- BANK DETAILS -->
-  <% if (company.bankDetails && company.bankDetails.accountNumber) { %>
-  <div style="margin-bottom: 14px; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #fdfdfd;">
-    <div style="font-weight: 800; font-size: 11px; color: #1a1a1a; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 3px; display: inline-block;">BANK DETAILS</div>
-    <div style="display: flex; gap: 40px; margin-top: 5px;">
-      <div>
-        <div style="font-size: 10px; color: #666;">Bank Name</div>
-        <div style="font-weight: 700; font-size: 10.5px;"><%= company.bankDetails.bankName %></div>
-      </div>
-      <div>
-        <div style="font-size: 10px; color: #666;">Account Name</div>
-        <div style="font-weight: 700; font-size: 10.5px;"><%= company.bankDetails.accountName %></div>
-      </div>
-      <div>
-        <div style="font-size: 10px; color: #666;">Account No.</div>
-        <div style="font-weight: 700; font-size: 10.5px;"><%= company.bankDetails.accountNumber %></div>
-      </div>
-      <div>
-        <div style="font-size: 10px; color: #666;">IFSC Code</div>
-        <div style="font-weight: 700; font-size: 10.5px;"><%= company.bankDetails.ifsc %></div>
-      </div>
-    </div>
-    <% if (company.bankDetails.branch) { %>
-      <div style="margin-top: 5px; font-size: 9px; color: #888;">Branch: <%= company.bankDetails.branch %></div>
-    <% } %>
-  </div>
-  <% } %>
 
   <!-- TERMS & CONDITIONS (static - Maruti Furniture) -->
   <div class="terms">
     <div class="terms-title">&#9733; Terms &amp; Conditions &#9733;</div>
     <ul>
-      <% if (company.defaultTermsAndConditions && company.defaultTermsAndConditions.length > 0) { %>
-        <% company.defaultTermsAndConditions.forEach(function(term) { %>
-          <li><%= term %></li>
-        <% }); %>
-      <% } else { %>
         <li>18% GST extra on all above price.</li>
         <li>No Guarantee or Warranty of any kind is given on Imported furniture, glass, cloth, rexine.</li>
         <li>Delivery Time 120 days after Final &mdash; 50% Payment Advance &amp; 50% Before Delivery</li>
         <li>Transportation (Delivery) Charge, Packing Charge 2% &amp; Labour Charge (Floorwise) Will be Extra</li>
-      <% } %>
     </ul>
   </div>
 

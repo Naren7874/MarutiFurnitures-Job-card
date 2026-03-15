@@ -4,9 +4,14 @@ import { Counter } from '../models/Counter.js';
  * Atomically increment a counter and return the next sequence number.
  * @param {string} companyId  - MongoDB ObjectId stringified
  * @param {string} type       - 'quotation' | 'jobcard' | 'invoice' | 'project' | 'po'
+ * @param {boolean} dailyReset - If true, resets sequence daily
  */
-const getNextSeq = async (companyId, type) => {
-  const key = `${companyId}_${type}`;
+const getNextSeq = async (companyId, type, dailyReset = false) => {
+  let key = `${companyId}_${type}`;
+  if (dailyReset) {
+    key += `_${ddmmyy()}`;
+  }
+
   const doc = await Counter.findByIdAndUpdate(
     key,
     { $inc: { seq: 1 } },
@@ -36,12 +41,16 @@ const yyyy = (date = new Date()) => String(date.getFullYear());
 // ── Public generators ───────────────────────────────────────
 
 /**
- * Quotation: MF-311025-001
- * Format: {prefix}-DDMMYY-{seq 3 digits}
+ * Quotation: MF – DDMMYY_01 – Client Name
+ * Format: {prefix} – DDMMYY_{seq 2 digits} – {clientName}
  */
-export const generateQuotationNumber = async (companyId, prefix = 'MF') => {
-  const seq = await getNextSeq(companyId, 'quotation');
-  return `${prefix}-${ddmmyy()}-${pad(seq)}`;
+export const generateQuotationNumber = async (companyId, prefix = 'MF', clientName = '') => {
+  const seq = await getNextSeq(companyId, 'quotation', true);
+  const dateStr = ddmmyy();
+  const sequenceStr = String(seq).padStart(2, '0');
+  
+  if (!clientName) return `${prefix} – ${dateStr}_${sequenceStr}`;
+  return `${prefix} – ${dateStr}_${sequenceStr} – ${clientName}`;
 };
 
 /**

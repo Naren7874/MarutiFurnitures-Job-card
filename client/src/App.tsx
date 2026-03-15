@@ -77,6 +77,7 @@ const UserDetailPage = lazy(() => import('./pages/UserDetailPage'));
 
 // Settings
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const CompanyProfilePage = lazy(() => import('./pages/CompanyProfilePage'));
 
 // ── Loading fallback ──────────────────────────────────────────────────────────
 
@@ -191,6 +192,10 @@ export default function App() {
 
                     {/* Settings — all logged-in users (filtered by role inside component) */}
                     <Route path="settings" element={<SettingsPage />} />
+                    
+                    <Route element={<PermissionRoute permission="settings.view" />}>
+                      <Route path="company-profile" element={<CompanyProfilePage />} />
+                    </Route>
 
                     {/* 404 */}
                     <Route path="*" element={<div className="p-8 text-muted-foreground/30 text-center font-bold italic">Page not found</div>} />

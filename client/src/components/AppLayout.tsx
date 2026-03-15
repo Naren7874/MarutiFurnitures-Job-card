@@ -31,6 +31,7 @@ const ALL_NAV = [
     { label: 'Users', icon: Users, path: '/users', permission: 'user.view' },
     { label: 'Roles', icon: ShieldCheck, path: '/roles', permission: 'privilege.view' },
     { label: 'Settings', icon: Settings, path: '/settings', permission: 'settings.view' },
+    { label: 'Company Profile', icon: Building2, path: '/company-profile', permission: 'settings.view' },
 ];
 
 

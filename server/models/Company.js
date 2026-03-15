@@ -20,6 +20,12 @@ const companySchema = new mongoose.Schema(
     website: { type: String },
 
     whatsappNumber: { type: String },                    // Official WA Business number
+    socialLinks: {
+      instagram: { type: String, trim: true },
+      facebook:  { type: String, trim: true },
+      youtube:   { type: String, trim: true },
+      whatsapp:  { type: String, trim: true },
+    },
 
     bankDetails: {
       accountName:   String,
