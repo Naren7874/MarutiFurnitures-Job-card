@@ -156,13 +156,27 @@ export default function ProjectDetailPage() {
                             </div>
                         )}
                         {project.architect && (
-                            <div className="flex items-center gap-2.5 text-xs text-muted-foreground/80 font-bold border-t border-border/30 pt-3 mt-3">
-                                <span className="text-[10px] font-black uppercase text-muted-foreground/40 bg-muted px-1.5 py-0.5 rounded-md">Ar.</span> {project.architect}
+                            <div className="border-t border-border/30 pt-3 mt-3 space-y-1">
+                                <div className="flex items-center gap-2.5 text-xs text-muted-foreground/80 font-bold">
+                                    <span className="text-[10px] font-black uppercase text-muted-foreground/40 bg-muted px-1.5 py-0.5 rounded-md">Ar.</span> {project.architect}
+                                </div>
+                                {project.architectContact && (
+                                    <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/50 font-medium pl-8">
+                                        <Phone size={10} className="opacity-50" /> {project.architectContact}
+                                    </div>
+                                )}
                             </div>
                         )}
                         {project.projectDesigner && (
-                            <div className="flex items-center gap-2.5 text-xs text-muted-foreground/80 font-bold border-t border-border/30 pt-3 mt-3">
-                                <span className="text-[10px] font-black uppercase text-muted-foreground/40 bg-muted px-1.5 py-0.5 rounded-md">Designer</span> {project.projectDesigner}
+                            <div className="border-t border-border/30 pt-3 mt-3 space-y-1">
+                                <div className="flex items-center gap-2.5 text-xs text-muted-foreground/80 font-bold">
+                                    <span className="text-[10px] font-black uppercase text-muted-foreground/40 bg-muted px-1.5 py-0.5 rounded-md">Designer</span> {project.projectDesigner}
+                                </div>
+                                {project.projectDesignerContact && (
+                                    <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/50 font-medium pl-10">
+                                        <Phone size={10} className="opacity-50" /> {project.projectDesignerContact}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

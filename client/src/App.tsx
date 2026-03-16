@@ -49,6 +49,7 @@ const JobCardDetailPage = lazy(() => import('./pages/JobCardDetailPage'));
 const InvoicesPage = lazy(() => import('./pages/InvoicesPage'));
 const InvoiceDetailPage = lazy(() => import('./pages/InvoiceDetailPage'));
 const NewInvoicePage = lazy(() => import('./pages/NewInvoicePage'));
+const EditInvoicePage = lazy(() => import('./pages/EditInvoicePage'));
 
 // Inventory
 const InventoryPage = lazy(() => import('./pages/InventoryPage'));
@@ -158,6 +159,7 @@ export default function App() {
                       <Route path="invoices" element={<InvoicesPage />} />
                       <Route path="invoices/new" element={<NewInvoicePage />} />
                       <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+                      <Route path="invoices/:id/edit" element={<EditInvoicePage />} />
                     </Route>
 
                     {/* Inventory — requires inventory.view */}

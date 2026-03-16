@@ -23,7 +23,9 @@ const projectSchema = new mongoose.Schema(
     // Copied from Quotation on creation — stands alone even if quotation is revised
     projectName:  { type: String, required: true, trim: true },
     architect:    { type: String },                      // "Ar. Dreamscape"
+    architectContact: { type: String },                  // architect's phone/email
     projectDesigner: { type: String },
+    projectDesignerContact: { type: String },            // designer's phone/email
     siteAddress: {
       location: String,
       line1:    String,

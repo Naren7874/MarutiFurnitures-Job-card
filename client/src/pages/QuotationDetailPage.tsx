@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
     ArrowLeft, Download, Send, CheckCircle2, XCircle, RefreshCw,
     FileText, User2, MapPin, ReceiptText, AlertCircle, Loader2,
-    Building2, CalendarDays, Package,
+    Building2, CalendarDays, Package, Phone
 } from 'lucide-react';
 import {
     useQuotation, useSendQuotation, useApproveQuotation,
@@ -265,8 +265,21 @@ export default function QuotationDetailPage() {
                     <InfoCard title="Project" icon={Building2}>
                         <div className="space-y-2">
                             <p className="font-black text-foreground text-sm">{q.projectName}</p>
-                            {q.architect && <p className="text-xs text-muted-foreground/60 font-medium">Ar. {q.architect}</p>}
-                            {q.projectDesigner && <p className="text-xs text-muted-foreground/60 font-medium">Designer: {q.projectDesigner}</p>}
+                            
+                            {(q.architect || q.architectContact) && (
+                                <div className="space-y-0.5">
+                                    {q.architect && <p className="text-xs text-muted-foreground/60 font-medium">Ar. {q.architect}</p>}
+                                    {q.architectContact && <p className="text-[10px] text-muted-foreground/40 font-medium flex items-center gap-1.5"><Phone size={10} className="opacity-50" /> {q.architectContact}</p>}
+                                </div>
+                            )}
+
+                            {(q.projectDesigner || q.projectDesignerContact) && (
+                                <div className="space-y-0.5">
+                                    {q.projectDesigner && <p className="text-xs text-muted-foreground/60 font-medium">Designer: {q.projectDesigner}</p>}
+                                    {q.projectDesignerContact && <p className="text-[10px] text-muted-foreground/40 font-medium flex items-center gap-1.5"><Phone size={10} className="opacity-50" /> {q.projectDesignerContact}</p>}
+                                </div>
+                            )}
+
                             {(q.siteAddress?.city || q.siteAddress?.state) && (
                                 <p className="text-xs text-muted-foreground/50 font-medium flex items-center gap-1">
                                     <MapPin size={10} /> {[q.siteAddress?.city, q.siteAddress?.state].filter(Boolean).join(', ')}
@@ -354,44 +367,18 @@ export default function QuotationDetailPage() {
                             <p className="font-black text-sm uppercase tracking-wider text-foreground">Financial Breakdown</p>
                         </div>
                         <div className="space-y-3 max-w-sm ml-auto">
-                            <TotalRow label="Subtotal" value={fmt(q.subtotal)} />
-                            {q.discount > 0 && <TotalRow label="Discount" value={`-${fmt(q.discount)}`} valueClass="text-rose-500" />}
-                            <TotalRow label="Amount After Discount" value={fmt(q.amountAfterDiscount)} />
-                            {q.gstType === 'cgst_sgst' ? (
+                            {q.discount > 0 && (
                                 <>
-                                    <TotalRow label="CGST (9%)" value={fmt(q.cgst)} />
-                                    <TotalRow label="SGST (9%)" value={fmt(q.sgst)} />
+                                    <TotalRow label="Subtotal" value={fmt(q.subtotal)} />
+                                    <TotalRow label="Discount" value={`-${fmt(q.discount)}`} valueClass="text-rose-500" />
                                 </>
-                            ) : (
-                                <TotalRow label="IGST (18%)" value={fmt(q.igst)} />
                             )}
-                            <div className="pt-3 border-t border-border/40 flex justify-between items-center">
+                            <div className={cn("flex justify-between items-center", q.discount > 0 ? "pt-3 border-t border-border/40" : "")}>
                                 <p className="font-black text-foreground text-base">Grand Total</p>
-                                <p className="font-black text-primary text-xl">{fmt(q.grandTotal)}</p>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <p className="text-sm font-bold text-muted-foreground/60">Advance ({q.advancePercent || 50}%)</p>
-                                <p className="font-black text-emerald-500 text-sm">{fmt(q.advanceAmount)}</p>
+                                <p className="font-black text-primary text-xl">{fmt(q.subtotal - (q.discount || 0))}</p>
                             </div>
                         </div>
                     </div>
-
-                    {/* Terms */}
-                    {q.termsAndConditions?.length > 0 && (
-                        <div className="bg-white dark:bg-card/20 border border-border/30 rounded-3xl p-6 space-y-3">
-                            <p className="font-black text-xs uppercase tracking-widest text-muted-foreground/50 flex items-center gap-2">
-                                <FileText size={12} /> Terms & Conditions
-                            </p>
-                            <ol className="space-y-2">
-                                {q.termsAndConditions.map((t: string, i: number) => (
-                                    <li key={i} className="flex items-start gap-2.5 text-xs text-muted-foreground/70 font-medium">
-                                        <span className="text-muted-foreground/30 font-black shrink-0">{i + 1}.</span>
-                                        {t}
-                                    </li>
-                                ))}
-                            </ol>
-                        </div>
-                    )}
                 </div>
             </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Receipt, Loader2, Plus, Trash2, Check, ChevronDown, X } from 'lucide-react';
-import { useCreateInvoice, useClients, useProjects, useProject, useQuotation } from '../hooks/useApi';
+import { useInvoice, useUpdateInvoice, useClients, useProjects, useProject, useQuotation } from '../hooks/useApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,9 +20,13 @@ interface LineItem {
 
 const GST_RATES = [0, 5, 12, 18, 28];
 
-export default function NewInvoicePage() {
+export default function EditInvoicePage() {
+    const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const createInvoice = useCreateInvoice();
+    
+    const { data: rawInv, isLoading: invLoading } = useInvoice(id!);
+    const updateInvoice = useUpdateInvoice(id!);
+    
     const { data: clientsRaw } = useClients({ limit: 100 });
     const clients: any[] = (clientsRaw as any)?.data ?? [];
     const { data: projectsRaw } = useProjects({ limit: 100 });
@@ -36,29 +40,32 @@ export default function NewInvoicePage() {
         discountPct: 0,
         advancePaid: 0,
         dueDate: '',
+        notes: '',
     });
     const [items, setItems] = useState<LineItem[]>([{ description: '', qty: 1, rate: 0, total: 0 }]);
     const [error, setError] = useState('');
     const [clientOpen, setClientOpen] = useState(false);
     const [projectOpen, setProjectOpen] = useState(false);
 
-    // Auto-fill from project
+    // Auto-fill from project (when manually changed)
     const { data: pData } = useProject(form.projectId);
     const qid = (pData as any)?.data?.quotationId?._id || (pData as any)?.data?.quotationId;
     const { data: qData } = useQuotation(qid || '');
 
     useEffect(() => {
-        const inv = (qData as any)?.data;
-        if (inv && inv.items) {
-            setItems(inv.items.map((it: any) => ({
-                description: it.description,
-                qty: it.qty,
-                rate: it.sellingPrice || it.rate || 0,
-                total: (it.qty * (it.sellingPrice || it.rate || 0))
-            })));
-            if (inv.discountPct !== undefined || inv.discount) {
-                // If the quotation has a fixed discount, we might need to convert it to pct if our UI only supports pct
-                // For now, let's assume we match types or just pull what we can
+        // Only auto-fill if the project was manually changed, 
+        // not during the initial load of the invoice.
+        // We can check if rawInv project matches form project to distinguish.
+        const originalProjectId = (rawInv as any)?.data?.projectId?._id || (rawInv as any)?.data?.projectId;
+        if (form.projectId && form.projectId !== originalProjectId) {
+            const inv = (qData as any)?.data;
+            if (inv && inv.items) {
+                setItems(inv.items.map((it: any) => ({
+                    description: it.description,
+                    qty: it.qty,
+                    rate: it.sellingPrice || it.rate || 0,
+                    total: (it.qty * (it.sellingPrice || it.rate || 0))
+                })));
                 setForm(f => ({ 
                     ...f, 
                     discountPct: inv.discountPct || 0,
@@ -67,7 +74,31 @@ export default function NewInvoicePage() {
                 }));
             }
         }
-    }, [qData]);
+    }, [qData, form.projectId, rawInv]);
+
+    useEffect(() => {
+        const inv = (rawInv as any)?.data;
+        if (inv) {
+            setForm({
+                clientId: inv.clientId?._id || inv.clientId || '',
+                projectId: inv.projectId?._id || inv.projectId || '',
+                gstType: inv.gstType || 'cgst_sgst',
+                gstRate: inv.gstAmount && inv.amountAfterDiscount ? Math.round((inv.gstAmount / inv.amountAfterDiscount) * 100) : 18,
+                discountPct: inv.subtotal ? Math.round((inv.discount / inv.subtotal) * 100) : 0,
+                advancePaid: inv.advancePaid || 0,
+                dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString().split('T')[0] : '',
+                notes: inv.notes || '',
+            });
+            if (inv.items?.length > 0) {
+                setItems(inv.items.map((it: any) => ({
+                    description: it.description,
+                    qty: it.qty,
+                    rate: it.rate,
+                    total: it.amount || (it.qty * it.rate)
+                })));
+            }
+        }
+    }, [rawInv]);
 
     const filteredProjects = form.clientId 
         ? projects.filter((p: any) => {
@@ -98,34 +129,39 @@ export default function NewInvoicePage() {
         if (!form.clientId) { setError('Please select a client'); return; }
         if (items.some(it => !it.description)) { setError('All items need a description'); return; }
         try {
-            const res: any = await createInvoice.mutateAsync({
+            await updateInvoice.mutateAsync({
                 ...form,
-                items,
+                items: items.map(it => ({ ...it, amount: it.total })),
                 subtotal,
                 discount,
-                [form.gstType === 'cgst_sgst' ? 'cgst' : 'igst']: gstAmt / (form.gstType === 'cgst_sgst' ? 1 : 1),
-                ...(form.gstType === 'cgst_sgst' ? { cgst: gstAmt / 2, sgst: gstAmt / 2 } : { igst: gstAmt }),
                 grandTotal,
+                taxableAmount: taxable,
+                gstAmount: gstAmt,
             });
-            navigate(`/invoices/${res?.data?._id || res?._id || ''}`);
+            navigate(`/invoices/${id}`);
         } catch (e: any) {
-            setError(e?.response?.data?.message || 'Failed to create invoice');
+            setError(e?.response?.data?.message || 'Failed to update invoice');
         }
     };
 
+    if (invLoading) return (
+        <div className="flex h-96 items-center justify-center">
+            <Loader2 className="animate-spin text-primary" />
+        </div>
+    );
+
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-5xl mx-auto space-y-8">
-            {/* Header */}
             <div className="flex items-center gap-4">
-                <button onClick={() => navigate('/invoices')} className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border hover:bg-primary/10 hover:border-primary/30 transition text-muted-foreground hover:text-primary">
+                <button onClick={() => navigate(`/invoices/${id}`)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border hover:bg-primary/10 hover:border-primary/30 transition text-muted-foreground hover:text-primary">
                     <ArrowLeft size={16} />
                 </button>
                 <div>
                     <h1 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-3">
                         <span className="p-2 rounded-xl bg-primary/10 text-primary"><Receipt size={18} /></span>
-                        New Invoice
+                        Edit Invoice
                     </h1>
-                    <p className="text-muted-foreground/50 text-xs font-bold mt-1">Create and issue a new invoice to your client</p>
+                    <p className="text-muted-foreground/50 text-xs font-bold mt-1">Modify invoice details for {(rawInv as any)?.data?.invoiceNumber}</p>
                 </div>
             </div>
 
@@ -139,7 +175,6 @@ export default function NewInvoicePage() {
             </AnimatePresence>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left — Client + Settings */}
                 <div className="space-y-5">
                     <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-4">
                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 pb-2 border-b border-border/20">Client & Project</p>
@@ -148,31 +183,16 @@ export default function NewInvoicePage() {
                             <Label className="text-xs font-bold text-muted-foreground/60">Client *</Label>
                             <Popover open={clientOpen} onOpenChange={setClientOpen}>
                                 <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={clientOpen}
-                                        className="w-full justify-between h-10 rounded-xl font-bold text-xs group"
-                                    >
+                                    <Button variant="outline" role="combobox" aria-expanded={clientOpen} className="w-full justify-between h-10 rounded-xl font-bold text-xs group">
                                         <span className="truncate">
-                                            {form.clientId
-                                                ? (() => {
-                                                    const client = clients.find((c: any) => c._id === form.clientId);
-                                                    return client ? (client.name || client.firmName) : 'Select client...';
-                                                })()
-                                                : "Select client..."}
+                                            {form.clientId ? (() => {
+                                                const client = clients.find((c: any) => c._id === form.clientId);
+                                                return client ? (client.name || client.firmName) : 'Select client...';
+                                            })() : "Select client..."}
                                         </span>
                                         <div className="flex items-center gap-1 shrink-0">
                                             {form.clientId && (
-                                                <div
-                                                    role="button"
-                                                    title="Clear client"
-                                                    className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setForm(f => ({ ...f, clientId: '', projectId: '' }));
-                                                    }}
-                                                >
+                                                <div role="button" className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); setForm(f => ({ ...f, clientId: '', projectId: '' })); }}>
                                                     <X className="h-3 w-3" />
                                                 </div>
                                             )}
@@ -187,33 +207,9 @@ export default function NewInvoicePage() {
                                             <CommandEmpty>No client found.</CommandEmpty>
                                             <CommandGroup>
                                                 {clients.map((c: any) => (
-                                                    <CommandItem
-                                                        key={c._id}
-                                                        value={c.name || c.firmName}
-                                                        onSelect={() => {
-                                                            setForm((f) => {
-                                                                const newForm = { ...f, clientId: c._id };
-                                                                if (f.projectId) {
-                                                                    const currentProject = projects.find(p => p._id === f.projectId);
-                                                                    if (currentProject) {
-                                                                        const pClientId = typeof currentProject.clientId === 'object' ? currentProject.clientId?._id : (currentProject.clientId || currentProject.client?._id || currentProject.client);
-                                                                        if (pClientId !== c._id) {
-                                                                            newForm.projectId = '';
-                                                                        }
-                                                                    }
-                                                                }
-                                                                return newForm;
-                                                            });
-                                                            setClientOpen(false);
-                                                        }}
-                                                    >
+                                                    <CommandItem key={c._id} value={c.name || c.firmName} onSelect={() => { setForm(f => ({ ...f, clientId: c._id })); setClientOpen(false); }}>
                                                         {c.name || c.firmName}
-                                                        <Check
-                                                            className={cn(
-                                                                "ml-auto h-4 w-4",
-                                                                form.clientId === c._id ? "opacity-100" : "opacity-0"
-                                                            )}
-                                                        />
+                                                        <Check className={cn("ml-auto h-4 w-4", form.clientId === c._id ? "opacity-100" : "opacity-0")} />
                                                     </CommandItem>
                                                 ))}
                                             </CommandGroup>
@@ -227,31 +223,16 @@ export default function NewInvoicePage() {
                             <Label className="text-xs font-bold text-muted-foreground/60">Project (optional)</Label>
                             <Popover open={projectOpen} onOpenChange={setProjectOpen}>
                                 <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={projectOpen}
-                                        className="w-full justify-between h-10 rounded-xl font-bold text-xs group"
-                                    >
+                                    <Button variant="outline" role="combobox" aria-expanded={projectOpen} className="w-full justify-between h-10 rounded-xl font-bold text-xs group">
                                         <span className="truncate">
-                                            {form.projectId
-                                                ? (() => {
-                                                    const project = projects.find((p: any) => p._id === form.projectId);
-                                                    return project ? project.projectName : 'Link to project...';
-                                                })()
-                                                : "Link to project..."}
+                                            {form.projectId ? (() => {
+                                                const project = projects.find((p: any) => p._id === form.projectId);
+                                                return project ? project.projectName : 'Link to project...';
+                                            })() : "Link to project..."}
                                         </span>
                                         <div className="flex items-center gap-1 shrink-0">
                                             {form.projectId && (
-                                                <div
-                                                    role="button"
-                                                    title="Clear project"
-                                                    className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setForm(f => ({ ...f, projectId: '' }));
-                                                    }}
-                                                >
+                                                <div role="button" className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); setForm(f => ({ ...f, projectId: '' })); }}>
                                                     <X className="h-3 w-3" />
                                                 </div>
                                             )}
@@ -265,42 +246,11 @@ export default function NewInvoicePage() {
                                         <CommandList>
                                             <CommandEmpty>No project found.</CommandEmpty>
                                             <CommandGroup>
-                                                <CommandItem
-                                                    value="none"
-                                                    onSelect={() => {
-                                                        setForm(f => ({ ...f, projectId: '' }));
-                                                        setProjectOpen(false);
-                                                    }}
-                                                >
-                                                    None
-                                                    <Check
-                                                        className={cn(
-                                                            "ml-auto h-4 w-4",
-                                                            !form.projectId ? "opacity-100" : "opacity-0"
-                                                        )}
-                                                    />
-                                                </CommandItem>
+                                                <CommandItem value="none" onSelect={() => { setForm(f => ({ ...f, projectId: '' })); setProjectOpen(false); }}>None</CommandItem>
                                                 {filteredProjects.map((p: any) => (
-                                                    <CommandItem
-                                                        key={p._id}
-                                                        value={p.projectName}
-                                                        onSelect={() => {
-                                                            const pClientId = typeof p.clientId === 'object' ? p.clientId?._id : (p.clientId || p.client?._id || p.client);
-                                                            setForm((f) => ({
-                                                                ...f,
-                                                                projectId: p._id,
-                                                                clientId: pClientId || f.clientId
-                                                            }));
-                                                            setProjectOpen(false);
-                                                        }}
-                                                    >
+                                                    <CommandItem key={p._id} value={p.projectName} onSelect={() => { setForm(f => ({ ...f, projectId: p._id, clientId: p.clientId?._id || p.clientId || f.clientId })); setProjectOpen(false); }}>
                                                         {p.projectName}
-                                                        <Check
-                                                            className={cn(
-                                                                "ml-auto h-4 w-4",
-                                                                form.projectId === p._id ? "opacity-100" : "opacity-0"
-                                                            )}
-                                                        />
+                                                        <Check className={cn("ml-auto h-4 w-4", form.projectId === p._id ? "opacity-100" : "opacity-0")} />
                                                     </CommandItem>
                                                 ))}
                                             </CommandGroup>
@@ -313,7 +263,6 @@ export default function NewInvoicePage() {
 
                     <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-4">
                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 pb-2 border-b border-border/20">Tax & Dates</p>
-
                         <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground/60">GST Type</Label>
                             <div className="grid grid-cols-2 gap-2">
@@ -326,7 +275,6 @@ export default function NewInvoicePage() {
                                 ))}
                             </div>
                         </div>
-
                         <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground/60">GST Rate</Label>
                             <Select value={String(form.gstRate)} onValueChange={v => setForm(f => ({ ...f, gstRate: Number(v) }))}>
@@ -336,24 +284,20 @@ export default function NewInvoicePage() {
                                 </SelectContent>
                             </Select>
                         </div>
-
                         <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground/60">Discount (%)</Label>
                             <Input type="number" min="0" max="100" value={form.discountPct} onChange={e => setForm(f => ({ ...f, discountPct: Number(e.target.value) }))} className="rounded-xl h-10" />
                         </div>
-
                         <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground/60">Advance Paid (₹)</Label>
                             <Input type="number" min="0" value={form.advancePaid} onChange={e => setForm(f => ({ ...f, advancePaid: Number(e.target.value) }))} className="rounded-xl h-10" />
                         </div>
-
                         <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground/60">Due Date</Label>
                             <Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} className="rounded-xl h-10" />
                         </div>
                     </div>
 
-                    {/* Summary */}
                     <div className="bg-primary/5 border border-primary/15 rounded-2xl p-5 space-y-3">
                         <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 pb-2 border-b border-primary/10">Summary</p>
                         <div className="space-y-2 text-sm">
@@ -365,7 +309,6 @@ export default function NewInvoicePage() {
                     </div>
                 </div>
 
-                {/* Right — Line Items */}
                 <div className="lg:col-span-2 space-y-4">
                     <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl overflow-hidden">
                         <div className="flex items-center justify-between px-5 py-4 border-b border-border/20">
@@ -374,7 +317,6 @@ export default function NewInvoicePage() {
                                 <Plus size={12} /> Add Row
                             </Button>
                         </div>
-
                         <div className="overflow-x-auto">
                             <table className="w-full text-xs">
                                 <thead>
@@ -390,16 +332,13 @@ export default function NewInvoicePage() {
                                     {items.map((item, i) => (
                                         <tr key={i} className="group">
                                             <td className="px-4 py-2">
-                                                <Input value={item.description} onChange={e => updateItem(i, 'description', e.target.value)}
-                                                    placeholder="Item description" className="rounded-lg h-9 border-border/40 font-medium text-xs" />
+                                                <Input value={item.description} onChange={e => updateItem(i, 'description', e.target.value)} placeholder="Item description" className="rounded-lg h-9 border-border/40 font-medium text-xs" />
                                             </td>
                                             <td className="px-3 py-2">
-                                                <Input type="number" value={item.qty} min={1} onChange={e => updateItem(i, 'qty', Number(e.target.value))}
-                                                    className="rounded-lg h-9 border-border/40 text-center font-bold text-xs w-16" />
+                                                <Input type="number" value={item.qty} min={1} onChange={e => updateItem(i, 'qty', Number(e.target.value))} className="rounded-lg h-9 border-border/40 text-center font-bold text-xs w-16" />
                                             </td>
                                             <td className="px-3 py-2">
-                                                <Input type="number" value={item.rate} min={0} onChange={e => updateItem(i, 'rate', Number(e.target.value))}
-                                                    className="rounded-lg h-9 border-border/40 text-right font-bold text-xs w-24" />
+                                                <Input type="number" value={item.rate} min={0} onChange={e => updateItem(i, 'rate', Number(e.target.value))} className="rounded-lg h-9 border-border/40 text-right font-bold text-xs w-24" />
                                             </td>
                                             <td className="px-3 py-2 text-right">
                                                 <span className="font-black text-foreground">₹{item.total.toLocaleString('en-IN')}</span>
@@ -417,12 +356,11 @@ export default function NewInvoicePage() {
                             </table>
                         </div>
                     </div>
-
                     <div className="flex gap-3 justify-end">
-                        <Button variant="outline" onClick={() => navigate('/invoices')} className="rounded-xl h-11 px-6 font-bold text-xs border-border/60">Cancel</Button>
-                        <Button onClick={handleSubmit} disabled={createInvoice.isPending} className="rounded-xl h-11 px-8 font-black text-xs gap-2">
-                            {createInvoice.isPending && <Loader2 size={13} className="animate-spin" />}
-                            Create Invoice
+                        <Button variant="outline" onClick={() => navigate(`/invoices/${id}`)} className="rounded-xl h-11 px-6 font-bold text-xs border-border/60">Cancel</Button>
+                        <Button onClick={handleSubmit} disabled={updateInvoice.isPending} className="rounded-xl h-11 px-8 font-black text-xs gap-2">
+                            {updateInvoice.isPending && <Loader2 size={13} className="animate-spin" />}
+                            Update Invoice
                         </Button>
                     </div>
                 </div>

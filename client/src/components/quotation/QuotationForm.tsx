@@ -114,7 +114,9 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     const [project, setProject] = useState({
         projectName: '',
         architect: '',
+        architectContact: '',
         projectDesigner: '',
+        projectDesignerContact: '',
         deliveryDays: '',
         validUntil: '',
         siteAddress: { line1: '', location: '', pincode: '' },
@@ -136,7 +138,9 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
             setProject({
                 projectName:  existingQ.projectName  || '',
                 architect:    existingQ.architect     || '',
+                architectContact: existingQ.architectContact || '',
                 projectDesigner: existingQ.projectDesigner || '',
+                projectDesignerContact: existingQ.projectDesignerContact || '',
                 deliveryDays: existingQ.deliveryDays  || '',
                 validUntil:   existingQ.validUntil
                     ? new Date(existingQ.validUntil).toISOString().slice(0, 10)
@@ -442,8 +446,16 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                             <Input value={project.architect} onChange={e => setProject(p => ({ ...p, architect: e.target.value }))} placeholder="e.g. Ar. Dreamscape" className={inputCls} />
                         </div>
                         <div>
+                            <label className={labelCls}>Architect Contact Details </label>
+                            <Input value={project.architectContact} onChange={e => setProject(p => ({ ...p, architectContact: e.target.value }))} placeholder="Phone or Email" className={inputCls} />
+                        </div>
+                        <div>
                             <label className={labelCls}>Project Designer Name </label>
                             <Input value={project.projectDesigner} onChange={e => setProject(p => ({ ...p, projectDesigner: e.target.value }))} placeholder="e.g. Rahul Sharma" className={inputCls} />
+                        </div>
+                        <div>
+                            <label className={labelCls}>Project Designer Contact </label>
+                            <Input value={project.projectDesignerContact} onChange={e => setProject(p => ({ ...p, projectDesignerContact: e.target.value }))} placeholder="Phone or Email" className={inputCls} />
                         </div>
                         <div>
                             <label className={labelCls}>Delivery Period</label>
@@ -625,7 +637,10 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                 {/* === Section 3: Financial Summary === */}
                 <FormSection title="Financial Summary" icon={ReceiptText}>
                     <div className="space-y-4 max-w-sm">
-                        <FinRow label="Total Amt" value={`₹${subtotal.toLocaleString('en-IN')}`} />
+                        <div className="flex justify-between text-sm font-bold text-muted-foreground/80 pb-2 border-b border-border/20">
+                            <span>Subtotal</span>
+                            <span>₹{subtotal.toLocaleString('en-IN')}</span>
+                        </div>
                         <div className="flex items-center justify-between gap-4">
                             <p className="text-sm font-bold text-muted-foreground/60 shrink-0">Discount (₹)</p>
                             <Input
@@ -683,15 +698,6 @@ function FormSection({ title, icon: Icon, children }: { title: string; icon: any
                 <p className="text-foreground text-sm font-black uppercase tracking-wider">{title}</p>
             </div>
             {children}
-        </div>
-    );
-}
-
-function FinRow({ label, value, valueClass }: { label: string; value: string; valueClass?: string }) {
-    return (
-        <div className="flex justify-between items-center text-sm">
-            <p className="font-bold text-muted-foreground/60">{label}</p>
-            <p className={cn('font-bold text-foreground', valueClass)}>{value}</p>
         </div>
     );
 }

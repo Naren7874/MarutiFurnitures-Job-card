@@ -19,6 +19,14 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; bor
     overdue: { label: 'Overdue', color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
 };
 
+const PAY_MODES: Record<string, { label: string; placeholder: string; required: boolean }> = {
+    upi: { label: 'UPI', placeholder: 'Transaction ID', required: true },
+    cash: { label: 'Cash', placeholder: 'Receipt No. (Optional)', required: false },
+    bank_transfer: { label: 'Bank Transfer', placeholder: 'UTR Number', required: true },
+    cheque: { label: 'Cheque', placeholder: 'Cheque Number', required: true },
+    card: { label: 'Card', placeholder: 'Auth Code / Ref', required: true },
+};
+
 const fmt = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
 const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
@@ -34,6 +42,7 @@ export default function InvoiceDetailPage() {
 
     const [showPayment, setShowPayment] = useState(false);
     const [payForm, setPayForm] = useState({ amount: '', mode: 'upi', reference: '' });
+    const [payError, setPayError] = useState('');
     const [confirm, setConfirm] = useState<'send' | null>(null);
     const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -48,10 +57,22 @@ export default function InvoiceDetailPage() {
 
     const handlePayment = async () => {
         if (!payForm.amount) return;
-        await paymentMut.mutateAsync({ amount: Number(payForm.amount), mode: payForm.mode, reference: payForm.reference });
-        setShowPayment(false);
-        setPayForm({ amount: '', mode: 'upi', reference: '' });
-        refetch();
+        
+        const modeCfg = PAY_MODES[payForm.mode];
+        if (modeCfg?.required && !payForm.reference) {
+            setPayError(`Proof of payment (${modeCfg.placeholder}) is required`);
+            return;
+        }
+
+        setPayError('');
+        try {
+            await paymentMut.mutateAsync({ amount: Number(payForm.amount), mode: payForm.mode, reference: payForm.reference });
+            setShowPayment(false);
+            setPayForm({ amount: '', mode: 'upi', reference: '' });
+            refetch();
+        } catch (e: any) {
+            setPayError(e?.response?.data?.message || 'Failed to record payment');
+        }
     };
 
     if (isLoading) {
@@ -102,6 +123,10 @@ export default function InvoiceDetailPage() {
                         ) : (
                             <><Download size={13} /> PDF</>
                         )}
+                    </Button>
+
+                    <Button variant="outline" onClick={() => navigate(`/invoices/${id}/edit`)} className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-border/60">
+                        <Plus size={13} className="rotate-45" /> Edit
                     </Button>
                     {inv.status === 'draft' && (
                         <Button onClick={() => setConfirm('send')} disabled={sendMut.isPending} className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-blue-500 text-white hover:bg-blue-600">
@@ -210,22 +235,25 @@ export default function InvoiceDetailPage() {
                                             onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))}
                                             className="rounded-xl h-10"
                                         />
-                                        <Select value={payForm.mode} onValueChange={v => setPayForm(f => ({ ...f, mode: v }))}>
+                                        <Select value={payForm.mode} onValueChange={v => { setPayForm(f => ({ ...f, mode: v, reference: '' })); setPayError(''); }}>
                                             <SelectTrigger className="rounded-xl h-10 font-bold text-xs"><SelectValue /></SelectTrigger>
                                             <SelectContent className="rounded-xl">
-                                                <SelectItem value="upi">UPI</SelectItem>
-                                                <SelectItem value="cash">Cash</SelectItem>
-                                                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                                                <SelectItem value="cheque">Cheque</SelectItem>
-                                                <SelectItem value="card">Card</SelectItem>
+                                                {Object.entries(PAY_MODES).map(([key, cfg]) => (
+                                                    <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
-                                        <Input
-                                            placeholder="Reference / UTR"
-                                            value={payForm.reference}
-                                            onChange={e => setPayForm(f => ({ ...f, reference: e.target.value }))}
-                                            className="rounded-xl h-10"
-                                        />
+                                        <div className="relative">
+                                            <Input
+                                                placeholder={PAY_MODES[payForm.mode]?.placeholder || "Reference / UTR"}
+                                                value={payForm.reference}
+                                                onChange={e => { setPayForm(f => ({ ...f, reference: e.target.value })); setPayError(''); }}
+                                                className={cn("rounded-xl h-10", payError && PAY_MODES[payForm.mode]?.required && !payForm.reference && "border-rose-500/50 bg-rose-500/5 placeholder:text-rose-500/30")}
+                                            />
+                                            {payError && (
+                                                <p className="absolute -bottom-5 left-1 text-[9px] font-black text-rose-500 uppercase tracking-tight">{payError}</p>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="flex gap-3">
                                         <Button variant="outline" size="sm" onClick={() => setShowPayment(false)} className="rounded-xl font-bold text-xs">Cancel</Button>

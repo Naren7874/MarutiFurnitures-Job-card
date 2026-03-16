@@ -547,6 +547,19 @@ export const useCreateInvoice = () => {
     });
 };
 
+export const useUpdateInvoice = (id: string) => {
+    const qc = useQueryClient();
+    const { company } = useAuthStore();
+    const cid = company?.id || '';
+    return useMutation({
+        mutationFn: (data: object) => apiPatch(`/invoices/${id}`, data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['invoices', cid] });
+            qc.invalidateQueries({ queryKey: QK.invoice(cid, id) });
+        },
+    });
+};
+
 export const useSendInvoice = (id: string) => {
     const qc = useQueryClient();
     const { company } = useAuthStore();

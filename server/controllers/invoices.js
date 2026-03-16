@@ -191,3 +191,76 @@ export const getInvoicePDF = async (req, res, next) => {
     res.send(pdfBuffer);
   } catch (err) { next(err); }
 };
+
+// ── PATCH /api/invoices/:id ──────────────────────────────────────────────────
+export const updateInvoice = async (req, res, next) => {
+  try {
+    const { items, discount, advancePaid, dueDate } = req.body;
+    
+    const invoice = await Invoice.findOne({ _id: req.params.id, ...req.companyFilter });
+    if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+
+    const prevGrandTotal = invoice.grandTotal;
+    const prevItems = JSON.stringify(invoice.items);
+
+    // Update basic fields
+    if (items) invoice.items = items;
+    if (discount !== undefined) invoice.discount = discount;
+    if (advancePaid !== undefined) {
+      invoice.advancePaid = advancePaid;
+    }
+    if (dueDate) invoice.dueDate = dueDate;
+    if (req.body.placeOfSupply) invoice.placeOfSupply = req.body.placeOfSupply;
+    if (req.body.gstType) invoice.gstType = req.body.gstType;
+    if (req.body.notes !== undefined) invoice.notes = req.body.notes;
+
+    // Recalculate Totals
+    const subtotal = invoice.items.reduce((sum, item) => sum + (item.qty * item.rate), 0);
+    invoice.subtotal = subtotal;
+    invoice.amountAfterDiscount = subtotal - (invoice.discount || 0);
+
+    const gstRate = req.body.gstRate !== undefined ? req.body.gstRate : 18;
+    const gstFactor = gstRate / 100;
+
+    if (invoice.gstType === 'igst') {
+      invoice.igst = invoice.amountAfterDiscount * gstFactor;
+      invoice.cgst = 0;
+      invoice.sgst = 0;
+    } else {
+      invoice.igst = 0;
+      invoice.cgst = (invoice.amountAfterDiscount * gstFactor) / 2;
+      invoice.sgst = (invoice.amountAfterDiscount * gstFactor) / 2;
+    }
+    invoice.gstAmount = invoice.igst + invoice.cgst + invoice.sgst;
+    invoice.grandTotal = invoice.amountAfterDiscount + invoice.gstAmount;
+
+    // Balance calculation
+    const totalPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
+    invoice.advancePaid = Math.max(invoice.advancePaid, totalPaid);
+    invoice.balanceDue = Math.max(0, invoice.grandTotal - invoice.advancePaid);
+
+    // Update status
+    if (invoice.status === 'draft' || invoice.status === 'sent') {
+       invoice.status = invoice.balanceDue <= 0 ? 'paid' : (invoice.advancePaid > 0 ? 'partially_paid' : invoice.status);
+    }
+
+    if (prevGrandTotal !== invoice.grandTotal || prevItems !== JSON.stringify(invoice.items)) {
+      invoice.pdfURL = '';
+    }
+
+    await invoice.save();
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Invoice',
+      resourceId: invoice._id,
+      resourceLabel: invoice.invoiceNumber,
+      metadata: { itemsCount: invoice.items.length, grandTotal: invoice.grandTotal },
+    });
+
+    res.status(200).json({ success: true, data: invoice });
+  } catch (err) {
+    next(err);
+  }
+};
+

@@ -131,7 +131,7 @@ export const updateQuotation = async (req, res, next) => {
 
     // Compute changed fields
     const changes = {};
-    const tracked = ['projectName', 'architect', 'projectDesigner', 'grandTotal', 'status', 'validUntil'];
+    const tracked = ['projectName', 'architect', 'architectContact', 'projectDesigner', 'projectDesignerContact', 'grandTotal', 'status', 'validUntil'];
     tracked.forEach(f => {
       if (prevSnapshot && String(prevSnapshot[f]) !== String(quotation[f])) {
         changes[f] = { from: prevSnapshot[f], to: quotation[f] };
@@ -244,7 +244,9 @@ export const approveQuotation = async (req, res, next) => {
       quotationId:  prev._id,
       projectName:  prev.projectName,
       architect:    prev.architect,
+      architectContact: prev.architectContact,
       projectDesigner: prev.projectDesigner,
+      projectDesignerContact: prev.projectDesignerContact,
       siteAddress:  prev.siteAddress,
       clientGstin:  prev.clientId?.gstin,
       contactPerson: firstConfig.contactPerson || prev.contactPerson,

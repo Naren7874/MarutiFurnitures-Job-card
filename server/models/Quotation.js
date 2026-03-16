@@ -56,7 +56,9 @@ const quotationSchema = new mongoose.Schema(
     // Site / project info captured at quotation stage
     projectName: { type: String, required: true },       // "GMP Office"
     architect:   { type: String },                       // "Ar. Dreamscape"
+    architectContact: { type: String },                  // architect's phone/email
     projectDesigner: { type: String },
+    projectDesignerContact: { type: String },            // designer's phone/email
     siteAddress: {
       location: String,
       line1:    String,
@@ -167,21 +169,14 @@ quotationSchema.pre("save", function () {
   // After discount
   this.amountAfterDiscount = +(this.subtotal - (this.discount || 0)).toFixed(2);
 
-  // GST
-  if (this.gstType === "cgst_sgst") {
-    this.cgst      = +(this.amountAfterDiscount * 0.09).toFixed(2);
-    this.sgst      = +(this.amountAfterDiscount * 0.09).toFixed(2);
-    this.igst      = 0;
-    this.gstAmount = +(this.cgst + this.sgst).toFixed(2);
-  } else if (this.gstType === "igst") {
-    this.igst      = +(this.amountAfterDiscount * 0.18).toFixed(2);
-    this.cgst      = 0;
-    this.sgst      = 0;
-    this.gstAmount = this.igst;
-  }
+  // GST is no longer added to Quotations
+  this.cgst = 0;
+  this.sgst = 0;
+  this.igst = 0;
+  this.gstAmount = 0;
 
-  // Grand total + advance
-  this.grandTotal    = +(this.amountAfterDiscount + (this.gstAmount || 0)).toFixed(2);
+  // Grand total + advance (no GST)
+  this.grandTotal    = +(this.amountAfterDiscount).toFixed(2);
   this.advanceAmount = +(this.grandTotal * (this.advancePercent / 100)).toFixed(2);
 });
 
