@@ -162,9 +162,42 @@ export default function InvoiceDetailPage() {
                 {/* Left — Client + Details */}
                 <div className="space-y-5">
                     <InfoCard title="Client" icon={Building2}>
-                        <p className="font-black text-sm text-foreground">{inv.clientId?.firmName || inv.clientId?.name || '—'}</p>
-                        {inv.clientId?.phone && <p className="text-xs text-muted-foreground/60 mt-1">{inv.clientId.phone}</p>}
-                        {inv.clientGstinSnapshot && <p className="text-xs font-mono text-muted-foreground/50 mt-1">{inv.clientGstinSnapshot}</p>}
+                        <div className="space-y-1">
+                            {inv.clientId?.name && (
+                                <p className={cn("text-md font-bold text-muted-foreground", inv.clientId?.firmName ? "opacity-60" : "text-foreground text-sm font-black")}>
+                                    {inv.clientId.firmName ? `${inv.clientId.name}` : inv.clientId.name}
+                                </p>
+                            )}
+                        </div>
+                        
+                        {(inv.clientId?.address?.line1 || inv.clientId?.address?.city) && (
+                            <div className="text-[11px] text-muted-foreground/60 leading-relaxed pt-2 border-t border-border/10">
+                                {[
+                                    inv.clientId.address.houseNumber,
+                                    inv.clientId.address.line1,
+                                    inv.clientId.address.line2
+                                ].filter(Boolean).join(', ')}
+                                <br />
+                                {[
+                                    inv.clientId.address.city,
+                                    inv.clientId.address.state,
+                                    inv.clientId.address.pincode
+                                ].filter(Boolean).join(', ')}
+                            </div>
+                        )}
+
+                        <div className="flex flex-col gap-1 pt-2">
+                            {inv.clientId?.phone && (
+                                <p className="text-[11px] font-bold text-muted-foreground/50 flex items-center gap-1.5">
+                                    <span className="w-1 h-1 rounded-full bg-border" /> {inv.clientId.phone}
+                                </p>
+                            )}
+                            {inv.clientGstinSnapshot && (
+                                <p className="text-[10px] font-black text-primary/40 uppercase tracking-widest flex items-center gap-1.5">
+                                    <span className="w-1 h-1 rounded-full bg-primary/30" /> GST: {inv.clientGstinSnapshot}
+                                </p>
+                            )}
+                        </div>
                     </InfoCard>
 
                     <InfoCard title="Invoice Details" icon={Receipt}>
