@@ -265,28 +265,28 @@
       <div class="social-icons">
         <% if (typeof company !== 'undefined' && company.socialLinks) { %>
           <% if (company.socialLinks.instagram) { %>
-            <div class="social-item">
-              <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" class="social-icon" />
+            <a href="https://instagram.com/<%= company.socialLinks.instagram %>" class="social-item">
+              <img src="https://simpleicons.org/icons/instagram.svg" class="social-icon" />
               <span><%= company.socialLinks.instagram %></span>
-            </div>
+            </a>
           <% } %>
           <% if (company.socialLinks.youtube) { %>
-            <div class="social-item">
-              <img src="https://cdn-icons-png.flaticon.com/512/174/174883.png" class="social-icon" />
+            <a href="https://youtube.com/<%= company.socialLinks.youtube %>" class="social-item">
+              <img src="https://simpleicons.org/icons/youtube.svg" class="social-icon" />
               <span><%= company.socialLinks.youtube %></span>
-            </div>
+            </a>
           <% } %>
           <% if (company.socialLinks.whatsapp) { %>
-            <div class="social-item">
-              <img src="https://cdn-icons-png.flaticon.com/512/174/174879.png" class="social-icon" />
+            <a href="https://wa.me/<%= company.socialLinks.whatsapp.replace(/\D/g,'') %>" class="social-item">
+              <img src="https://simpleicons.org/icons/whatsapp.svg" class="social-icon" />
               <span><%= company.socialLinks.whatsapp %></span>
-            </div>
+            </a>
           <% } %>
           <% if (company.socialLinks.facebook) { %>
-            <div class="social-item">
-              <img src="https://cdn-icons-png.flaticon.com/512/174/174848.png" class="social-icon" />
+            <a href="https://facebook.com/<%= company.socialLinks.facebook %>" class="social-item">
+              <img src="https://simpleicons.org/icons/facebook.svg" class="social-icon" />
               <span><%= company.socialLinks.facebook %></span>
-            </div>
+            </a>
           <% } %>
         <% } %>
       </div>
