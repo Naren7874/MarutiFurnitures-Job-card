@@ -39,7 +39,7 @@ const datasets = {
       { name: 'Sameer Rajput', firmName: 'Oberoi Sky Residences', phone: '9000012345', clientType: 'direct_client', email: 'sameer@oberoi.com', address: { line1: 'Flat 402, Building A', city: 'Mumbai', state: 'Maharashtra', pincode: '400001' } },
       { name: 'Ar. Anjali Gupta', firmName: 'Design Studio 9', phone: '9000067890', clientType: 'architect', gstin: '27AABC1234M1Z5', email: 'anjali@ds9.in', address: { line1: 'Studio 11, Art District', city: 'Ahmedabad', state: 'Gujarat', pincode: '380015' } },
       { name: 'Vikram Sethi', firmName: 'The Landmark Tower', phone: '9111122233', clientType: 'direct_client', email: 'vikram@land-mark.in', address: { line1: 'Penthouse 1, Terrace Block', city: 'Surat', state: 'Gujarat', pincode: '395007' } },
-      { name: 'Meera Deshmukh', firmName: 'Vintage Homes', phone: '9222233344', clientType: 'designer', email: 'meera@vintage.com', address: { line1: 'Bunglow 45, Green Park', city: 'Anand', state: 'Gujarat', pincode: '388001' } },
+      { name: 'Meera Deshmukh', firmName: 'Vintage Homes', phone: '9222233344', clientType: 'project_designer', email: 'meera@vintage.com', address: { line1: 'Bunglow 45, Green Park', city: 'Anand', state: 'Gujarat', pincode: '388001' } },
       { name: 'Rahul Bajaj', firmName: 'Bajaj Estate', phone: '9333344455', clientType: 'direct_client', email: 'rahul@bajaj.in', address: { line1: 'Sector 4, Main Road', city: 'Ahmedabad', state: 'Gujarat', pincode: '380013' } }
     ],
     inventory: [

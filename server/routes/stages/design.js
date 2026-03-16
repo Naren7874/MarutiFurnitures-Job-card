@@ -15,7 +15,7 @@ router.post('/',        checkPermission('designrequest.create'), createDesign);
 router.put('/',         checkPermission('designrequest.edit'),   updateDesign);
 router.post('/files',   checkPermission('designrequest.upload'), uploadMultiple, uploadDesignFiles);
 router.post('/signoff', checkPermission('designrequest.signoff'), sendSignoffLink);
-router.patch('/ready',  checkPermission('designrequest.ready'),  markDesignReady);
+router.patch('/ready',  checkPermission('designrequest.edit'),  markDesignReady);
 
 // ── Public signoff routes (no auth — token-based) ─────────────────────────────
 router.get('/signoff/:token',    getSignoffPage);

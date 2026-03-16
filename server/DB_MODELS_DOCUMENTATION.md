@@ -11,7 +11,7 @@
 |---|---|---|
 | `Company.js` | ✅ Complete | Multi-tenant company / brand |
 | `User.js` | ✅ Fixed | Added `department` field |
-| `Client.js` | ✅ Complete | Customers, architects, contractors |
+| `Client.js` | ✅ Complete | Customers, architects, factory managers |
 | `Quotation.js` | ✅ Complete | Entry point of the system |
 | `Project.js` | ✅ Fixed | Added `projectName`, `architect`, `siteAddress`, `clientGstin` |
 | `DesignRequest.js` | ✅ Created | Measurements, CAD files, client sign-off |
@@ -90,7 +90,7 @@ The top-level multi-tenant entity. Every record in every collection carries a `c
 | Field | Type | Notes |
 |---|---|---|
 | `companyId` | ObjectId | ref: Company, required |
-| `clientType` | String | Enum: `architect`, `designer`, `direct_client`, `contractor` |
+| `clientType` | String | Enum: `architect`, `project_designer`, `direct_client`, `factory_manager` |
 | `name` | String | Required |
 | `firmName` | String | |
 | `phone` | String | Required |

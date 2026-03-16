@@ -161,7 +161,7 @@ export const useApproveQuotation = (id: string) => {
     const { company } = useAuthStore();
     const cid = company?.id || '';
     return useMutation({
-        mutationFn: () => apiPatch(`/quotations/${id}/approve`),
+        mutationFn: (data?: any) => apiPatch(`/quotations/${id}/approve`, data),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['quotations', cid] });
             qc.invalidateQueries({ queryKey: QK.quotation(cid, id) });

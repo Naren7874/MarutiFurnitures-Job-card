@@ -173,8 +173,8 @@ export default function App() {
                       <Route path="purchase-orders/:id" element={<PurchaseOrderDetailPage />} />
                     </Route>
 
-                    {/* Reports — requires reports.view_financial or reports.view_production */}
-                    <Route element={<PermissionRoute permission="report.view" />}>
+                    {/* Reports — requires reports.view_financial */}
+                    <Route element={<PermissionRoute permission="reports.view_financial" />}>
                       <Route path="reports" element={<ReportsPage />} />
                     </Route>
 

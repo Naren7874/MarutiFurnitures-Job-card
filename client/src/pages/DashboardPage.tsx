@@ -10,6 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import StaffDashboard from '../components/dashboard/StaffDashboard';
+
+const STAFF_ROLES = ['design', 'store', 'production', 'qc', 'dispatch', 'sales', 'accountant'];
 
 // Brand Colors from Style Guide / Dummy Data
 const BRAND_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -57,7 +60,9 @@ const StatCard = ({ icon: Icon, label, value, sub, colorClass, delay = 0 }: any)
     </motion.div>
 );
 
-export default function DashboardPage() {
+// ── Admin Dashboard ────────────────────────────────────────────────────────────
+
+function AdminDashboard() {
     const { user } = useAuthStore();
     const { data: raw, isLoading } = useJobCards({ limit: 100 });
     const jobCards: any[] = (raw as any)?.data ?? [];
@@ -65,7 +70,6 @@ export default function DashboardPage() {
     const statusCount = jobCards.reduce<Record<string, number>>((acc, jc) => {
         const s = jc.status?.toUpperCase();
         acc[s] = (acc[s] || 0) + 1;
-        // Also keep lowercase for some stats
         acc[jc.status] = (acc[jc.status] || 0) + 1;
         return acc;
     }, {});
@@ -284,4 +288,19 @@ export default function DashboardPage() {
             </div>
         </div>
     );
+}
+
+// ── Main Router ────────────────────────────────────────────────────────────────
+
+export default function DashboardPage() {
+    const { user } = useAuthStore();
+    const role = user?.role;
+
+    // Staff roles get their own focused dashboard
+    if (role && STAFF_ROLES.includes(role)) {
+        return <StaffDashboard role={role} name={user?.name || 'User'} />;
+    }
+
+    // Super admin / fallback gets the full admin view
+    return <AdminDashboard />;
 }

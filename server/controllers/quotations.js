@@ -131,7 +131,7 @@ export const updateQuotation = async (req, res, next) => {
 
     // Compute changed fields
     const changes = {};
-    const tracked = ['projectName', 'architect', 'grandTotal', 'status', 'validUntil'];
+    const tracked = ['projectName', 'architect', 'projectDesigner', 'grandTotal', 'status', 'validUntil'];
     tracked.forEach(f => {
       if (prevSnapshot && String(prevSnapshot[f]) !== String(quotation[f])) {
         changes[f] = { from: prevSnapshot[f], to: quotation[f] };
@@ -229,9 +229,14 @@ export const approveQuotation = async (req, res, next) => {
     }
 
     const company = await Company.findById(req.user.companyId).lean();
+    const { jobCardConfigs = [] } = req.body;
 
     // 1. Auto-create Project
     const projectNumber = await generateProjectNumber(req.user.companyId, company.projectPrefix);
+    
+    // Use first config for project-level defaults if available
+    const firstConfig = jobCardConfigs[0] || {};
+
     const project = await Project.create({
       companyId:    req.user.companyId,
       projectNumber,
@@ -239,8 +244,11 @@ export const approveQuotation = async (req, res, next) => {
       quotationId:  prev._id,
       projectName:  prev.projectName,
       architect:    prev.architect,
+      projectDesigner: prev.projectDesigner,
       siteAddress:  prev.siteAddress,
       clientGstin:  prev.clientId?.gstin,
+      contactPerson: firstConfig.contactPerson || prev.contactPerson,
+      salesPerson:   firstConfig.salesPerson,
       priority:     'medium',
       assignedStaff: prev.assignedStaff || [],
       status:       'active',
@@ -252,8 +260,14 @@ export const approveQuotation = async (req, res, next) => {
     for (const item of prev.items || []) {
       const jobCardNumber = await generateJobCardNumber(req.user.companyId, company.jobCardPrefix);
 
-      // Build assignedTo from quotation's assignedStaff (put all in design stage initially)
-      const assignedTo = {
+      // Find specific config for this item
+      const config = jobCardConfigs.find(c => 
+        (c.itemId && String(c.itemId) === String(item._id)) || 
+        (c.srNo === item.srNo)
+      ) || {};
+
+      // Use assignedTo from config if provided, otherwise fallback to quotation defaults
+      const assignedTo = config.assignedTo || {
         design:     prev.assignedStaff || [],
         store:      [],
         production: prev.assignedStaff || [],
@@ -279,6 +293,12 @@ export const approveQuotation = async (req, res, next) => {
           qty:            item.qty,
           unit:           item.unit || 'pcs',
         }],
+        salesperson: config.salesPerson,
+        // contactPerson is stored as String in JobCard model — extract name from object if needed
+        contactPerson: (typeof config.contactPerson === 'object' && config.contactPerson?.name)
+          ? config.contactPerson.name
+          : (config.contactPerson || prev.contactPerson || ''),
+        expectedDelivery: config.expectedDelivery,
         assignedTo,
         priority:    'medium',
         orderDate:   new Date(),
@@ -506,6 +526,7 @@ const flattenForTemplate = (quotation, company) => ({
   CLIENT_FIRM:       quotation.clientId?.firmName || '',
   CLIENT_PHONE:      quotation.clientId?.phone || '',
   PROJECT_NAME:      quotation.projectName,
+  PROJECT_DESIGNER:  quotation.projectDesigner || '',
   SITE_ADDRESS:      `${quotation.siteAddress?.location || ''}`,
   SUBTOTAL:          quotation.subtotal?.toLocaleString('en-IN') || '0',
   DISCOUNT:          quotation.discount?.toLocaleString('en-IN') || '0',

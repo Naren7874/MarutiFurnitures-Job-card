@@ -79,8 +79,21 @@ export default function ProjectsPage() {
     };
 
     const { data: raw, isLoading } = useProjects({ search, status, page, limit: 12 });
+    const { user } = useAuthStore();
+    const userId = user?.id;
+    const isSuperAdmin = user?.role === 'super_admin';
+
     const resp: any = raw;
-    const projects: any[] = resp?.data ?? [];
+    const rawProjects: any[] = resp?.data ?? [];
+    
+    // Filter projects if not super_admin
+    const projects = isSuperAdmin 
+        ? rawProjects 
+        : rawProjects.filter(p => 
+            p.assignedStaff?.some((u: any) => (u._id || u.id || u) === userId) ||
+            (p.salesPerson?.id || p.salesPerson?._id || p.salesPerson) === userId
+        );
+
     const pagination: any = resp?.pagination ?? {};
 
     const stats = {

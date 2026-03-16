@@ -9,7 +9,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft, Plus, Trash2, Save, Loader2,
-    User2, ReceiptText, Search, X, ImagePlus, List,
+    User2, ReceiptText, Search, X, ImagePlus, List, Check,
 } from 'lucide-react';
 import {
     useCreateQuotation, useUpdateQuotation,
@@ -18,7 +18,6 @@ import {
 import CreateClientModal from '../clients/CreateClientModal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PhotoUploadZone } from '@/components/ui/photo-upload-zone';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
@@ -115,6 +114,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     const [project, setProject] = useState({
         projectName: '',
         architect: '',
+        projectDesigner: '',
         deliveryDays: '',
         validUntil: '',
         siteAddress: { line1: '', location: '', pincode: '' },
@@ -136,6 +136,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
             setProject({
                 projectName:  existingQ.projectName  || '',
                 architect:    existingQ.architect     || '',
+                projectDesigner: existingQ.projectDesigner || '',
                 deliveryDays: existingQ.deliveryDays  || '',
                 validUntil:   existingQ.validUntil
                     ? new Date(existingQ.validUntil).toISOString().slice(0, 10)
@@ -232,6 +233,41 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         gstType,
         advancePercent,
     });
+
+    // ── Item-Level Save ───────────────────────────────────────────────────────
+    const [savingItemId, setSavingItemId] = useState<string | null>(null);
+    const [savedItemId, setSavedItemId] = useState<string | null>(null);
+
+    const handleSaveItem = async (itemId: string) => {
+        if (!selectedClient) {
+            alert('Please select or create a client before saving items.');
+            return;
+        }
+        if (!project.projectName) {
+            alert('Please enter a Project Name before saving items.');
+            return;
+        }
+
+        setSavingItemId(itemId);
+        try {
+            const payload = buildPayload();
+            if (isEditMode) {
+                await updateQuotation.mutateAsync(payload);
+            } else {
+                const res: any = await createQuotation.mutateAsync(payload);
+                if (res?.data?._id) {
+                    navigate(`/quotations/${res.data._id}/edit`, { replace: true });
+                }
+            }
+            setSavedItemId(itemId);
+            setTimeout(() => setSavedItemId(null), 2000);
+        } catch (e) {
+            console.error('Failed to save item', e);
+            alert('Failed to save item. Please check the network.');
+        } finally {
+            setSavingItemId(null);
+        }
+    };
 
     // ── Submit ────────────────────────────────────────────────────────────────
     const handleSubmit = async (e: React.FormEvent) => {
@@ -348,7 +384,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                                 exit={{ opacity: 0, y: -8 }}
                                                 className="absolute z-50 w-full mt-2 bg-card border border-border rounded-2xl shadow-xl overflow-hidden"
                                             >
-                                                <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
+                                                <div className="max-h-[150px] overflow-y-auto custom-scrollbar">
                                                     {clients.length > 0 ? (
                                                         clients.map((c: any) => (
                                                             <button
@@ -406,6 +442,10 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                             <Input value={project.architect} onChange={e => setProject(p => ({ ...p, architect: e.target.value }))} placeholder="e.g. Ar. Dreamscape" className={inputCls} />
                         </div>
                         <div>
+                            <label className={labelCls}>Project Designer Name </label>
+                            <Input value={project.projectDesigner} onChange={e => setProject(p => ({ ...p, projectDesigner: e.target.value }))} placeholder="e.g. Rahul Sharma" className={inputCls} />
+                        </div>
+                        <div>
                             <label className={labelCls}>Delivery Period</label>
                             <Input value={project.deliveryDays} onChange={e => setProject(p => ({ ...p, deliveryDays: e.target.value }))} placeholder="e.g. 75 to 90 days" className={inputCls} />
                         </div>
@@ -435,14 +475,37 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                 >
                                     <div className="flex items-center justify-between">
                                         <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest bg-primary/10 px-2.5 py-1 rounded-lg">Item {item.srNo}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeItem(item.id)}
-                                            disabled={items.length === 1}
-                                            className="opacity-0 group-hover:opacity-100 transition-all text-muted-foreground/30 hover:text-rose-400 disabled:opacity-0"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleSaveItem(item.id)}
+                                                disabled={savingItemId === item.id}
+                                                className={cn(
+                                                    "h-7 px-3 text-xs font-bold rounded-lg transition-all",
+                                                    savedItemId === item.id 
+                                                        ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:text-emerald-600"
+                                                        : "bg-primary/5 text-primary hover:bg-primary/10"
+                                                )}
+                                            >
+                                                {savingItemId === item.id ? (
+                                                    <><Loader2 size={12} className="mr-1.5 animate-spin" /> Saving...</>
+                                                ) : savedItemId === item.id ? (
+                                                    <><Check size={12} className="mr-1.5" /> Saved</>
+                                                ) : (
+                                                    <><Save size={12} className="mr-1.5" /> Save Item</>
+                                                )}
+                                            </Button>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeItem(item.id)}
+                                                disabled={items.length === 1}
+                                                className="opacity-0 group-hover:opacity-100 transition-all text-muted-foreground/30 hover:text-rose-400 disabled:opacity-0 p-1.5"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-5">

@@ -32,7 +32,7 @@ router.use(authenticateJWT, injectCompanyScope);
 router.post('/', checkPermission('jobcard.create'), createJobCard);
 router.get('/', checkPermission('jobcard.view'), getJobCards);
 router.get('/:id', checkPermission('jobcard.view'), getJobCardById);
-router.put('/:id', checkPermission('jobcard.edit'), updateJobCard);
+router.put('/:id', checkPermission(['jobcard.edit', 'designrequest.edit']), updateJobCard);
 router.get('/:id/pdf', checkPermission('jobcard.view'), getJobCardPDF);
 
 // ── Status Changes (admin only) ──────────────────────────────────────────────

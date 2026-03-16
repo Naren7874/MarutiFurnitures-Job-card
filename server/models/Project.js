@@ -23,11 +23,17 @@ const projectSchema = new mongoose.Schema(
     // Copied from Quotation on creation — stands alone even if quotation is revised
     projectName:  { type: String, required: true, trim: true },
     architect:    { type: String },                      // "Ar. Dreamscape"
+    projectDesigner: { type: String },
     siteAddress: {
       location: String,
       line1:    String,
       line2:    String,
       pincode:  String,
+    },
+    contactPerson: { type: String },
+    salesPerson: {
+      id:   { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      name: String,
     },
 
     // GST context (copied at creation for reporting)

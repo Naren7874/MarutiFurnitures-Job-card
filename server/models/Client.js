@@ -10,7 +10,7 @@ const clientSchema = new mongoose.Schema(
 
     clientType: {
       type: String,
-      enum: ["architect", "designer", "direct_client", "factory_manager"],
+      enum: ["architect", "project_designer", "direct_client", "factory_manager"],
       required: true,
     },
 

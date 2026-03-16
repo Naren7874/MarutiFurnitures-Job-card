@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/select';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { useAuthStore } from '../stores/authStore';
 import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -57,9 +58,27 @@ export default function JobCardsPage() {
     });
 
     const resp: any = raw;
-    const jobCards: any[] = resp?.data ?? [];
+    const rawJobCards: any[] = resp?.data ?? [];
+    const { user } = useAuthStore();
+    const userId = user?.id;
+    const isSuperAdmin = user?.role === 'super_admin';
+
+    // Filter job cards if not super_admin
+    const filteredJobCards = isSuperAdmin
+        ? rawJobCards
+        : rawJobCards.filter(jc => {
+            // Check if user is assigned in ANY department array
+            const isAssignedToAnyDept = jc.assignedTo && Object.values(jc.assignedTo).some((dept: any) => 
+                Array.isArray(dept) && dept.some((u: any) => (u._id || u.id || u) === userId)
+            );
+            
+            // Check if user is the salesperson
+            const isSalesperson = (jc.salesperson?.id || jc.salesperson?._id || jc.salesperson) === userId;
+
+            return isAssignedToAnyDept || isSalesperson;
+        });
+
     const pagination: any = resp?.pagination ?? {};
-    const filteredJobCards = jobCards; // Renamed for clarity based on the instruction's usage
 
     const isOverdue = (expectedDelivery: string) =>
         expectedDelivery &&

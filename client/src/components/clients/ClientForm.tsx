@@ -12,7 +12,7 @@ import { cn } from '../../lib/utils';
 const CLIENT_TYPES = [
     { value: 'direct_client', label: 'Direct Client', desc: 'Homeowner or individual buyer' },
     { value: 'architect', label: 'Architect Firm Name', desc: 'Design professional / Studio' },
-    { value: 'designer', label: 'Project Designer', desc: 'Individual interior designer' },
+    { value: 'project_designer', label: 'Project Designer', desc: 'Individual project designer' },
     { value: 'factory_manager', label: 'Factory Manager', desc: 'Production or operations lead' },
 ];
 
@@ -179,9 +179,9 @@ export default function ClientForm({
                                         variant="outline"
                                         onClick={handleVerifyGST}
                                         disabled={form.gstin.length !== 15 || gstStatus === 'verifying'}
-                                        className="shrink-0 h-12 px-6 rounded-2xl font-black text-xs gap-2 transition-all border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                                        className="shrink-0 cursor-pointer h-12 px-6 rounded-2xl font-black text-xs gap-2 transition-all border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
                                     >
-                                        {gstStatus === 'verifying' ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} className="text-primary" />}
+                                        {gstStatus === 'verifying' ? <Loader2 className="animate-spin" size={14} /> : <BadgeCheck size={14} />}
                                         {gstStatus === 'verifying' ? 'Verifying...' : 'Verify'}
                                     </Button>
                                 </div>

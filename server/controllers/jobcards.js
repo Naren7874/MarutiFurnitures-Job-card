@@ -174,6 +174,12 @@ export const getJobCardById = async (req, res, next) => {
       .populate('clientId')
       .populate('projectId', 'projectName projectNumber whatsapp')
       .populate('quotationId', 'quotationNumber grandTotal')
+      .populate('assignedTo.design', 'name role')
+      .populate('assignedTo.store', 'name role')
+      .populate('assignedTo.production', 'name role')
+      .populate('assignedTo.qc', 'name role')
+      .populate('assignedTo.dispatch', 'name role')
+      .populate('assignedTo.accountant', 'name role')
       .lean();
 
     if (!jobCard) return res.status(404).json({ success: false, message: 'Job card not found' });
@@ -187,7 +193,7 @@ export const getJobCardById = async (req, res, next) => {
 
 export const updateJobCard = async (req, res, next) => {
   try {
-    const { title, priority, expectedDelivery, items } = req.body;
+    const { title, priority, expectedDelivery, items, contactPerson } = req.body;
 
     const jobCard = await JobCard.findOne({ _id: req.params.id, ...req.companyFilter });
     if (!jobCard) return res.status(404).json({ success: false, message: 'Job card not found' });
@@ -203,6 +209,7 @@ export const updateJobCard = async (req, res, next) => {
     if (priority !== undefined) updates.priority = priority;
     if (expectedDelivery !== undefined) updates.expectedDelivery = expectedDelivery;
     if (items !== undefined) updates.items = items;
+    if (contactPerson !== undefined) updates.contactPerson = contactPerson;
 
     // Apply updates
     Object.assign(jobCard, updates);

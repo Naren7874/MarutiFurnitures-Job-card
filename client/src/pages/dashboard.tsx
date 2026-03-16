@@ -12,6 +12,7 @@ import { BottleneckAlert } from "@/components/dashboard/bottleneck-alert"
 import { UpcomingDeliveries } from "@/components/dashboard/upcoming-deliveries"
 import { WhatsAppLog } from "@/components/dashboard/whatsapp-log"
 import { QuickActions } from "@/components/dashboard/quick-actions"
+import StaffDashboard from "@/components/dashboard/StaffDashboard"
 
 import {
     DUMMY_ACTIVITIES,
@@ -22,6 +23,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuthStore } from "@/stores/authStore"
 import { useDashboardStats, useJobCards, useNotificationsApi } from "@/hooks/useApi"
+
+const STAFF_ROLES = ['design', 'store', 'production', 'qc', 'dispatch', 'sales', 'accountant'];
 
 const container = {
     hidden: { opacity: 0 },
@@ -54,8 +57,8 @@ export default function Dashboard() {
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
     const { user: currentUser, company } = useAuthStore()
 
+    // ── ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURN ──
     const { data: statsContent } = useDashboardStats() as any;
-
     const stats = statsContent?.data;
 
     const { data: jobCardsContent } = useJobCards({ limit: 100 }) as any;
@@ -127,6 +130,11 @@ export default function Dashboard() {
             timestamp: new Date(n.createdAt).toLocaleTimeString()
         }));
 
+    // ── ROLE-BASED ROUTING: Staff get their own focused dashboard (after all hooks) ──
+    if (currentUser?.role && STAFF_ROLES.includes(currentUser.role)) {
+        return <StaffDashboard role={currentUser.role} name={currentUser.name || 'User'} />;
+    }
+
     return (
         <motion.div
             variants={container}
@@ -150,7 +158,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center gap-3 px-6 py-3 rounded-full border border-border bg-card text-lg font-medium text-muted-foreground">
                     <CalendarDays className="size-6" />
-                    <span>{new Date().toLocaleDateString()}</span>
+                    <span>{new Date().toLocaleDateString('en-GB')}</span>
                 </div>
             </motion.div>
 

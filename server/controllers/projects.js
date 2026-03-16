@@ -189,7 +189,7 @@ export const updateProject = async (req, res, next) => {
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
     const changes = {};
-    const tracked = ['projectName', 'architect', 'priority', 'status', 'expectedDelivery'];
+    const tracked = ['projectName', 'architect', 'projectDesigner', 'priority', 'status', 'expectedDelivery'];
     tracked.forEach(f => {
       if (prev && String(prev[f]) !== String(project[f])) {
         changes[f] = { from: prev[f], to: project[f] };

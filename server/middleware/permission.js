@@ -28,17 +28,22 @@ export const checkPermission = (permission) => async (req, res, next) => {
 
   try {
     const userPerm = await UserPermission.findOne({ userId: req.user.userId }).lean();
-
     const effective = userPerm?.effectivePermissions || [];
-    const allowed = hasPermission(effective, permission);
+    
+    const requiredList = Array.isArray(permission) ? permission : [permission];
+    const allowed = requiredList.some(p => hasPermission(effective, p));
 
     // Log the check
-    AccessLog.create({ ...logEntry, result: allowed ? 'allowed' : 'denied' }).catch(() => {});
+    AccessLog.create({ 
+      ...logEntry, 
+      permission: String(permission),
+      result: allowed ? 'allowed' : 'denied' 
+    }).catch(() => {});
 
     if (!allowed) {
       return res.status(403).json({
         success: false,
-        message: `Permission denied: ${permission}`,
+        message: `Permission denied: ${Array.isArray(permission) ? permission.join(' OR ') : permission}`,
       });
     }
 

@@ -56,12 +56,14 @@ const quotationSchema = new mongoose.Schema(
     // Site / project info captured at quotation stage
     projectName: { type: String, required: true },       // "GMP Office"
     architect:   { type: String },                       // "Ar. Dreamscape"
+    projectDesigner: { type: String },
     siteAddress: {
       location: String,
       line1:    String,
       line2:    String,
       pincode:  String,
     },
+    contactPerson: { type: String },
 
     // Initial requirements + reference material
     requirements:    { type: String },                   // free-text notes

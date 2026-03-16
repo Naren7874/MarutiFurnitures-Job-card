@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 const CLIENT_TYPE_LABELS: Record<string, string> = {
     direct_client: 'Direct Client',
     architect: 'Architect Firm Name',
-    designer: 'Project Designer',
+    project_designer: 'Project Designer',
     factory_manager: 'Factory Manager'
 };
 
@@ -90,14 +90,14 @@ export default function ClientsPage() {
                 </div>
                 <div>
                     <Select value={clientType || 'all'} onValueChange={(v) => { setClientType(v === 'all' ? '' : v); setPage(1); }}>
-                        <SelectTrigger className="!h-14 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground rounded-2xl font-bold text-xs uppercase tracking-widest px-6 shadow-sm focus:ring-2 focus:ring-primary/10 transition-all">
+                        <SelectTrigger className="h-14! bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground rounded-2xl font-bold text-xs uppercase tracking-widest px-6 shadow-sm focus:ring-2 focus:ring-primary/10 transition-all">
                             <SelectValue placeholder="FILTER BY TYPE" />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl shadow-2xl border-border/50">
                             <SelectItem value="all" className="rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-3">All Categories</SelectItem>
                             <SelectItem value="direct_client" className="rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-3">Direct Clients</SelectItem>
                             <SelectItem value="architect" className="rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-3">Architects</SelectItem>
-                            <SelectItem value="designer" className="rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-3">Designers</SelectItem>
+                            <SelectItem value="project_designer" className="rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-3">Project Designers</SelectItem>
                             <SelectItem value="factory_manager" className="rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-3">Factory Managers</SelectItem>
                         </SelectContent>
                     </Select>

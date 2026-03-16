@@ -17,7 +17,7 @@ const __dirname  = path.dirname(__filename);
 // ── Environment (handled by top-level import) ───────────────────────────────
 
 // ── Database ─────────────────────────────────────────────────────────────────
-connectDB();
+await connectDB();
 
 // ── Express ──────────────────────────────────────────────────────────────────
 const app = express();

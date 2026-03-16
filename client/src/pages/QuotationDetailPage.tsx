@@ -3,19 +3,18 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
     ArrowLeft, Download, Send, CheckCircle2, XCircle, RefreshCw,
     FileText, User2, MapPin, ReceiptText, AlertCircle, Loader2,
-    Building2, CalendarDays, Package, Users, X, Check,
+    Building2, CalendarDays, Package,
 } from 'lucide-react';
 import {
     useQuotation, useSendQuotation, useApproveQuotation,
-    useRejectQuotation, useReviseQuotation, useAssignQuotationStaff,
+    useRejectQuotation, useReviseQuotation,
 } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ImagePreview } from '@/components/ui/image-preview';
-import { apiGet } from '../lib/axios';
-import { useQuery } from '@tanstack/react-query';
+import ApproveQuotationModal from '../components/quotation/ApproveQuotationModal';
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -41,60 +40,32 @@ export default function QuotationDetailPage() {
     const approveMutation = useApproveQuotation(id!);
     const rejectMutation  = useRejectQuotation(id!);
     const reviseMutation  = useReviseQuotation(id!);
-    const assignStaffMut  = useAssignQuotationStaff(id!);
-
     const [confirmAction, setConfirmAction] = useState<null | 'send' | 'approve' | 'reject' | 'revise'>(null);
     const [pdfLoading, setPdfLoading] = useState(false);
-    const [showStaffPanel, setShowStaffPanel] = useState(false);
-    const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
-    const [staffInitialized, setStaffInitialized] = useState(false);
+    const [showApproveModal, setShowApproveModal] = useState(false);
 
-    const isBusy = sendMutation.isPending || approveMutation.isPending || rejectMutation.isPending || reviseMutation.isPending || assignStaffMut.isPending;
+    const isBusy = sendMutation.isPending || approveMutation.isPending || rejectMutation.isPending || reviseMutation.isPending;
 
     // Permission flags
     const { hasPermission } = useAuthStore();
     const canEdit    = hasPermission('quotation.edit');
     const canSend    = hasPermission('quotation.send');
     const canApprove = hasPermission('quotation.edit');
-    const canAssign  = hasPermission('jobcard.assign');
-
-    // Load company users for staff assignment
-    const { data: usersRaw } = useQuery({
-        queryKey: ['users', 'all'],
-        queryFn: () => apiGet('/users'),
-        enabled: showStaffPanel,
-    });
-    const allUsers: any[] = (usersRaw as any)?.data ?? [];
-
-    // Initialize selectedStaff from quotation when staff panel is opened
-    const openStaffPanel = () => {
-        if (!staffInitialized && q?.assignedStaff) {
-            setSelectedStaff(q.assignedStaff.map((s: any) => s._id || s));
-            setStaffInitialized(true);
-        }
-        setShowStaffPanel(true);
-    };
-
-    const toggleStaff = (userId: string) => {
-        setSelectedStaff(prev =>
-            prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
-        );
-    };
-
-    const handleSaveStaff = async () => {
-        await assignStaffMut.mutateAsync(selectedStaff);
-        setShowStaffPanel(false);
-    };
 
     const handleAction = async (action: 'send' | 'approve' | 'reject' | 'revise') => {
         setConfirmAction(null);
         if (action === 'send')    await sendMutation.mutateAsync(undefined as any);
-        if (action === 'approve') await approveMutation.mutateAsync(undefined as any);
+        if (action === 'approve') setShowApproveModal(true);
         if (action === 'reject')  await rejectMutation.mutateAsync(undefined as any);
         if (action === 'revise') {
             const res: any = await reviseMutation.mutateAsync({});
             if (res?.data?._id) navigate(`/quotations/${res.data._id}`);
         }
+    };
+
+    const handleApproveFinal = async (jobCardConfigs: any[]) => {
+        await approveMutation.mutateAsync({ jobCardConfigs });
+        setShowApproveModal(false);
     };
 
     const handleDownloadPDF = async () => {
@@ -232,16 +203,6 @@ export default function QuotationDetailPage() {
                         </Button>
                     )}
 
-                    {/* Assign Staff — admin only, visible always */}
-                    {canAssign && (
-                        <Button
-                            variant="outline"
-                            onClick={openStaffPanel}
-                            className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-violet-500/30 text-violet-500 hover:bg-violet-500/10"
-                        >
-                            <Users size={13} /> Assign Staff
-                        </Button>
-                    )}
                 </div>
             </div>
 
@@ -256,7 +217,7 @@ export default function QuotationDetailPage() {
                     >
                         <p className="text-sm font-bold text-foreground">
                             {confirmAction === 'send'    && 'Send this quotation to the client via email & WhatsApp?'}
-                            {confirmAction === 'approve' && `Approve this quotation? A Project and Job Cards will be automatically created for ${q.items?.length || 0} item(s).`}
+                            {confirmAction === 'approve' && `Approve this quotation? A Project and Job Cards will be automatically created for ${q.items?.length || 0} item(s). You\'ll set the team assignment in the next step.`}
                             {confirmAction === 'reject'  && 'Mark this quotation as Rejected?'}
                             {confirmAction === 'revise'  && 'Create a new revision copy from this quotation?'}
                         </p>
@@ -267,90 +228,6 @@ export default function QuotationDetailPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {/* Staff Assignment Panel */}
-            <AnimatePresence>
-                {showStaffPanel && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="bg-card border border-violet-500/20 rounded-2xl p-5 space-y-4"
-                    >
-                        <div className="flex items-center justify-between">
-                            <p className="text-sm font-black text-foreground flex items-center gap-2">
-                                <Users size={14} className="text-violet-500" /> Assign Staff to This Quotation
-                            </p>
-                            <button onClick={() => setShowStaffPanel(false)} className="text-muted-foreground/40 hover:text-muted-foreground transition-colors">
-                                <X size={14} />
-                            </button>
-                        </div>
-                        <p className="text-xs text-muted-foreground/60 font-medium">
-                            Selected staff will be assigned to the design & production stages of all job cards for this quotation.
-                        </p>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
-                            {allUsers.map((user: any) => {
-                                const selected = selectedStaff.includes(user._id);
-                                return (
-                                    <button
-                                        key={user._id}
-                                        type="button"
-                                        onClick={() => toggleStaff(user._id)}
-                                        className={cn(
-                                            'flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all text-xs font-bold',
-                                            selected
-                                                ? 'border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-400'
-                                                : 'border-border/60 text-muted-foreground hover:border-violet-500/30 hover:bg-violet-500/5'
-                                        )}
-                                    >
-                                        <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-[10px] font-black shrink-0">
-                                            {user.name?.[0]?.toUpperCase()}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="truncate">{user.name}</p>
-                                            <p className="text-[9px] font-medium text-muted-foreground/50 uppercase tracking-wider truncate">{user.role}</p>
-                                        </div>
-                                        {selected && <Check size={10} className="ml-auto shrink-0" />}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                        <div className="flex items-center gap-3 pt-2 border-t border-border/30">
-                            <Button
-                                onClick={handleSaveStaff}
-                                disabled={assignStaffMut.isPending}
-                                className="h-9 px-5 rounded-xl text-xs font-black gap-2 bg-violet-500 hover:bg-violet-600 text-white"
-                            >
-                                {assignStaffMut.isPending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                                Save Assignment ({selectedStaff.length} selected)
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => setShowStaffPanel(false)} className="rounded-xl text-xs font-bold text-muted-foreground">
-                                Cancel
-                            </Button>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Assigned Staff display */}
-            {q.assignedStaff?.length > 0 && (
-                <div className="bg-violet-500/5 border border-violet-500/15 rounded-2xl px-5 py-4 flex items-center gap-4 flex-wrap">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-violet-500/70 shrink-0 flex items-center gap-1.5">
-                        <Users size={10} /> Assigned Staff
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                        {q.assignedStaff.map((staff: any) => (
-                            <span key={staff._id || staff} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400 text-xs font-bold border border-violet-500/20">
-                                <div className="w-4 h-4 rounded-md bg-violet-500/20 flex items-center justify-center text-[9px] font-black">
-                                    {(staff.name || '?')[0]?.toUpperCase()}
-                                </div>
-                                {staff.name || staff}
-                                {staff.role && <span className="text-violet-400/60 font-medium capitalize">· {staff.role}</span>}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             {/* Approval success note */}
             {status === 'approved' && q.projectId && (
@@ -374,8 +251,8 @@ export default function QuotationDetailPage() {
                     {/* Client */}
                     <InfoCard title="Client" icon={User2}>
                         <div className="space-y-2">
-                            <p className="font-black text-foreground text-sm">{client?.firmName || client?.name || '—'}</p>
-                            {client?.firmName && <p className="text-muted-foreground/60 text-xs font-medium">{client.name}</p>}
+                            <p className="font-black text-foreground text-sm">{client?.name || '—'}</p>
+                            {client?.firmName && <p className="text-muted-foreground/60 text-xs font-medium">{client.firmName}</p>}
                             <div className="pt-1 space-y-1">
                                 {client?.phone && <p className="text-xs text-muted-foreground/60 font-medium flex items-center gap-1.5"><span className="text-[9px] uppercase tracking-wider text-muted-foreground/30">Phone</span> {client.phone}</p>}
                                 {client?.email && <p className="text-xs text-muted-foreground/60 font-medium flex items-center gap-1.5"><span className="text-[9px] uppercase tracking-wider text-muted-foreground/30">Email</span> {client.email}</p>}
@@ -389,6 +266,7 @@ export default function QuotationDetailPage() {
                         <div className="space-y-2">
                             <p className="font-black text-foreground text-sm">{q.projectName}</p>
                             {q.architect && <p className="text-xs text-muted-foreground/60 font-medium">Ar. {q.architect}</p>}
+                            {q.projectDesigner && <p className="text-xs text-muted-foreground/60 font-medium">Designer: {q.projectDesigner}</p>}
                             {(q.siteAddress?.city || q.siteAddress?.state) && (
                                 <p className="text-xs text-muted-foreground/50 font-medium flex items-center gap-1">
                                     <MapPin size={10} /> {[q.siteAddress?.city, q.siteAddress?.state].filter(Boolean).join(', ')}
@@ -516,6 +394,14 @@ export default function QuotationDetailPage() {
                     )}
                 </div>
             </div>
+
+            <ApproveQuotationModal 
+                open={showApproveModal}
+                onOpenChange={setShowApproveModal}
+                onConfirm={handleApproveFinal}
+                quotation={q}
+                isSubmitting={approveMutation.isPending}
+            />
         </motion.div>
     );
 }

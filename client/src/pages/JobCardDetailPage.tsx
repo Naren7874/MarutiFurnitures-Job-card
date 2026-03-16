@@ -6,14 +6,16 @@ import { useAuthStore } from '../stores/authStore';
 import {
     ArrowLeft, AlertTriangle, Pencil, CheckCircle2, XCircle, Upload,
     Link2, Package, Loader2, ChevronRight, Clock, CheckCheck,
-    Truck, Shield, Wrench, FlaskConical, TriangleAlert,
-    CalendarCheck, MapPin, Camera, FileText, Users, MessageSquare, Download, PlusCircle
+    Truck, Shield, Wrench, FlaskConical, TriangleAlert, User,
+    CalendarCheck, MapPin, Camera, FileText, Users, MessageSquare, Download, PlusCircle,
+    Layers
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'motion/react';
 import { PhotoUploadZone } from '@/components/ui/photo-upload-zone';
 import { cn } from '../lib/utils';
@@ -71,8 +73,11 @@ function SectionCard({ title, icon: Icon, color, children }: any) {
 export default function JobCardDetailPage() {
     const { id } = useParams<{ id: string }>();
     const qc = useQueryClient();
-    const { hasPermission } = useAuthStore();
-    const canEditJC = hasPermission('jobcard.edit');
+    const { hasPermission, user } = useAuthStore();
+    const isSuperAdmin = user?.role === 'super_admin';
+    const userId = user?.id;
+
+    const canEditJC = hasPermission('jobcard.edit') || hasPermission('designrequest.edit');
     const canSeeDesign = hasPermission('designrequest.view');
     const canSeeStore = hasPermission('storeStage.view');
     const canSeeProd = hasPermission('productionStage.view');
@@ -112,6 +117,50 @@ export default function JobCardDetailPage() {
 
     if (isLoading) {
         return <div className="p-6 space-y-4">{[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-muted/20 rounded-xl animate-pulse" />)}</div>;
+    }
+
+    if (!jc._id) {
+        return (
+            <div className="p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
+                <div className="w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center mb-6">
+                    <Package size={40} className="text-muted-foreground/20" />
+                </div>
+                <h3 className="text-foreground text-xl font-black mb-2 tracking-tight">Job Card Isolated</h3>
+                <p className="text-muted-foreground/60 max-w-xs mb-8 font-medium">The requested identifier does not correspond to an active operational unit.</p>
+                <Link to="/jobcards">
+                    <Button variant="outline" className="rounded-2xl font-black text-[10px] uppercase tracking-widest px-10 h-12 shadow-sm">
+                        ← Back to Pipeline
+                    </Button>
+                </Link>
+            </div>
+        );
+    }
+
+
+    // Access check for staff
+    const isAssigned = jc.assignedTo && Object.values(jc.assignedTo).some((dept: any) => 
+        Array.isArray(dept) && dept.some((u: any) => (u._id || u.id || u) === userId)
+    );
+    const isSalesperson = (jc.salesperson?.id || jc.salesperson?._id || jc.salesperson) === userId ||
+                          (jc.projectId?.salesPerson?.id || jc.projectId?.salesPerson?._id || jc.projectId?.salesPerson) === userId;
+
+    if (!isSuperAdmin && !isAssigned && !isSalesperson) {
+        return (
+            <div className="p-12 text-center flex flex-col items-center justify-center min-h-[500px]">
+                <div className="w-24 h-24 rounded-3xl bg-rose-500/10 flex items-center justify-center mb-8 border border-rose-500/20 shadow-xl shadow-rose-500/5">
+                    <Shield size={48} className="text-rose-500/40" />
+                </div>
+                <h2 className="text-2xl font-black text-foreground mb-3 tracking-tight">Security Clearance Required</h2>
+                <p className="text-muted-foreground/60 max-w-md mx-auto mb-10 font-medium italic leading-relaxed">
+                    Your account is not currently assigned to this operational lifecycle stage or associated project. Please contact your department head for assignment.
+                </p>
+                <Link to="/jobcards">
+                    <Button className="bg-primary hover:bg-primary/90 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] px-14 h-16 shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                        ← Return to Pipeline
+                    </Button>
+                </Link>
+            </div>
+        );
     }
 
     return (
@@ -228,6 +277,29 @@ export default function JobCardDetailPage() {
     );
 }
 
+
+// ── Components ───────────────────────────────────────────────────────────────
+function AssignedStaffList({ users, roleLabel, color = 'bg-primary' }: { users: any[], roleLabel: string, color?: string }) {
+    if (!users || users.length === 0) return (
+        <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">{roleLabel}</p>
+            <p className="text-[10px] font-bold text-muted-foreground/30">Not assigned</p>
+        </div>
+    );
+    return (
+        <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">{roleLabel}</p>
+            <div className="flex -space-x-2">
+                {users.map((u: any) => (
+                    <div key={u._id || u} className={cn("w-7 h-7 rounded-full border-2 border-card flex items-center justify-center text-[10px] font-bold text-white uppercase ring-2", color, color === 'bg-primary' ? 'ring-primary/10' : 'ring-current/10')} title={u.name}>
+                        {u.name?.charAt(0) || <User size={12} />}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 // ── Overview Tab ──────────────────────────────────────────────────────────────
 
 function OverviewTab({ jc }: any) {
@@ -295,9 +367,16 @@ function OverviewTab({ jc }: any) {
                 <SectionCard title="Team Assignment" icon={Users} color="text-indigo-500">
                     <div className="space-y-2">
                         <InfoRow label="Salesperson" value={jc.salesperson?.name || '—'} />
+                        <InfoRow label="Contact Person" value={jc.contactPerson || '—'} />
                         <InfoRow label="Created By" value={jc.createdBy?.name || '—'} />
-                        {jc.assignedTo?.design?.length > 0 && <InfoRow label="Designers" value={jc.assignedTo.design.map((u: any) => u.name).join(', ')} />}
-                        {jc.assignedTo?.production?.length > 0 && <InfoRow label="Production Team" value={jc.assignedTo.production.map((u: any) => u.name).join(', ')} />}
+                        <div className="pt-2 grid grid-cols-2 gap-4">
+                            <AssignedStaffList users={jc.assignedTo?.design} roleLabel="Designers" color="bg-violet-500" />
+                            <AssignedStaffList users={jc.assignedTo?.store} roleLabel="Store Team" color="bg-amber-500" />
+                            <AssignedStaffList users={jc.assignedTo?.production} roleLabel="Production Team" color="bg-primary" />
+                            <AssignedStaffList users={jc.assignedTo?.qc} roleLabel="QC Team" color="bg-purple-500" />
+                            <AssignedStaffList users={jc.assignedTo?.dispatch} roleLabel="Dispatch Team" color="bg-cyan-500" />
+                            <AssignedStaffList users={jc.assignedTo?.accountant} roleLabel="Accountant" color="bg-emerald-500" />
+                        </div>
                         {jc.assignedTo?.qc?.length > 0 && <InfoRow label="QC Team" value={jc.assignedTo.qc.map((u: any) => u.name).join(', ')} />}
                     </div>
                 </SectionCard>
@@ -325,7 +404,7 @@ function OverviewTab({ jc }: any) {
                 {jc.activityLog?.length > 0 ? (
                     <div className="space-y-4 pt-2">
                         {jc.activityLog.slice().reverse().map((log: any, i: number) => (
-                            <div key={i} className="flex gap-4">
+                            <div key={log.timestamp || log._id || i} className="flex gap-4">
                                 <div className="flex flex-col items-center">
                                     <div className="w-2.5 h-2.5 rounded-full bg-slate-300 mt-1" />
                                     {i !== jc.activityLog.length - 1 && <div className="w-px h-full bg-border/40 my-1" />}
@@ -365,109 +444,372 @@ function ReadOnlyBanner() {
     );
 }
 
+// ── Measurements Editor ──────────────────────────────────────────────────────
+function MeasureEditor({ id, items, onSave, canEdit }: { id: string; items: any[]; onSave: (updatedItems: any[]) => void; canEdit: boolean }) {
+    const [localItems, setLocalItems] = useState(items || []);
+    const [saving, setSaving] = useState(false);
+
+    const handleSpecChange = (itemIdx: number, key: string, val: string) => {
+        const next = [...localItems];
+        next[itemIdx] = {
+            ...next[itemIdx],
+            specifications: {
+                ...next[itemIdx].specifications,
+                [key]: val
+            }
+        };
+        setLocalItems(next);
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await apiPut(`/jobcards/${id}`, { items: localItems });
+            onSave(localItems);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="rounded-[20px] border border-border/40 bg-card/50 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
+                <div className="flex items-center gap-2">
+                    <Layers size={14} className="text-blue-500" />
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-foreground/70">Record Measurements</p>
+                </div>
+                {canEdit && (
+                    <Button size="sm" onClick={handleSave} disabled={saving} className="h-8 rounded-xl text-xs font-black gap-2 bg-blue-500 hover:bg-blue-600 text-white shadow-sm">
+                        {saving ? <Loader2 size={12} className="animate-spin" /> : <CheckCheck size={12} />}
+                        Save Dimensions
+                    </Button>
+                )}
+            </div>
+            <div className="p-5 space-y-4">
+                {localItems.map((item, idx) => (
+                    <div key={item._id || idx} className="p-4 rounded-2xl bg-muted/20 border border-border/30 hover:border-blue-500/20 transition-all">
+                        <div className="flex items-start justify-between gap-4 mb-4">
+                            <div className="flex items-center gap-3">
+                                <span className="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center text-[10px] font-black">{idx + 1}</span>
+                                <p className="text-xs font-bold text-foreground/80">{item.description}</p>
+                            </div>
+                            <Badge variant="outline" className="text-[10px] font-black uppercase text-muted-foreground/50 border-none bg-muted/40 h-5">
+                                {item.qty} {item.unit}
+                            </Badge>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                            {[
+                                { k: 'height', l: 'Height (mm)', p: 'H' },
+                                { k: 'width', l: 'Width (mm)', p: 'W' },
+                                { k: 'depth', l: 'Depth (mm)', p: 'D' },
+                            ].map(field => (
+                                <div key={field.k} className="space-y-1.5">
+                                    <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">{field.l}</Label>
+                                    <div className="relative group">
+                                        <Input
+                                            type="text"
+                                            value={item.specifications?.[field.k] || ''}
+                                            onChange={e => canEdit && handleSpecChange(idx, field.k, e.target.value)}
+                                            readOnly={!canEdit}
+                                            className="h-9 px-3 text-xs font-bold rounded-xl bg-background border-border/40 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
+                                            placeholder={field.p}
+                                        />
+                                        <div className="absolute inset-0 rounded-xl bg-blue-500/5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 function DesignTab({ id, jc, qcClient, canEdit }: any) {
     const { data: dRaw, isLoading } = useQuery({ queryKey: ['jobcard', id, 'design'], queryFn: () => apiGet(`/jobcards/${id}/design`) });
     const design: any = (dRaw as any)?.data ?? null;
     const [note, setNote] = useState('');
+    const [uploadLoading, setUploadLoading] = useState(false);
 
     const createMut = useMutation({ mutationFn: () => apiPost(`/jobcards/${id}/design`, {}), onSuccess: () => qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'design'] }) });
     const signoffMut = useMutation({ mutationFn: () => apiPost(`/jobcards/${id}/design/signoff`, {}), onSuccess: () => qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'design'] }) });
     const readyMut = useMutation({ mutationFn: () => apiPatch(`/jobcards/${id}/design/ready`), onSuccess: () => { qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'design'] }); } });
 
-    if (isLoading) return <div className="h-32 bg-muted/20 rounded-2xl animate-pulse mt-4" />;
+    const signoffStatus = design?.signoff?.status;
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+        setUploadLoading(true);
+        try {
+            const fd = new FormData();
+            Array.from(e.target.files).forEach(f => fd.append('files', f));
+            await apiUpload(`/jobcards/${id}/design/files`, fd);
+            qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'design'] });
+        } finally {
+            setUploadLoading(false);
+            e.target.value = '';
+        }
+    };
+
+    if (isLoading) return (
+        <div className="space-y-4 mt-2">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-muted/20 rounded-2xl animate-pulse" />)}
+        </div>
+    );
 
     if (!design) return (
-        <SectionCard title="Design Stage" icon={Pencil} color="text-blue-500">
+        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
+            className="mt-2 rounded-[24px] border border-violet-500/20 bg-violet-500/5 p-10 text-center space-y-5">
             {!canEdit && <ReadOnlyBanner />}
-            <div className="text-center py-8 space-y-4">
-                <p className="text-muted-foreground/40 text-sm font-bold">Design stage not started yet</p>
-                {canEdit && (
-                    <Button onClick={() => createMut.mutate()} disabled={createMut.isPending} className="rounded-xl font-black gap-2">
-                        {createMut.isPending ? <Loader2 size={14} className="animate-spin" /> : <Pencil size={14} />} Initiate Design Stage
-                    </Button>
-                )}
+            <div className="w-16 h-16 rounded-[20px] bg-violet-500/10 flex items-center justify-center mx-auto">
+                <Pencil size={26} className="text-violet-500" />
             </div>
-        </SectionCard>
+            <div>
+                <p className="font-black text-lg text-foreground mb-1">Design Stage Not Started</p>
+                <p className="text-muted-foreground/50 text-sm font-medium">
+                    Initiate the design stage to begin uploading files and getting client sign-off.
+                </p>
+            </div>
+            {canEdit && (
+                <Button onClick={() => createMut.mutate()} disabled={createMut.isPending}
+                    className="rounded-2xl font-black gap-2 h-11 px-8 bg-violet-500 hover:bg-violet-600 text-white shadow-lg shadow-violet-500/20">
+                    {createMut.isPending ? <Loader2 size={15} className="animate-spin" /> : <Pencil size={15} />}
+                    Initiate Design Stage
+                </Button>
+            )}
+        </motion.div>
     );
 
     return (
-        <SectionCard title="Design Stage" icon={Pencil} color="text-blue-500">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 mt-2">
             {!canEdit && <ReadOnlyBanner />}
-            <div className="space-y-6">
-                {/* Files */}
-                <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-3">Design Files ({design.files?.length || 0})</p>
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                        {design.files?.map((f: any, i: number) => (
-                            <a key={i} href={f.url} target="_blank" rel="noreferrer"
-                                className="flex items-center gap-2 p-3 rounded-xl bg-muted/20 border border-border/30 hover:border-primary/30 hover:bg-primary/5 transition text-xs font-bold text-foreground/70">
-                                <Upload size={12} className="text-primary" /> {f.title || `File ${i + 1}`}
-                            </a>
-                        ))}
-                    </div>
-                    {canEdit && (
-                        <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-muted-foreground/50 hover:text-primary transition">
-                            <input type="file" multiple className="hidden" onChange={async (e) => {
-                                if (!e.target.files?.length) return;
-                                const fd = new FormData();
-                                Array.from(e.target.files).forEach(f => fd.append('files', f));
-                                await apiPost(`/jobcards/${id}/design/files`, fd);
-                                qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'design'] });
-                            }} />
-                            <Upload size={13} /> Upload CAD / Renders / PDFs
-                        </label>
-                    )}
-                </div>
 
-                {/* Signoff */}
-                <div className="p-4 rounded-2xl bg-muted/20 border border-border/30 space-y-3">
-                    <div className="flex items-center justify-between">
+            {/* ── Context Banner ── */}
+            <motion.div initial={{ y: -10 }} animate={{ y: 0 }}
+                className="rounded-[20px] border border-violet-500/20 bg-linear-to-br from-violet-500/5 to-transparent p-5">
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                        <Pencil size={14} className="text-violet-500" />
+                    </div>
+                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-violet-600 dark:text-violet-400">Design Stage</h3>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Client</p>
+                        <p className="text-sm font-bold text-foreground truncate">{jc.clientId?.name || '—'}</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Expected Delivery</p>
+                        <p className={cn('text-sm font-bold', !jc.expectedDelivery ? 'text-muted-foreground/40' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
+                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}
+                        </p>
+                    </div>
+                    <AssignedStaffList users={jc.assignedTo?.design} roleLabel="Assigned Designers" color="bg-violet-500" />
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Sign-off Status</p>
+                        <span className={cn(
+                            'inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black border uppercase tracking-wide',
+                            signoffStatus === 'approved' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                            signoffStatus === 'sent'     ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
+                            signoffStatus === 'rejected' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
+                            'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                        )}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            {signoffStatus || 'pending'}
+                        </span>
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* ── Measurements ── */}
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
+                <MeasureEditor id={id!} items={jc.items} canEdit={canEdit} onSave={() => qcClient.invalidateQueries({ queryKey: ['jobcard', id] })} />
+            </motion.div>
+
+            {/* ── Design Files ── */}
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
+                <div className="rounded-[20px] border border-border/40 bg-card/50 overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
+                        <div className="flex items-center gap-2">
+                            <Upload size={14} className="text-violet-500" />
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-foreground/70">
+                                Design Files
+                            </p>
+                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground/60">
+                                {design.files?.length || 0}
+                            </span>
+                        </div>
+                        {canEdit && (
+                            <label className={cn(
+                                'flex items-center gap-1.5 cursor-pointer text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl transition-all',
+                                uploadLoading
+                                    ? 'bg-muted text-muted-foreground/40 cursor-wait'
+                                    : 'bg-violet-500/10 text-violet-500 hover:bg-violet-500/20 border border-violet-500/20'
+                            )}>
+                                <input type="file" multiple className="hidden" onChange={handleFileUpload} disabled={uploadLoading} />
+                                {uploadLoading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                                {uploadLoading ? 'Uploading…' : 'Upload'}
+                            </label>
+                        )}
+                    </div>
+                    <div className="p-5">
+                        {design.files?.length > 0 ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {design.files.map((f: any, i: number) => (
+                                    <motion.a key={f._id || f.id || f.path || i} href={f.url} target="_blank" rel="noreferrer"
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="group flex items-center gap-3 p-3.5 rounded-2xl bg-muted/30 border border-border/40 hover:border-violet-500/30 hover:bg-violet-500/5 transition-all">
+                                        <div className="w-9 h-9 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0 group-hover:bg-violet-500/20 transition-colors">
+                                            <FileText size={16} className="text-violet-500" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-bold text-foreground/80 truncate group-hover:text-violet-600 transition-colors">
+                                                {f.title || `File ${i + 1}`}
+                                            </p>
+                                            <p className="text-[9px] font-medium text-muted-foreground/40">Click to open</p>
+                                        </div>
+                                    </motion.a>
+                                ))}
+                            </div>
+                        ) : (
+                            <label className={cn(
+                                'flex flex-col items-center gap-3 py-10 rounded-2xl border-2 border-dashed transition-all cursor-pointer',
+                                canEdit ? 'border-border/40 hover:border-violet-500/40 hover:bg-violet-500/5' : 'border-border/20 cursor-default'
+                            )}>
+                                {canEdit && <input type="file" multiple className="hidden" onChange={handleFileUpload} disabled={uploadLoading} />}
+                                <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center">
+                                    <Upload size={20} className="text-muted-foreground/30" />
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-xs font-bold text-muted-foreground/50">
+                                        {canEdit ? 'Click to upload CAD files, renders, or PDFs' : 'No files uploaded yet'}
+                                    </p>
+                                    {canEdit && <p className="text-[10px] text-muted-foreground/30 mt-0.5">PNG, JPG, PDF, DWG supported</p>}
+                                </div>
+                            </label>
+                        )}
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* ── Client Sign-off ── */}
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
+                className={cn(
+                    'rounded-[20px] border p-5 space-y-4',
+                    signoffStatus === 'approved' ? 'border-emerald-500/25 bg-emerald-500/5' :
+                    signoffStatus === 'rejected' ? 'border-rose-500/25 bg-rose-500/5' :
+                    signoffStatus === 'sent'     ? 'border-blue-500/25 bg-blue-500/5' :
+                    'border-border/40 bg-card/50'
+                )}>
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                            signoffStatus === 'approved' ? 'bg-emerald-500/15 text-emerald-500' :
+                            signoffStatus === 'rejected' ? 'bg-rose-500/15 text-rose-500' :
+                            signoffStatus === 'sent'     ? 'bg-blue-500/15 text-blue-500' :
+                            'bg-amber-500/15 text-amber-500'
+                        )}>
+                            {signoffStatus === 'approved' ? <CheckCircle2 size={18} /> :
+                             signoffStatus === 'rejected' ? <XCircle size={18} /> :
+                             signoffStatus === 'sent'     ? <Link2 size={18} /> :
+                             <Link2 size={18} />}
+                        </div>
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Client Sign-off</p>
-                            <p className="text-sm font-bold text-foreground/70 mt-0.5">{design.signoff?.status || 'Not sent'}</p>
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-0.5">Client Sign-off</p>
+                            <p className={cn('text-sm font-black capitalize',
+                                signoffStatus === 'approved' ? 'text-emerald-600 dark:text-emerald-400' :
+                                signoffStatus === 'rejected' ? 'text-rose-600 dark:text-rose-400' :
+                                signoffStatus === 'sent'     ? 'text-blue-600 dark:text-blue-400' :
+                                'text-amber-600 dark:text-amber-400'
+                            )}>
+                                {signoffStatus === 'approved' ? '✓ Approved by Client' :
+                                 signoffStatus === 'rejected' ? '✗ Rejected — Revision Needed' :
+                                 signoffStatus === 'sent'     ? 'Link Sent — Awaiting Response' :
+                                 'Pending — Not Yet Sent'}
+                            </p>
+                            {design.signoff?.remarks && (
+                                <p className="text-xs text-muted-foreground/60 italic mt-1">"{design.signoff.remarks}"</p>
+                            )}
                         </div>
-                        {design.signoff?.status === 'approved' ? (
-                            <span className="flex items-center gap-1 text-emerald-500 text-xs font-black"><CheckCircle2 size={14} /> Approved</span>
-                        ) : design.signoff?.status === 'rejected' ? (
-                            <span className="flex items-center gap-1 text-rose-500 text-xs font-black"><XCircle size={14} /> Rejected</span>
-                        ) : canEdit ? (
-                            <Button size="sm" variant="outline" onClick={() => signoffMut.mutate()} disabled={signoffMut.isPending}
-                                className="rounded-xl text-xs font-black gap-1.5 border-border/60">
-                                {signoffMut.isPending ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />} Send Link
-                            </Button>
-                        ) : null}
                     </div>
-                    {signoffMut.isSuccess && (
-                        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-600">
-                            Sign-off link sent! The client will receive it via WhatsApp/email.
-                        </div>
-                    )}
-                    {design.signoff?.remarks && <p className="text-xs text-muted-foreground/60 italic">"{design.signoff.remarks}"</p>}
-                </div>
-
-                {/* Measurements / notes */}
-                <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-3">Designer Notes</p>
-                    <Textarea value={note || design.designerNotes || ''} onChange={canEdit ? (e => setNote(e.target.value)) : undefined}
-                        readOnly={!canEdit} rows={3} className="rounded-xl text-sm" placeholder="Add design notes, material specs, instructions…" />
-                    {canEdit && (
-                        <Button size="sm" variant="outline" className="mt-2 rounded-xl text-xs font-black"
-                            onClick={() => { apiPut(`/jobcards/${id}/design`, { designerNotes: note }); qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'design'] }); }}>
-                            Save Notes
+                    {canEdit && !['approved'].includes(signoffStatus) && (
+                        <Button size="sm" variant="outline" onClick={() => signoffMut.mutate()} disabled={signoffMut.isPending}
+                            className="rounded-xl text-xs font-black gap-1.5 border-border/60 shrink-0">
+                            {signoffMut.isPending ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
+                            {signoffStatus === 'sent' ? 'Resend Link' : 'Send Sign-off Link'}
                         </Button>
                     )}
                 </div>
-
-                {/* Mark Ready */}
-                {canEdit && jc.status === 'active' && (
-                    <Button onClick={() => readyMut.mutate()} disabled={readyMut.isPending}
-                        className="w-full h-11 rounded-xl font-black gap-2 bg-emerald-500 hover:bg-emerald-600 text-white">
-                        {readyMut.isPending ? <Loader2 size={15} className="animate-spin" /> : <CheckCheck size={15} />}
-                        Mark Design Ready → Move to Store
-                    </Button>
+                {signoffMut.isSuccess && (
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-600">
+                        ✓ Sign-off link sent! The client will receive it via WhatsApp/email.
+                    </div>
                 )}
-            </div>
-        </SectionCard>
+            </motion.div>
+
+            {/* ── Designer Notes ── */}
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }}
+                className="rounded-[20px] border border-border/40 bg-card/50 overflow-hidden">
+                <div className="flex items-center gap-2 px-5 py-4 border-b border-border/30">
+                    <MessageSquare size={14} className="text-slate-400" />
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-foreground/70">Designer Notes</p>
+                </div>
+                <div className="p-5 space-y-3">
+                    <Textarea
+                        value={note || design.designerNotes || ''}
+                        onChange={canEdit ? (e => setNote(e.target.value)) : undefined}
+                        readOnly={!canEdit}
+                        rows={4}
+                        className="rounded-xl text-sm resize-none border-border/40 bg-transparent"
+                        placeholder="Add design notes, material specifications, dimensions, instructions for production…"
+                    />
+                    {canEdit && (
+                        <div className="flex items-center justify-between">
+                            <p className="text-[10px] font-medium text-muted-foreground/30">
+                                {(note || design.designerNotes || '').length} characters
+                            </p>
+                            <Button size="sm" variant="outline"
+                                className="h-8 rounded-xl text-xs font-black border-border/50 hover:border-violet-500/40 hover:bg-violet-500/5 hover:text-violet-500"
+                                onClick={() => { apiPut(`/jobcards/${id}/design`, { designerNotes: note || design.designerNotes }); qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'design'] }); }}>
+                                Save Notes
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </motion.div>
+
+            {/* ── Primary Action ── */}
+            {canEdit && jc.status === 'active' ? (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+                    <Button
+                        onClick={() => readyMut.mutate()}
+                        disabled={readyMut.isPending}
+                        className="w-full h-14 rounded-[20px] font-black gap-3 text-base bg-linear-to-r from-violet-500 to-violet-700 hover:from-violet-600 hover:to-violet-800 text-white shadow-2xl shadow-violet-500/25 transition-all hover:scale-[1.01]"
+                    >
+                        {readyMut.isPending
+                            ? <><Loader2 size={18} className="animate-spin" /> Processing…</>
+                            : <><CheckCheck size={18} /> Mark Design Ready → Move to Store</>
+                        }
+                    </Button>
+                    <p className="text-center text-[10px] font-medium text-muted-foreground/30 mt-2">
+                        This will change the job status to "In Store" and notify the store team.
+                    </p>
+                </motion.div>
+            ) : jc.status !== 'active' && !['cancelled', 'on_hold'].includes(jc.status) && (
+                <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
+                    className="p-5 rounded-[24px] bg-emerald-500/5 border border-emerald-500/20 flex flex-col items-center text-center gap-2">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 mb-1">
+                        <CheckCheck size={20} />
+                    </div>
+                    <p className="text-sm font-black text-emerald-600">Design Stage Completed</p>
+                    <p className="text-[11px] font-medium text-emerald-600/60">
+                        This job has successfully moved to the <span className="capitalize font-black">{jc.status?.replace(/_/g, ' ')}</span> stage.
+                    </p>
+                </motion.div>
+            )}
+        </motion.div>
     );
 }
 
@@ -494,7 +836,40 @@ function StoreTab({ id, jc, qcClient, canEdit }: any) {
     const issuedCount = bom.filter((b: any) => b.issued).length;
 
     return (
-        <SectionCard title="Store Stage — Bill of Materials" icon={Package} color="text-amber-500">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 mt-2">
+            {!canEdit && <ReadOnlyBanner />}
+
+            {/* ── Context Banner ── */}
+            <motion.div initial={{ y: -10 }} animate={{ y: 0 }}
+                className="rounded-[20px] border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-transparent p-5">
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                        <Package size={14} className="text-amber-500" />
+                    </div>
+                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400">Store Stage</h3>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Expected Delivery</p>
+                        <p className={cn('text-sm font-bold', !jc.expectedDelivery ? 'text-muted-foreground/40' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
+                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}
+                        </p>
+                    </div>
+                    <AssignedStaffList users={jc.assignedTo?.store} roleLabel="Assigned Store Staff" color="bg-amber-500" />
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Stage Status</p>
+                        <span className={cn(
+                            'inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black border uppercase tracking-wide',
+                            jc.status === 'in_store' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                        )}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            {jc.status?.replace(/_/g, ' ') || 'pending'}
+                        </span>
+                    </div>
+                </div>
+            </motion.div>
+
+            <SectionCard title="Store Stage — Bill of Materials" icon={Package} color="text-amber-500">
             <div className="space-y-4">
                 {/* BOM Progress */}
                 <div className="flex items-center justify-between">
@@ -570,6 +945,7 @@ function StoreTab({ id, jc, qcClient, canEdit }: any) {
                 )}
             </div>
         </SectionCard>
+        </motion.div>
     );
 }
 
@@ -615,7 +991,40 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
     };
 
     return (
-        <SectionCard title="Production Stage" icon={Wrench} color="text-primary">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 mt-2">
+            {!canEdit && <ReadOnlyBanner />}
+
+            {/* ── Context Banner ── */}
+            <motion.div initial={{ y: -10 }} animate={{ y: 0 }}
+                className="rounded-[20px] border border-primary/20 bg-linear-to-br from-primary/5 to-transparent p-5">
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Wrench size={14} className="text-primary" />
+                    </div>
+                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-primary">Production Stage</h3>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Expected Delivery</p>
+                        <p className={cn('text-sm font-bold', !jc.expectedDelivery ? 'text-muted-foreground/40' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
+                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}
+                        </p>
+                    </div>
+                    <AssignedStaffList users={jc.assignedTo?.production} roleLabel="Assigned Production Team" color="bg-primary" />
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Stage Status</p>
+                        <span className={cn(
+                            'inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black border uppercase tracking-wide',
+                            jc.status === 'in_production' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                        )}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            {jc.status?.replace(/_/g, ' ') || 'pending'}
+                        </span>
+                    </div>
+                </div>
+            </motion.div>
+
+            <SectionCard title="Production Stage" icon={Wrench} color="text-primary">
             <div className="space-y-5">
                 {/* Progress bar */}
                 <div className="flex items-center gap-3">
@@ -676,7 +1085,7 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
                     <div className="space-y-2">
                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Progress Notes</p>
                         {stage.notes.slice(-3).reverse().map((n: any, i: number) => (
-                            <div key={i} className="p-3 rounded-xl bg-muted/20 border border-border/20">
+                            <div key={n._id || n.addedAt || i} className="p-3 rounded-xl bg-muted/20 border border-border/20">
                                 <p className="text-xs font-bold text-foreground/80">{n.note}</p>
                                 <p className="text-[10px] text-muted-foreground/40 mt-1">{n.workerName && `${n.workerName} · `}{new Date(n.addedAt).toLocaleDateString('en-IN')}</p>
                             </div>
@@ -697,6 +1106,7 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
                 )}
             </div>
         </SectionCard>
+        </motion.div>
     );
 }
 
@@ -744,7 +1154,42 @@ function QCTab({ id, jc, qcClient, canEdit }: any) {
     const allPassed = QC_PARAMETERS.every(p => merged[p]?.passed);
 
     return (
-        <SectionCard title="Quality Control Inspection" icon={Shield} color="text-purple-500">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 mt-2">
+            {!canEdit && <ReadOnlyBanner />}
+
+            {/* ── Context Banner ── */}
+            <motion.div initial={{ y: -10 }} animate={{ y: 0 }}
+                className="rounded-[20px] border border-purple-500/20 bg-linear-to-br from-purple-500/5 to-transparent p-5">
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                        <Shield size={14} className="text-purple-500" />
+                    </div>
+                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-purple-600 dark:text-purple-400">QC Stage</h3>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Expected Delivery</p>
+                        <p className={cn('text-sm font-bold', !jc.expectedDelivery ? 'text-muted-foreground/40' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
+                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}
+                        </p>
+                    </div>
+                    <AssignedStaffList users={jc.assignedTo?.qc} roleLabel="Assigned QC Team" color="bg-purple-500" />
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Stage Status</p>
+                        <span className={cn(
+                            'inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black border uppercase tracking-wide',
+                            jc.status === 'qc_pending' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
+                            jc.status === 'qc_passed'  ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                            'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                        )}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            {jc.status?.replace(/_/g, ' ') || 'pending'}
+                        </span>
+                    </div>
+                </div>
+            </motion.div>
+
+            <SectionCard title="Quality Control Inspection" icon={Shield} color="text-purple-500">
             <div className="space-y-5">
                 {/* Verdict badge */}
                 {stage.verdict && (
@@ -827,6 +1272,7 @@ function QCTab({ id, jc, qcClient, canEdit }: any) {
                 )}
             </div>
         </SectionCard>
+        </motion.div>
     );
 }
 
@@ -861,7 +1307,40 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
     if (!stage && jc.status !== 'qc_passed') return <EmptyStage name="Dispatch Stage" />;
 
     return (
-        <SectionCard title="Dispatch Stage" icon={Truck} color="text-cyan-500">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 mt-2">
+            {!canEdit && <ReadOnlyBanner />}
+
+            {/* ── Context Banner ── */}
+            <motion.div initial={{ y: -10 }} animate={{ y: 0 }}
+                className="rounded-[20px] border border-cyan-500/20 bg-linear-to-br from-cyan-500/5 to-transparent p-5">
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+                        <Truck size={14} className="text-cyan-500" />
+                    </div>
+                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400">Dispatch Stage</h3>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Expected Delivery</p>
+                        <p className={cn('text-sm font-bold', !jc.expectedDelivery ? 'text-muted-foreground/40' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
+                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}
+                        </p>
+                    </div>
+                    <AssignedStaffList users={jc.assignedTo?.dispatch} roleLabel="Assigned Dispatch Team" color="bg-cyan-500" />
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Stage Status</p>
+                        <span className={cn(
+                            'inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black border uppercase tracking-wide',
+                            jc.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20'
+                        )}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            {jc.status?.replace(/_/g, ' ') || 'pending'}
+                        </span>
+                    </div>
+                </div>
+            </motion.div>
+
+            <SectionCard title="Dispatch Stage" icon={Truck} color="text-cyan-500">
             <div className="space-y-5">
                 {stage?.scheduledDate && (
                     <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 space-y-2">
@@ -965,6 +1444,7 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
                 )}
             </div>
         </SectionCard>
+        </motion.div>
     );
 }
 
@@ -990,10 +1470,11 @@ function EditJobCardModal({ jc, onClose, onSuccess }: any) {
     const [expectedDelivery, setExpectedDelivery] = useState(
         jc.expectedDelivery ? new Date(jc.expectedDelivery).toISOString().split('T')[0] : ''
     );
+    const [contactPerson, setContactPerson] = useState(jc.contactPerson || '');
     const [items, setItems] = useState<any[]>(jc.items ? JSON.parse(JSON.stringify(jc.items)) : []);
 
     const updateMut = useMutation({
-        mutationFn: () => apiPut(`/jobcards/${jc._id}`, { title, priority, expectedDelivery, items }),
+        mutationFn: () => apiPut(`/jobcards/${jc._id}`, { title, priority, expectedDelivery, contactPerson, items }),
         onSuccess,
     });
 
@@ -1077,6 +1558,10 @@ function EditJobCardModal({ jc, onClose, onSuccess }: any) {
                             <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70">Expected Delivery</Label>
                             <Input type="date" value={expectedDelivery} onChange={e => setExpectedDelivery(e.target.value)} className="h-12 rounded-xl" />
                         </div>
+                        <div className="space-y-2 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70">Contact Person</Label>
+                            <Input value={contactPerson} onChange={e => setContactPerson(e.target.value)} placeholder="e.g. John Doe / +91 ..." className="h-12 rounded-xl" />
+                        </div>
                     </div>
 
                     <div className="space-y-4">
@@ -1089,7 +1574,7 @@ function EditJobCardModal({ jc, onClose, onSuccess }: any) {
 
                         <div className="space-y-4">
                             {items.map((item, idx) => (
-                                <div key={idx} className="flex flex-col md:flex-row gap-3 p-4 rounded-xl border border-border/40 bg-muted/10 relative group">
+                                <div key={item._id || item.id || idx} className="flex flex-col md:flex-row gap-3 p-4 rounded-xl border border-border/40 bg-muted/10 relative group">
                                     <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-background border font-black text-xs text-muted-foreground shrink-0 select-none">
                                         {item.srNo}
                                     </div>

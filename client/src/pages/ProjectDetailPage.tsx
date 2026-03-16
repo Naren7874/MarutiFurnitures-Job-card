@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
+import { useAuthStore } from '../stores/authStore';
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
     planning: { label: 'Planning', color: 'text-indigo-500', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
@@ -45,6 +46,9 @@ export default function ProjectDetailPage() {
     const whatsappMut = useUpdateWhatsApp(id!);
 
     const [statusChanging, setStatusChanging] = useState(false);
+    const { user } = useAuthStore();
+    const isSuperAdmin = user?.role === 'super_admin';
+    const userId = user?.id;
 
     const handleStatusChange = async (newStatus: string) => {
         setStatusChanging(true);
@@ -68,6 +72,21 @@ export default function ProjectDetailPage() {
                 <FolderOpen size={48} className="mx-auto text-muted-foreground/20 mb-4" />
                 <p className="text-muted-foreground font-bold">Project not found</p>
                 <Link to="/projects" className="text-primary text-sm font-bold mt-4 inline-block">← Back to Projects</Link>
+            </div>
+        );
+    }
+
+    // Access check for staff
+    const isAssigned = project.assignedStaff?.some((u: any) => (u._id || u.id || u) === userId) ||
+                       (project.salesPerson?.id || project.salesPerson?._id || project.salesPerson) === userId;
+
+    if (!isSuperAdmin && !isAssigned) {
+        return (
+            <div className="p-8 text-center">
+                <AlertTriangle size={48} className="mx-auto text-rose-500/20 mb-4" />
+                <h2 className="text-xl font-black text-foreground mb-2">Access Denied</h2>
+                <p className="text-muted-foreground/60 max-w-sm mx-auto">You are not assigned to this project and do not have permission to view its details.</p>
+                <Link to="/projects" className="text-primary text-sm font-black mt-6 inline-block uppercase tracking-widest hover:underline">← Return to Portfolio</Link>
             </div>
         );
     }
@@ -139,6 +158,11 @@ export default function ProjectDetailPage() {
                         {project.architect && (
                             <div className="flex items-center gap-2.5 text-xs text-muted-foreground/80 font-bold border-t border-border/30 pt-3 mt-3">
                                 <span className="text-[10px] font-black uppercase text-muted-foreground/40 bg-muted px-1.5 py-0.5 rounded-md">Ar.</span> {project.architect}
+                            </div>
+                        )}
+                        {project.projectDesigner && (
+                            <div className="flex items-center gap-2.5 text-xs text-muted-foreground/80 font-bold border-t border-border/30 pt-3 mt-3">
+                                <span className="text-[10px] font-black uppercase text-muted-foreground/40 bg-muted px-1.5 py-0.5 rounded-md">Designer</span> {project.projectDesigner}
                             </div>
                         )}
                     </div>

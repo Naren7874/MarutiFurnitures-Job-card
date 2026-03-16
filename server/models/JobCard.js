@@ -75,6 +75,7 @@ const jobCardSchema = new mongoose.Schema(
       id:   { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       name: String,
     },
+    contactPerson: { type: String },
     assignedTo: {
       design:     [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       store:      [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
