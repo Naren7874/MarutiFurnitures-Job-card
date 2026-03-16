@@ -245,7 +245,7 @@
           <td class="col-desc"><%= item.description %></td>
           <td class="col-qty"><%= item.qty %></td>
           <td class="col-rate">₹<%= (item.rate || 0).toLocaleString('en-IN') %></td>
-          <td class="col-amount">₹<%= (item.amount || 0).toLocaleString('en-IN') %></td>
+          <td class="col-amount">₹<%= (item.amount || (item.qty * item.rate) || 0).toLocaleString('en-IN') %></td>
         </tr>
       <% }); %>
     </tbody>
@@ -310,30 +310,7 @@
     </tbody>
   </table>
   <% } %>
-  <% if (company.bankDetails && company.bankDetails.accountNumber) { %>
-  <div style="margin-bottom: 12px; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #fafafa;">
-    <h4 style="font-size: 11px; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 2px;">Bank Details</h4>
-    <div style="display: flex; gap: 30px;">
-      <div>
-        <div style="font-size: 9px; color: #666;">Bank</div>
-        <div style="font-weight: 700; font-size: 10px;"><%= company.bankDetails.bankName %></div>
-      </div>
-      <div>
-        <div style="font-size: 9px; color: #666;">Account Name</div>
-        <div style="font-weight: 700; font-size: 10px;"><%= company.bankDetails.accountName %></div>
-      </div>
-      <div>
-        <div style="font-size: 9px; color: #666;">A/c No.</div>
-        <div style="font-weight: 700; font-size: 10px;"><%= company.bankDetails.accountNumber %></div>
-      </div>
-      <div>
-        <div style="font-size: 9px; color: #666;">IFSC Code</div>
-        <div style="font-weight: 700; font-size: 10px;"><%= company.bankDetails.ifsc %></div>
-      </div>
-    </div>
-  </div>
-  <% } %>
-
+  
   <!-- FOOTER -->
   <div class="footer">
     <div class="sign-box">

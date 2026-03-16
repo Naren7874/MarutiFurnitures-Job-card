@@ -100,7 +100,7 @@ export default function NewInvoicePage() {
         try {
             const res: any = await createInvoice.mutateAsync({
                 ...form,
-                items,
+                items: items.map(it => ({ ...it, amount: it.total })),
                 subtotal,
                 discount,
                 [form.gstType === 'cgst_sgst' ? 'cgst' : 'igst']: gstAmt / (form.gstType === 'cgst_sgst' ? 1 : 1),
