@@ -103,24 +103,15 @@ export const getQuotationById = async (req, res, next) => {
 
 export const updateQuotation = async (req, res, next) => {
   try {
-    const PROTECTED = ['companyId', 'quotationNumber', 'createdBy', 'revisionOf'];
+    const PROTECTED = ['companyId', 'quotationNumber', 'createdBy', 'revisionOf', 'projectId'];
     PROTECTED.forEach((f) => delete req.body[f]);
 
-    // Snapshot previous for tracking changes
-    const prevSnapshot = await Quotation.findOne({
+    // 1. Find the quotation
+    const quotation = await Quotation.findOne({
       _id: req.params.id,
-      ...req.companyFilter
-    }).lean();
-
-    const quotation = await Quotation.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        ...req.companyFilter,
-        status: { $nin: ['converted', 'rejected', 'revised'] },
-      },
-      req.body,
-      { new: true, runValidators: true }
-    );
+      ...req.companyFilter,
+      status: { $nin: ['converted', 'rejected', 'revised'] },
+    });
 
     if (!quotation) {
       return res.status(404).json({
@@ -129,14 +120,88 @@ export const updateQuotation = async (req, res, next) => {
       });
     }
 
-    // Compute changed fields
+    // Snapshot previous for tracking changes
+    const prevSnapshot = quotation.toObject();
+
+    // 2. Update fields manually to trigger pre('save') correctly
+    Object.assign(quotation, req.body);
+
+    // Increment revision number if modified after being sent or approved
+    if (quotation.status !== 'draft') {
+      quotation.revisionNumber = (quotation.revisionNumber || 1) + 1;
+    }
+
+    // 3. Save to trigger pre('save') hooks (for totals)
+    await quotation.save();
+
+    // Compute changed fields for audit log
     const changes = {};
     const tracked = ['projectName', 'architect', 'architectContact', 'projectDesigner', 'projectDesignerContact', 'grandTotal', 'status', 'validUntil'];
     tracked.forEach(f => {
-      if (prevSnapshot && String(prevSnapshot[f]) !== String(quotation[f])) {
+      if (String(prevSnapshot[f]) !== String(quotation[f])) {
         changes[f] = { from: prevSnapshot[f], to: quotation[f] };
       }
     });
+
+    // 4. Sync with Project and Job Cards if this quotation is already approved/active
+    if (quotation.projectId) {
+      // Sync Project
+      await Project.findByIdAndUpdate(quotation.projectId, {
+        projectName:            quotation.projectName,
+        architect:              quotation.architect,
+        architectContact:       quotation.architectContact,
+        projectDesigner:        quotation.projectDesigner,
+        projectDesignerContact: quotation.projectDesignerContact,
+        siteAddress:            quotation.siteAddress,
+      });
+
+      // Sync Job Cards (specifically items and project-level info)
+      const jobCards = await JobCard.find({ 
+        quotationId: quotation._id,
+        companyId: req.user.companyId 
+      });
+
+      for (const jc of jobCards) {
+        // Job Cards usually have one item (as per approveQuotation logic)
+        // We need to find the matching item in the updated quotation
+        // If the job card contains multiple items (unlikely but possible), sync accordingly
+        const updatedItems = [];
+        let itemChanged = false;
+
+        for (const jcItem of jc.items) {
+          const matchingQuoItem = quotation.items.find(i => 
+            (i._id && String(i._id) === String(jcItem._id)) || 
+            (i.srNo === jcItem.srNo)
+          );
+
+          if (matchingQuoItem) {
+            updatedItems.push({
+              srNo:           matchingQuoItem.srNo,
+              description:    matchingQuoItem.description,
+              photo:          matchingQuoItem.photo,
+              fabricPhoto:    matchingQuoItem.fabricPhoto,
+              photos:         matchingQuoItem.photos || [],
+              specifications: matchingQuoItem.specifications,
+              qty:            matchingQuoItem.qty,
+              unit:           matchingQuoItem.unit || 'pcs',
+            });
+            itemChanged = true;
+          } else {
+            // Keep original if not found in updated quotation (deleted?)
+            updatedItems.push(jcItem);
+          }
+        }
+
+        if (itemChanged) {
+          jc.items = updatedItems;
+          // Update title if it was derived from description
+          if (updatedItems.length === 1) {
+            jc.title = updatedItems[0].description || jc.title;
+          }
+          await jc.save();
+        }
+      }
+    }
 
     auditLog(req, {
       action: 'update',

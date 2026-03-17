@@ -80,10 +80,12 @@ export default function JobCardsPage() {
 
     const pagination: any = resp?.pagination ?? {};
 
-    const isOverdue = (expectedDelivery: string) =>
-        expectedDelivery &&
-        new Date(expectedDelivery) < new Date() &&
-        !['delivered', 'closed', 'cancelled'].includes(filters.status); // Simplified check, assuming status is from filter
+
+    const getDaysRemaining = (expectedDelivery: string) => {
+        if (!expectedDelivery) return null;
+        const diff = new Date(expectedDelivery).getTime() - new Date().getTime();
+        return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    };
 
     return (
         <div className="p-8 space-y-8 max-w-[1800px] mx-auto">
@@ -217,9 +219,8 @@ export default function JobCardsPage() {
                                         <TableRow className="border-border/40 hover:bg-transparent">
                                             <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Job Identity</TableHead>
                                             <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Client Name</TableHead>
-                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Timeline</TableHead>
-                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Progress Stage</TableHead>
-                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest text-right">Operational Scale</TableHead>
+                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest text-center">Timeline</TableHead>
+                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest text-right">Progress Stage</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -240,27 +241,54 @@ export default function JobCardsPage() {
                                                                 <Icon size={18} />
                                                             </div>
                                                             <div>
-                                                                <p className="text-foreground font-black text-sm tracking-tight">{jc.jobCardNumber}</p>
-                                                                <p className="text-muted-foreground/60 text-[10px] font-black uppercase tracking-tighter truncate max-w-[150px]">{jc.title}</p>
+                                                                <p className="text-foreground font-black text-base tracking-tight">{jc.jobCardNumber}</p>
+                                                                <p className="text-muted-foreground/60 text-xs font-black uppercase tracking-tighter truncate max-w-[200px]">{jc.title}</p>
                                                             </div>
                                                         </Link>
                                                     </TableCell>
                                                     <TableCell className="px-6 py-5">
-                                                        <p className="text-foreground/80 font-bold text-xs">{jc.clientId?.name || 'External Vendor'}</p>
-                                                        <p className="text-muted-foreground/40 text-[10px] font-semibold">{jc.projectName || jc.title || 'Corporate'}</p>
+                                                        <p className="text-foreground/80 font-bold text-sm">{jc.clientId?.name || 'External Vendor'}</p>
+                                                        <p className="text-muted-foreground/40 text-xs font-semibold">{jc.projectName || jc.title || 'Corporate'}</p>
                                                     </TableCell>
-                                                    <TableCell className="px-6 py-5">
-                                                        <div className="flex items-center gap-2">
-                                                            <Clock size={12} className={cn("text-muted-foreground/40", isOverdue(jc.expectedDelivery) && "text-rose-500")} />
-                                                            <span className={cn(
-                                                                "text-muted-foreground/60 text-[11px] font-black",
-                                                                isOverdue(jc.expectedDelivery) && "text-rose-500"
-                                                            )}>
-                                                                {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'NOT SET'}
-                                                            </span>
-                                                        </div>
+                                                    <TableCell className="px-6 py-5 text-center">
+                                                        {jc.expectedDelivery ? (() => {
+                                                            const days = getDaysRemaining(jc.expectedDelivery);
+                                                            let colorClass = "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
+                                                            let dotColor = "bg-blue-500";
+                                                            let shadow = "";
+
+                                                            if (days !== null) {
+                                                                if (days < 0) {
+                                                                    colorClass = "bg-rose-500 text-white border-rose-600";
+                                                                    dotColor = "bg-white";
+                                                                    shadow = "shadow-lg shadow-rose-500/30";
+                                                                } else if (days <= 10) {
+                                                                    colorClass = "bg-red-500 text-white border-red-600";
+                                                                    dotColor = "bg-white";
+                                                                    shadow = "shadow-lg shadow-red-500/30";
+                                                                } else if (days <= 25) {
+                                                                    colorClass = "bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30";
+                                                                    dotColor = "bg-amber-500";
+                                                                }
+                                                            }
+
+                                                            return (
+                                                                <div className={cn(
+                                                                    "inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all duration-300",
+                                                                    colorClass, shadow
+                                                                )}>
+                                                                    <div className={cn("size-1.5 rounded-full", dotColor, days !== null && days <= 10 && "animate-pulse")} />
+                                                                    <Clock size={12} strokeWidth={3} className="shrink-0" />
+                                                                    {days !== null ? (
+                                                                        days < 0 ? `${-days}d Overdue` : `${days}d Left`
+                                                                    ) : '—'}
+                                                                </div>
+                                                            );
+                                                        })() : (
+                                                            <span className="text-muted-foreground/30 text-[10px] font-black uppercase tracking-widest">Date Not Set</span>
+                                                        )}
                                                     </TableCell>
-                                                    <TableCell className="px-6 py-5">
+                                                    <TableCell className="px-6 py-5 text-right">
                                                         <Badge variant="outline" className={cn(
                                                             "gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-xs",
                                                             cfg.bg, cfg.color, cfg.border
@@ -268,10 +296,6 @@ export default function JobCardsPage() {
                                                             <div className={cn("size-1.5 rounded-full animate-pulse", cfg.color.replace('text-', 'bg-'))} />
                                                             {cfg.label}
                                                         </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="px-6 py-5 text-right">
-                                                        <p className="text-foreground font-black text-xs">₹{(jc.quotationId?.grandTotal || 0).toLocaleString()}</p>
-                                                        <p className="text-muted-foreground/40 text-[9px] font-black uppercase tracking-widest">Exclusive of Tax</p>
                                                     </TableCell>
                                                 </motion.tr>
                                             );
@@ -338,12 +362,42 @@ export default function JobCardsPage() {
                                                                         <Badge variant="outline" className={cn("text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border-none shadow-none", cfg.bg, cfg.color)}>
                                                                             {jc.jobCardNumber}
                                                                         </Badge>
-                                                                        <div className="flex items-center gap-1 text-[10px] font-black text-muted-foreground/40">
-                                                                            <Clock size={10} className={cn(isOverdue(jc.expectedDelivery) && "text-rose-500")} />
-                                                                            <span className={cn(isOverdue(jc.expectedDelivery) && "text-rose-500")}>
-                                                                                {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'}
-                                                                            </span>
-                                                                        </div>
+                                                                        {jc.expectedDelivery ? (() => {
+                                                                            const days = getDaysRemaining(jc.expectedDelivery);
+                                                                            let colorClass = "bg-blue-500/10 text-blue-600 dark:text-blue-400";
+                                                                            let shadow = "";
+
+                                                                            if (days !== null) {
+                                                                                if (days < 0) {
+                                                                                    colorClass = "bg-rose-500 text-white";
+                                                                                    shadow = "shadow-lg shadow-rose-500/20";
+                                                                                } else if (days <= 10) {
+                                                                                    colorClass = "bg-red-500 text-white";
+                                                                                    shadow = "shadow-lg shadow-red-500/20";
+                                                                                } else if (days <= 25) {
+                                                                                    colorClass = "bg-amber-500/20 text-amber-700 dark:text-amber-400";
+                                                                                }
+                                                                            }
+
+                                                                            return (
+                                                                                <div className={cn(
+                                                                                    "flex items-center gap-1.5 text-[9px] font-black tracking-widest px-2.5 py-1.5 rounded-xl border border-white/10",
+                                                                                    colorClass, shadow
+                                                                                )}>
+                                                                                    <Clock size={10} strokeWidth={3} />
+                                                                                    <span>
+                                                                                        {days !== null ? (
+                                                                                            days < 0 ? `${-days}d Overdue` : `${days}d Left`
+                                                                                        ) : '—'}
+                                                                                    </span>
+                                                                                </div>
+                                                                            );
+                                                                        })() : (
+                                                                            <div className="flex items-center gap-1 text-[10px] font-black text-muted-foreground/20 italic">
+                                                                                <Clock size={10} />
+                                                                                <span>—</span>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
 
                                                                     <p className="text-foreground font-black text-sm tracking-tight mb-2 line-clamp-1 group-hover:text-primary transition-colors">{jc.title}</p>
