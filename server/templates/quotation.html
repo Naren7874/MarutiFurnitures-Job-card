@@ -11,11 +11,14 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
     }
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      font-size: 11px;
+      font-size: 15px;
+      line-height: 1.5;
       color: #1a1a1a;
       background: #fff;
     }
@@ -50,7 +53,7 @@
       gap: 3px;
     }
     .company-name {
-      font-size: 26px;
+      font-size: 28px;
       font-weight: 900;
       color: #1a1a1a;
       text-transform: uppercase;
@@ -59,7 +62,7 @@
       margin-top: 2px; /* Slight adjustment to align with small icons */
     }
     .contact-line {
-      font-size: 11px;
+      font-size: 14px;
       color: #1a1a1a;
       font-weight: 700;
     }
@@ -68,11 +71,11 @@
       margin: 0 4px;
     }
     .address-line {
-      font-size: 10px;
+      font-size: 13px;
       color: #555;
       font-weight: 500;
-      line-height: 1.4;
-      max-width: 400px;
+      line-height: 1.5;
+      max-width: 450px;
     }
     .header-right {
       display: flex;
@@ -130,12 +133,12 @@
     /* ── TITLE BAR ── */
     .doc-title {
       text-align: center;
-      font-size: 15px;
-      font-weight: 800;
+      font-size: 20px;
+      font-weight: 900;
       letter-spacing: 2px;
       background: #1a1a1a;
       color: #c8a84b;
-      padding: 6px 0;
+      padding: 8px 0;
       margin-bottom: 8px;
     }
 
@@ -158,8 +161,9 @@
 
     .items-table td {
       border: 1px solid #ddd;
-      padding: 6px 8px;
+      padding: 8px 10px;
       vertical-align: top;
+      font-size: 14px;
     }
 
     .items-table tr:nth-child(even) td {
@@ -249,14 +253,18 @@
     }
 
     .specs {
-      margin-top: 4px;
-      font-size: 9.5px;
+      margin-top: 8px;
+      font-size: 13px;
       color: #555;
-      line-height: 1.6;
+      line-height: 1.8;
     }
-
     .specs span {
       display: block;
+      padding: 4px 0;
+      border-bottom: 0.5px solid #ececec;
+    }
+    .specs span:last-child {
+      border-bottom: none;
     }
 
     .col-desc {
@@ -581,9 +589,7 @@
                 <% } %>
               </td>
               <td class="col-desc">
-                <strong>
                   <%= item.description %>
-                </strong>
                 <div class="specs">
                   <% if(item.specifications) { %>
                     <% if(item.specifications.size) { %><span>Size: <%= item.specifications.size %></span><% } %>
@@ -647,19 +653,6 @@
         <li>Transportation (Delivery) Charge, Packing Charge 2% &amp; Labour Charge (Floorwise) Will be Extra</li>
     </ul>
   </div>
-
-
-
-
-      <!-- FOOTER -->
-      <div class="footer">
-        <div class="sign-box">
-          Authorised Signatory<br />
-          <strong>
-            <%= company.name %>
-          </strong>
-        </div>
-      </div>
 
 </body>
 

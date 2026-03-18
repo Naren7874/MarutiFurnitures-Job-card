@@ -156,28 +156,33 @@ const quotationSchema = new mongoose.Schema(
 
 // Auto-compute all totals before save
 quotationSchema.pre("save", function () {
-  // Item totals
+  // 1. Item totals
   this.items.forEach((item) => {
-    item.totalPrice = +(item.qty * item.sellingPrice).toFixed(2);
+    const qty = Number(item.qty) || 0;
+    const price = Number(item.sellingPrice) || 0;
+    item.totalPrice = +(qty * price).toFixed(2);
   });
 
-  // Subtotal
+  // 2. Subtotal
   this.subtotal = +this.items
-    .reduce((sum, i) => sum + (i.totalPrice || 0), 0)
+    .reduce((sum, i) => sum + (Number(i.totalPrice) || 0), 0)
     .toFixed(2);
 
-  // After discount
-  this.amountAfterDiscount = +(this.subtotal - (this.discount || 0)).toFixed(2);
+  // 3. After discount
+  const discValue = Number(this.discount) || 0;
+  this.amountAfterDiscount = +(this.subtotal - discValue).toFixed(2);
 
-  // GST is no longer added to Quotations
+  // 4. GST — specifically reset as per Maruti requirements (GST handled at Invoice/SO stage usually or no longer on Quo)
   this.cgst = 0;
   this.sgst = 0;
   this.igst = 0;
   this.gstAmount = 0;
 
-  // Grand total + advance (no GST)
-  this.grandTotal    = +(this.amountAfterDiscount).toFixed(2);
-  this.advanceAmount = +(this.grandTotal * (this.advancePercent / 100)).toFixed(2);
+  // 5. Grand total + advance
+  this.grandTotal = +(this.amountAfterDiscount).toFixed(2);
+  
+  const advPercent = Number(this.advancePercent) || 0;
+  this.advanceAmount = +(this.grandTotal * (advPercent / 100)).toFixed(2);
 });
 
 quotationSchema.index({ companyId: 1, status: 1 });

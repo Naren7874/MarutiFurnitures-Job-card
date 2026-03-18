@@ -7,7 +7,7 @@ interface StatusDistributionProps {
     data: { status: string; count: number; color?: string }[]
 }
 
-const STATUS_COLORS = ['#1315E5', '#8B5CF6', '#F59E0B', '#1315E5', '#10B981', '#8ffb03', '#131415']
+const STATUS_COLORS = ['#3B82F6', '#F59E0B', '#F97316', '#8B5CF6', '#10B981', '#06B6D4', '#1E293B']
 
 const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { name: string; value: number }[] }) => {
     if (active && payload?.length) {

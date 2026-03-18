@@ -8,6 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPatch, apiPut, apiDelete } from '../lib/axios';
 import { useAuthStore } from '../stores/authStore';
+import { toast } from 'sonner';
 
 // ─── Query Key Factory ────────────────────────────────────────────────────────
 // Every key starts with [resource, companyId] to ensure cache isolation.
@@ -142,7 +143,12 @@ export const useUpdateQuotation = (id: string) => {
     const cid = company?.id || '';
     return useMutation({
         mutationFn: (data: object) => apiPut(`/quotations/${id}`, data),
-        onSuccess: () => qc.invalidateQueries({ queryKey: QK.quotation(cid, id) }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['quotations', cid] });
+            qc.invalidateQueries({ queryKey: QK.quotation(cid, id) });
+            toast.success('Quotation updated successfully');
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to update quotation'),
     });
 };
 
@@ -152,7 +158,13 @@ export const useSendQuotation = (id: string) => {
     const cid = company?.id || '';
     return useMutation({
         mutationFn: () => apiPatch(`/quotations/${id}/send`),
-        onSuccess: () => qc.invalidateQueries({ queryKey: QK.quotation(cid, id) }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['quotations', cid] });
+            qc.invalidateQueries({ queryKey: QK.quotation(cid, id) });
+            qc.invalidateQueries({ queryKey: ['dashboard', cid] });
+            toast.success('Quotation sent to client');
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to send quotation'),
     });
 };
 
@@ -167,7 +179,11 @@ export const useApproveQuotation = (id: string) => {
             qc.invalidateQueries({ queryKey: QK.quotation(cid, id) });
             qc.invalidateQueries({ queryKey: ['projects', cid] });
             qc.invalidateQueries({ queryKey: ['jobcards', cid] });
+            qc.invalidateQueries({ queryKey: ['invoices', cid] });
+            qc.invalidateQueries({ queryKey: ['dashboard', cid] });
+            toast.success('Quotation approved! Project & Job Cards created.');
         },
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to approve quotation'),
     });
 };
 
@@ -177,8 +193,17 @@ export const useRejectQuotation = (id: string) => {
     const { company } = useAuthStore();
     const cid = company?.id || '';
     return useMutation({
-        mutationFn: () => apiPatch(`/quotations/${id}/reject`),
-        onSuccess: () => qc.invalidateQueries({ queryKey: QK.quotation(cid, id) }),
+        mutationFn: (reason?: string) => apiPatch(`/quotations/${id}/reject`, { reason }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['quotations', cid] });
+            qc.invalidateQueries({ queryKey: QK.quotation(cid, id) });
+            qc.invalidateQueries({ queryKey: ['dashboard', cid] });
+            toast.success('Quotation marked as rejected');
+        },
+        onError: (err: any) => {
+            console.error('Reject mutation failed:', err?.response?.data || err.message);
+            toast.error(err?.response?.data?.message || 'Failed to reject quotation');
+        },
     });
 };
 
@@ -188,7 +213,13 @@ export const useReviseQuotation = (id: string) => {
     const cid = company?.id || '';
     return useMutation({
         mutationFn: (data: object) => apiPost(`/quotations/${id}/revise`, data),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['quotations', cid] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['quotations', cid] });
+            qc.invalidateQueries({ queryKey: QK.quotation(cid, id) });
+            qc.invalidateQueries({ queryKey: ['dashboard', cid] });
+            toast.success('Revision created successfully');
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create revision'),
     });
 };
 

@@ -6,8 +6,20 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size: 11px; color: #1a1a1a; background: #fff; }
+  * { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+    overflow-wrap: break-word; 
+    word-wrap: break-word;
+  }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #1a1a1a;
+    background: #fff;
+  }
 
     /* ── HEADER ── */
     .header {
@@ -39,7 +51,7 @@
       gap: 3px;
     }
     .company-name {
-      font-size: 26px;
+      font-size: 28px;
       font-weight: 900;
       color: #1a1a1a;
       text-transform: uppercase;
@@ -48,7 +60,7 @@
       margin-top: 2px; /* Slight adjustment to align with small icons */
     }
     .contact-line {
-      font-size: 11px;
+      font-size: 14px;
       color: #1a1a1a;
       font-weight: 700;
     }
@@ -57,11 +69,11 @@
       margin: 0 4px;
     }
     .address-line {
-      font-size: 10px;
+      font-size: 13px;
       color: #555;
       font-weight: 500;
-      line-height: 1.4;
-      max-width: 400px;
+      line-height: 1.5;
+      max-width: 450px;
     }
     .header-right {
       display: flex;
@@ -96,33 +108,34 @@
       font-weight: 1000;
     }
 
-  .doc-title { text-align: center; font-size: 17px; font-weight: 900; letter-spacing: 4px; background: #1a1a1a; color: #fff; padding: 6px 0; margin-bottom: 10px; }
+  .doc-title { text-align: center; font-size: 22px; font-weight: 900; letter-spacing: 4px; background: #1a1a1a; color: #fff; padding: 6px 0; margin-bottom: 10px; }
 
   .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; border: 1.5px solid #1a1a1a; }
-  .meta-table td { padding: 5px 8px; border: 1px solid #bbb; font-size: 10.5px; }
+  .meta-table td { padding: 5px 8px; border: 1px solid #bbb; font-size: 14px; }
   .meta-table .label { font-weight: 700; background: #f0f0f0; width: 130px; }
 
   .items-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-  .items-table th { background: #1a1a1a; color: #fff; font-weight: 700; padding: 6px 8px; border: 1px solid #333; text-align: center; font-size: 11px; }
+  .items-table th { background: #1a1a1a; color: #fff; font-weight: 700; padding: 6px 8px; border: 1px solid #333; text-align: center; font-size: 14px; }
   .items-table td { border: 1px solid #ddd; padding: 6px 8px; vertical-align: top; }
   .items-table tr:nth-child(even) td { background: #fafafa; }
   .col-no { width: 30px; text-align: center; }
   .col-desc { min-width: 160px; }
   .col-qty { width: 50px; text-align: center; }
   .col-rate { width: 80px; text-align: right; }
-  .col-amount { width: 90px; text-align: right; font-weight: 700; }
+  .col-amount { width: 100px; text-align: right; font-weight: 700; font-size: 14px; }
+  .category-row td { background-color: #f2f2f2 !important; font-weight: 800; font-size: 13px; text-transform: uppercase; color: #1a1a1a; padding: 8px 10px; border: 1px solid #ccc; text-align: center; letter-spacing: 1px; }
 
   .totals-wrap { margin-bottom: 20px; }
   .totals-table { width: 100%; border-collapse: collapse; border: 1.5px solid #1a1a1a; }
-  .totals-table td { padding: 5px 10px; border: 1px solid #ddd; font-size: 11px; }
+  .totals-table td { padding: 5px 10px; border: 1px solid #ddd; font-size: 14px; }
   .totals-table .t-label { background: #f5f5f5; font-weight: 600; }
   .totals-table .t-value { text-align: right; }
-  .totals-table .t-final { background: #1a1a1a; color: #fff; font-weight: 800; font-size: 12px; }
+  .totals-table .t-final { background: #1a1a1a; color: #fff; font-weight: 800; font-size: 15px; }
   .totals-table .t-final .t-value { color: #fff; }
 
   .payment-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1.5px solid #1a1a1a; }
   .payment-table th { background: #f0f0f0; font-weight: 800; padding: 8px 10px; border: 1px solid #bbb; font-size: 10px; text-align: left; text-transform: uppercase; color: #333; }
-  .payment-table td { padding: 8px 10px; border: 1px solid #ddd; font-size: 10.5px; font-weight: 500; }
+  .payment-table td { padding: 8px 10px; border: 1px solid #ddd; font-size: 14px; font-weight: 500; }
   .payment-table tr:nth-child(even) td { background: #fafafa; }
 
   .status-badge { display: inline-block; padding: 2px 10px; border-radius: 3px; font-weight: 700; font-size: 10px; letter-spacing: 1px; }
@@ -206,24 +219,28 @@
     </tr>
     <tr>
       <td class="label">Client</td>
-      <td><%= client.name %><% if(client.firmName){ %> — <%= client.firmName %><% } %></td>
-      <td class="label">Due Date</td>
-      <td><%= invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('en-IN') : '—' %></td>
+      <td>
+        <strong><%= client.name %></strong><% if(client.firmName){ %><br/><span style="font-size:12px; color:#555;"><%= client.firmName %></span><% } %>
+      </td>
+      <td class="label">GSTIN (Client)</td>
+      <td><strong><%= client.gstin || '—' %></strong></td>
+    </tr>
+    <tr>
+      <td class="label">Address</td>
+      <td colspan="3">
+        <% if (client.address && (client.address.line1 || client.address.city)) { %>
+          <%= client.address.houseNumber ? client.address.houseNumber + ', ' : '' %>
+          <%= client.address.line1 %>, <%= client.address.line2 || '' %><br/>
+          <%= client.address.city %>, <%= client.address.state %> - <%= client.address.pincode %>
+        <% } else { %>
+          —
+        <% } %>
+      </td>
     </tr>
     <tr>
       <td class="label">Project</td>
-      <td><%= invoice.projectId?.projectName || '—' %></td>
-      <td class="label">Status</td>
-      <td>
-        <span class="status-badge status-<%= invoice.status %>"><%= (invoice.status || 'draft').toUpperCase() %></span>
-      </td>
+      <td colspan="3"><%= invoice.projectId?.projectName || '—' %></td>
     </tr>
-    <% if(client.gstin) { %>
-    <tr>
-      <td class="label">Client GSTIN</td>
-      <td colspan="3"><%= client.gstin %></td>
-    </tr>
-    <% } %>
   </table>
 
   <!-- LINE ITEMS -->
@@ -232,7 +249,7 @@
     <thead>
       <tr>
         <th class="col-no">No.</th>
-        <th class="col-desc">Description</th>
+        <th class="col-desc">Product / Service</th>
         <th class="col-qty">Qty</th>
         <th class="col-rate">Rate</th>
         <th class="col-amount">Amount</th>
@@ -242,7 +259,7 @@
       <% invoice.items.forEach(function(item, idx) { %>
         <tr>
           <td class="col-no"><%= idx + 1 %></td>
-          <td class="col-desc"><%= item.description %></td>
+          <td class="col-desc" style="font-weight: normal;"><%= item.category || item.description %></td>
           <td class="col-qty"><%= item.qty %></td>
           <td class="col-rate">₹<%= (item.rate || 0).toLocaleString('en-IN') %></td>
           <td class="col-amount">₹<%= (item.amount || (item.qty * item.rate) || 0).toLocaleString('en-IN') %></td>
@@ -311,13 +328,5 @@
   </table>
   <% } %>
   
-  <!-- FOOTER -->
-  <div class="footer">
-    <div class="sign-box">
-      Authorised Signatory<br/>
-      <strong><%= company.name %></strong>
-    </div>
-  </div>
-
 </body>
 </html>

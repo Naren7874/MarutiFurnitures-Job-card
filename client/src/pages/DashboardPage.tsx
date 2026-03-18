@@ -1,6 +1,6 @@
 import { useAuthStore } from '../stores/authStore';
-import { useJobCards } from '../hooks/useApi';
-import { ClipboardList, Receipt, TrendingUp, AlertTriangle, ArrowRight, Layers, CheckCircle2, Clock } from 'lucide-react';
+import { useJobCards, useDashboardStats } from '../hooks/useApi';
+import { ClipboardList, Receipt, TrendingUp, AlertTriangle, ArrowRight, Layers, CheckCircle2, Clock, Briefcase, FileX } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
@@ -64,24 +64,23 @@ const StatCard = ({ icon: Icon, label, value, sub, colorClass, delay = 0 }: any)
 
 function AdminDashboard() {
     const { user } = useAuthStore();
-    const { data: raw, isLoading } = useJobCards({ limit: 100 });
-    const jobCards: any[] = (raw as any)?.data ?? [];
-
-    const statusCount = jobCards.reduce<Record<string, number>>((acc, jc) => {
-        const s = jc.status?.toUpperCase();
-        acc[s] = (acc[s] || 0) + 1;
-        acc[jc.status] = (acc[jc.status] || 0) + 1;
-        return acc;
-    }, {});
-
-    const overdue = jobCards.filter((jc) =>
-        jc.expectedDelivery &&
-        new Date(jc.expectedDelivery) < new Date() &&
-        !['delivered', 'closed', 'cancelled'].includes(jc.status?.toLowerCase())
-    ).length;
+    const { data: statsRaw, isLoading: statsLoading } = useDashboardStats();
+    const { data: jobsRaw, isLoading: jobsLoading } = useJobCards({ limit: 10 });
+    
+    const stats = (statsRaw as any)?.data;
+    const jobCards: any[] = (jobsRaw as any)?.data ?? [];
 
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+
+    if (statsLoading) {
+        return (
+            <div className="p-8 space-y-10 max-w-[1600px] mx-auto text-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+                <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Loading Intelligence...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="p-8 space-y-10 max-w-[1600px] mx-auto">
@@ -109,11 +108,11 @@ function AdminDashboard() {
             </motion.div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                 <StatCard
                     icon={ClipboardList}
                     label="Active Jobs"
-                    value={statusCount['active'] || statusCount['SALES'] || 0}
+                    value={stats?.jobCards?.total || 0}
                     sub="Running"
                     colorClass="bg-blue-500/10 text-blue-600 dark:text-blue-400"
                     delay={0.1}
@@ -121,26 +120,42 @@ function AdminDashboard() {
                 <StatCard
                     icon={TrendingUp}
                     label="In Production"
-                    value={statusCount['PRODUCTION'] || statusCount['in_production'] || 0}
+                    value={stats?.jobCards?.byStage?.in_production || 0}
                     sub="Factory"
                     colorClass="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
                     delay={0.2}
                 />
                 <StatCard
-                    icon={Layers}
-                    label="QC Pending"
-                    value={statusCount['QC'] || statusCount['qc_pending'] || 0}
-                    sub="Quality"
-                    colorClass="bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                    icon={CheckCircle2}
+                    label="Completed Projects"
+                    value={stats?.projects?.completed || 0}
+                    sub="Success"
+                    colorClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                     delay={0.3}
+                />
+                <StatCard
+                    icon={FileX}
+                    label="Rejected Quotes"
+                    value={stats?.quotations?.rejected || 0}
+                    sub="Declined"
+                    colorClass="bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                    delay={0.4}
+                />
+                <StatCard
+                    icon={Briefcase}
+                    label="Total Projects"
+                    value={stats?.projects?.total || 0}
+                    sub="All-time"
+                    colorClass="bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    delay={0.5}
                 />
                 <StatCard
                     icon={AlertTriangle}
                     label="Overdue Alerts"
-                    value={overdue}
+                    value={stats?.invoices?.overdue || 0}
                     sub="Critical"
-                    colorClass="bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                    delay={0.4}
+                    colorClass="bg-pink-500/10 text-pink-600 dark:text-pink-400"
+                    delay={0.6}
                 />
             </div>
 
@@ -164,7 +179,7 @@ function AdminDashboard() {
                         </button>
                     </div>
 
-                    {isLoading ? (
+                    {jobsLoading ? (
                         <div className="space-y-4">
                             {[...Array(5)].map((_, i) => (
                                 <Skeleton key={i} className="h-20 w-full rounded-3xl" />

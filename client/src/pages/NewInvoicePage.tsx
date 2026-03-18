@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
 interface LineItem {
+    category: string;
     description: string;
     qty: number;
     rate: number;
@@ -37,7 +38,7 @@ export default function NewInvoicePage() {
         advancePaid: 0,
         dueDate: '',
     });
-    const [items, setItems] = useState<LineItem[]>([{ description: '', qty: 1, rate: 0, total: 0 }]);
+    const [items, setItems] = useState<LineItem[]>([{ category: '', description: '', qty: 1, rate: 0, total: 0 }]);
     const [error, setError] = useState('');
     const [clientOpen, setClientOpen] = useState(false);
     const [projectOpen, setProjectOpen] = useState(false);
@@ -51,6 +52,7 @@ export default function NewInvoicePage() {
         const inv = (qData as any)?.data;
         if (inv && inv.items) {
             setItems(inv.items.map((it: any) => ({
+                category: it.category || '',
                 description: it.description,
                 qty: it.qty,
                 rate: it.sellingPrice || it.rate || 0,
@@ -85,7 +87,7 @@ export default function NewInvoicePage() {
         });
     };
 
-    const addItem = () => setItems(prev => [...prev, { description: '', qty: 1, rate: 0, total: 0 }]);
+    const addItem = () => setItems(prev => [...prev, { category: '', description: '', qty: 1, rate: 0, total: 0 }]);
     const removeItem = (i: number) => setItems(prev => prev.filter((_, idx) => idx !== i));
 
     const subtotal = items.reduce((s, it) => s + it.total, 0);
@@ -96,7 +98,7 @@ export default function NewInvoicePage() {
 
     const handleSubmit = async () => {
         if (!form.clientId) { setError('Please select a client'); return; }
-        if (items.some(it => !it.description)) { setError('All items need a description'); return; }
+        if (items.some(it => !it.category && !it.description)) { setError('All items need a category or description'); return; }
         try {
             const res: any = await createInvoice.mutateAsync({
                 ...form,
@@ -379,7 +381,7 @@ export default function NewInvoicePage() {
                             <table className="w-full text-xs">
                                 <thead>
                                     <tr className="bg-muted/20 text-muted-foreground/50">
-                                        <th className="text-left px-4 py-3 font-black uppercase tracking-widest">Description</th>
+                                        <th className="text-left px-4 py-3 font-black uppercase tracking-widest">Category</th>
                                         <th className="text-center px-3 py-3 font-black uppercase tracking-widest w-16">Qty</th>
                                         <th className="text-right px-3 py-3 font-black uppercase tracking-widest w-24">Rate (₹)</th>
                                         <th className="text-right px-3 py-3 font-black uppercase tracking-widest w-24">Total (₹)</th>
@@ -390,8 +392,8 @@ export default function NewInvoicePage() {
                                     {items.map((item, i) => (
                                         <tr key={i} className="group">
                                             <td className="px-4 py-2">
-                                                <Input value={item.description} onChange={e => updateItem(i, 'description', e.target.value)}
-                                                    placeholder="Item description" className="rounded-lg h-9 border-border/40 font-medium text-xs" />
+                                                <Input value={item.category || item.description} onChange={e => updateItem(i, 'category', e.target.value)}
+                                                    placeholder="Item category" className="rounded-lg h-9 border-border/40 font-medium text-xs" />
                                             </td>
                                             <td className="px-3 py-2">
                                                 <Input type="number" value={item.qty} min={1} onChange={e => updateItem(i, 'qty', Number(e.target.value))}

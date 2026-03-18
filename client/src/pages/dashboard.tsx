@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import {
     ClipboardCheck, ShieldCheck,
-    Package, CalendarDays, History, LayoutGrid, FileText
+    Package, CalendarDays, History, LayoutGrid, FileText, CheckCircle2, FileX
 } from "lucide-react"
 import { motion } from "motion/react"
 
@@ -43,13 +43,15 @@ const roleColors: Record<string, string> = {
 }
 
 const statusColorMap: Record<string, string> = {
-    ENQUIRY: "#767A8C",
-    DESIGN: "#8B5CF6",
-    STORE: "#F59E0B",
-    PRODUCTION: "#1315E5",
-    QC: "#10B981",
-    DISPATCH: "#8ffb03",
-    CLOSED: "#131415",
+    active: "#94A3B8",        // Slate
+    in_production: "#3B82F6", // Blue
+    qc_pending: "#F59E0B",    // Amber
+    qc_passed: "#06B6D4",     // Cyan
+    dispatched: "#8B5CF6",    // Violet
+    delivered: "#10B981",     // Emerald
+    closed: "#1E293B",        // Dark Slate
+    on_hold: "#F97316",       // Orange
+    cancelled: "#F43F5E",      // Rose
 };
 
 export default function Dashboard() {
@@ -163,18 +165,24 @@ export default function Dashboard() {
             </motion.div>
 
             {/* ── KPI Row — Summary Analytics ────────────────── */}
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 <motion.div variants={itemFade}>
-                    <KPICard title="Active Projects" value={stats?.projects.active || 0} change={stats?.projects.change} icon={LayoutGrid} description="Ongoing client mandates" />
+                    <KPICard title="Active Projects" value={stats?.projects.active || 0} change={stats?.projects.change} icon={LayoutGrid} accentColor="#3B82F6" description="Ongoing client mandates" />
                 </motion.div>
                 <motion.div variants={itemFade}>
                     <KPICard title="Active Job Cards" value={stats?.jobCards.total || 0} change={stats?.jobCards.change} icon={ClipboardCheck} accentColor="#1315E5" description="Total jobs in system" />
                 </motion.div>
                 <motion.div variants={itemFade}>
-                    <KPICard title="Pending Quotations" value={stats?.quotations.pending || 0} change={stats?.quotations.change} icon={FileText} accentColor="#F59E0B" description="Awaiting client approval" />
+                    <KPICard title="Pending Quotations" value={(stats?.quotations.pending || 0) + (stats?.quotations.draft || 0)} change={stats?.quotations.change} icon={FileText} accentColor="#F59E0B" description="Drafts + Sent" />
                 </motion.div>
                 <motion.div variants={itemFade}>
                     <KPICard title="QC Pending" value={stats?.jobCards.qcPending || 0} change={stats?.jobCards.qcPendingChange} icon={ShieldCheck} accentColor="#10B981" description="Quality verification" />
+                </motion.div>
+                <motion.div variants={itemFade}>
+                    <KPICard title="Completed Projects" value={stats?.projects.completed || 0} icon={CheckCircle2} accentColor="#10B981" description="Successfully delivered" />
+                </motion.div>
+                <motion.div variants={itemFade}>
+                    <KPICard title="Rejected Quotes" value={stats?.quotations.rejected || 0} icon={FileX} accentColor="#F43F5E" description="Declined quotations" />
                 </motion.div>
             </div>
 
@@ -207,10 +215,10 @@ export default function Dashboard() {
                             <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Stage Distribution Load</div>
                             <div className="space-y-3.5">
                                 {[
-                                    { label: 'Design', status: 'DESIGN', color: '#8B5CF6' },
-                                    { label: 'Production', status: 'PRODUCTION', color: '#1315E5' },
-                                    { label: 'QC', status: 'QC', color: '#10B981' },
-                                    { label: 'Dispatch', status: 'DISPATCH', color: '#8ffb03' },
+                                    { label: 'Production', status: 'in_production', color: '#3B82F6' },
+                                    { label: 'QC Pending', status: 'qc_pending', color: '#F59E0B' },
+                                    { label: 'Store', status: 'in_store', color: '#6366F1' },
+                                    { label: 'Dispatch', status: 'dispatched', color: '#8B5CF6' },
                                 ].map(s => {
                                     const count = stats?.jobCards.byStage[s.status] || 0;
                                     const total = stats?.jobCards.total || 1;

@@ -4,7 +4,8 @@ import Client from '../models/Client.js';
 import Project from '../models/Project.js';
 import JobCard from '../models/JobCard.js';
 import DesignRequest from '../models/DesignRequest.js';
-import { generateQuotationNumber, generateProjectNumber, generateJobCardNumber } from '../utils/autoNumber.js';
+import { Invoice } from '../models/Invoice.js';
+import { generateQuotationNumber, generateProjectNumber, generateJobCardNumber, generateInvoiceNumber } from '../utils/autoNumber.js';
 import { generateAndUploadPDF } from '../utils/generatePDF.js';
 import { sendEmail, quotationEmailHTML } from '../utils/sendEmail.js';
 import { sendWhatsApp, WA_TEMPLATES } from '../utils/sendWhatsApp.js';
@@ -145,7 +146,7 @@ export const updateQuotation = async (req, res, next) => {
 
     // 4. Sync with Project and Job Cards if this quotation is already approved/active
     if (quotation.projectId) {
-      // Sync Project
+      // Sync Project basic info
       await Project.findByIdAndUpdate(quotation.projectId, {
         projectName:            quotation.projectName,
         architect:              quotation.architect,
@@ -155,52 +156,160 @@ export const updateQuotation = async (req, res, next) => {
         siteAddress:            quotation.siteAddress,
       });
 
-      // Sync Job Cards (specifically items and project-level info)
-      const jobCards = await JobCard.find({ 
+      // SYNC JOB CARDS (One Job Card per Item pattern)
+      const existingJobCards = await JobCard.find({ 
         quotationId: quotation._id,
         companyId: req.user.companyId 
       });
 
-      for (const jc of jobCards) {
-        // Job Cards usually have one item (as per approveQuotation logic)
-        // We need to find the matching item in the updated quotation
-        // If the job card contains multiple items (unlikely but possible), sync accordingly
-        const updatedItems = [];
-        let itemChanged = false;
+      const processedJobCardIds = new Set();
 
-        for (const jcItem of jc.items) {
-          const matchingQuoItem = quotation.items.find(i => 
-            (i._id && String(i._id) === String(jcItem._id)) || 
-            (i.srNo === jcItem.srNo)
-          );
+      for (const quoItem of quotation.items) {
+        // Find matching job card for this specific quotation item
+        // Matching by item._id (best) or srNo
+        const matchingJC = existingJobCards.find(jc => 
+          jc.items.some(i => (i._id && String(i._id) === String(quoItem._id)) || (i.srNo === quoItem.srNo))
+        );
 
-          if (matchingQuoItem) {
-            updatedItems.push({
-              srNo:           matchingQuoItem.srNo,
-              description:    matchingQuoItem.description,
-              photo:          matchingQuoItem.photo,
-              fabricPhoto:    matchingQuoItem.fabricPhoto,
-              photos:         matchingQuoItem.photos || [],
-              specifications: matchingQuoItem.specifications,
-              qty:            matchingQuoItem.qty,
-              unit:           matchingQuoItem.unit || 'pcs',
-            });
-            itemChanged = true;
-          } else {
-            // Keep original if not found in updated quotation (deleted?)
-            updatedItems.push(jcItem);
-          }
-        }
+        if (matchingJC) {
+          // UPDATE EXISTING
+          matchingJC.title = quoItem.description || matchingJC.title;
+          matchingJC.items = [{
+            _id:            quoItem._id, // preserve ID link
+            srNo:           quoItem.srNo,
+            description:    quoItem.description,
+            photo:          quoItem.photo,
+            fabricPhoto:    quoItem.fabricPhoto,
+            photos:         quoItem.photos || [],
+            specifications: quoItem.specifications,
+            qty:            quoItem.qty,
+            unit:           quoItem.unit || 'pcs',
+          }];
+          // Also sync project level fields in case they changed
+          matchingJC.expectedDelivery = quotation.validUntil || matchingJC.expectedDelivery; // fallback or logic
+          
+          await matchingJC.save();
+          processedJobCardIds.add(String(matchingJC._id));
+        } else {
+          // CREATE NEW (Since this item exists in Quotation but has no Job Card)
+          const jcNumber = await generateJobCardNumber(req.user.companyId);
+          
+          const newJC = await JobCard.create({
+            companyId:     req.user.companyId,
+            jobCardNumber: jcNumber,
+            projectId:     quotation.projectId,
+            clientId:      quotation.clientId,
+            quotationId:   quotation._id,
+            title:         quoItem.description || `Item ${quoItem.srNo}`,
+            items: [{
+              _id:            quoItem._id,
+              srNo:           quoItem.srNo,
+              description:    quoItem.description,
+              photo:          quoItem.photo,
+              fabricPhoto:    quoItem.fabricPhoto,
+              photos:         quoItem.photos || [],
+              specifications: quoItem.specifications,
+              qty:            quoItem.qty,
+              unit:           quoItem.unit || 'pcs',
+            }],
+            expectedDelivery: quotation.validUntil, // default to validUntil if set
+            status:      'active',
+            priority:    'medium',
+            createdBy:   req.user.userId,
+            activityLog: [{
+              action:    'created',
+              doneBy:    req.user.userId,
+              newStatus: 'active',
+              note:      `Created via quotation update sync: ${quotation.quotationNumber}`,
+              timestamp: new Date(),
+            }],
+          });
 
-        if (itemChanged) {
-          jc.items = updatedItems;
-          // Update title if it was derived from description
-          if (updatedItems.length === 1) {
-            jc.title = updatedItems[0].description || jc.title;
-          }
-          await jc.save();
+          // Also create DesignRequest for new Job Card
+          const dr = await DesignRequest.create({
+            companyId: req.user.companyId,
+            jobCardId: newJC._id,
+            projectId: quotation.projectId,
+            clientId:  quotation.clientId,
+            status:    'pending',
+            createdBy: req.user.userId,
+          });
+          newJC.designRequestId = dr._id;
+          await newJC.save();
         }
       }
+
+      // HANDLE ORPHANED JOB CARDS (Job cards whose items were removed from Quotation)
+      const orphanedJCs = existingJobCards.filter(jc => !processedJobCardIds.has(String(jc._id)));
+      for (const ojc of orphanedJCs) {
+        // If it's still "active", we can delete or cancel.
+        // Let's mark as cancelled to be safe and keep history.
+        if (ojc.status === 'active') {
+          ojc.status = 'cancelled';
+          ojc.cancelReason = 'Item removed from associated quotation';
+          ojc.cancelledAt = new Date();
+          ojc.activityLog.push({
+            action: 'status_changed',
+            doneBy: req.user.userId,
+            prevStatus: 'active',
+            newStatus: 'cancelled',
+            note: 'Automatically cancelled because item was removed from quotation',
+          });
+          await ojc.save();
+        }
+      }
+    }
+
+    // 5. SYNC LINKED INVOICE (if quotation already has one)
+    const linkedInvoice = await Invoice.findOne({
+      quotationId: quotation._id,
+      companyId: req.user.companyId,
+    });
+
+    if (linkedInvoice) {
+      // Rebuild invoice items from updated quotation items
+      linkedInvoice.items = quotation.items.map((item, idx) => ({
+        srNo:        idx + 1,
+        category:    item.category || '',
+        description: item.description || '',
+        qty:         item.qty || 1,
+        unit:        item.unit || 'pcs',
+        rate:        item.sellingPrice || 0,
+        amount:      item.totalPrice || (item.qty * item.sellingPrice) || 0,
+      }));
+
+      // Recalculate invoice totals
+      const newSubtotal = linkedInvoice.items.reduce((sum, i) => sum + (i.qty * i.rate), 0);
+      const newDiscount = quotation.discount || 0;
+      linkedInvoice.subtotal = newSubtotal;
+      linkedInvoice.discount = newDiscount;
+      linkedInvoice.amountAfterDiscount = newSubtotal - newDiscount;
+      const gstFactor = 0.09; // 9% each for CGST + SGST
+      if (linkedInvoice.gstType === 'igst') {
+        linkedInvoice.igst  = +(linkedInvoice.amountAfterDiscount * 0.18).toFixed(2);
+        linkedInvoice.cgst  = 0;
+        linkedInvoice.sgst  = 0;
+      } else {
+        linkedInvoice.igst  = 0;
+        linkedInvoice.cgst  = +(linkedInvoice.amountAfterDiscount * gstFactor).toFixed(2);
+        linkedInvoice.sgst  = +(linkedInvoice.amountAfterDiscount * gstFactor).toFixed(2);
+      }
+      linkedInvoice.gstAmount  = linkedInvoice.igst + linkedInvoice.cgst + linkedInvoice.sgst;
+      linkedInvoice.grandTotal = +(linkedInvoice.amountAfterDiscount + linkedInvoice.gstAmount).toFixed(2);
+      const totalPaidSoFar = linkedInvoice.payments.reduce((sum, p) => sum + p.amount, 0);
+      linkedInvoice.advancePaid = totalPaidSoFar;
+      linkedInvoice.balanceDue  = Math.max(0, linkedInvoice.grandTotal - totalPaidSoFar);
+      
+      if (linkedInvoice.balanceDue <= 0) {
+        linkedInvoice.status = 'paid';
+      } else if (linkedInvoice.advancePaid > 0) {
+        linkedInvoice.status = 'partially_paid';
+      } else if (linkedInvoice.status === 'paid' || linkedInvoice.status === 'partially_paid') {
+        linkedInvoice.status = 'draft'; 
+      }
+
+      linkedInvoice.pdfURL = ''; // invalidate cached PDF
+      await linkedInvoice.save();
     }
 
     auditLog(req, {
@@ -396,10 +505,78 @@ export const approveQuotation = async (req, res, next) => {
       jobCards.push(jobCard);
     }
 
-    // 3. Update quotation: mark approved + link project
+    // 4. AUTO-CREATE INVOICE from quotation items
+    const invoiceNumber = await generateInvoiceNumber(req.user.companyId, company.invoicePrefix);
+    const clientData = prev.clientId;
+    const invoiceItems = (prev.items || []).map((item, idx) => ({
+      srNo:        idx + 1,
+      category:    item.category || '',
+      description: item.description || '',
+      qty:         item.qty || 1,
+      unit:        item.unit || 'pcs',
+      rate:        item.sellingPrice || 0,
+      amount:      item.totalPrice || (item.qty * item.sellingPrice) || 0,
+    }));
+
+    const invoiceSubtotal = invoiceItems.reduce((s, i) => s + (i.qty * i.rate), 0);
+    const invoiceDiscount = prev.discount || 0;
+    const invoiceAfterDiscount = invoiceSubtotal - invoiceDiscount;
+    // Default GST: use 18% CGST+SGST for domestic
+    const invoiceCgst = +(invoiceAfterDiscount * 0.09).toFixed(2);
+    const invoiceSgst = +(invoiceAfterDiscount * 0.09).toFixed(2);
+    const invoiceGrandTotal = +(invoiceAfterDiscount + invoiceCgst + invoiceSgst).toFixed(2);
+
+    // Build initial payments array if advance was provided
+    const { advancePayment } = req.body;
+    const invoicePayments = [];
+    if (advancePayment?.amount > 0) {
+      invoicePayments.push({
+        amount:     advancePayment.amount,
+        mode:       advancePayment.mode || 'cash',
+        reference:  advancePayment.reference || '',
+        paidAt:     new Date(),
+        recordedBy: req.user.userId,
+      });
+    }
+    const totalPaidAtCreation = invoicePayments.reduce((s, p) => s + p.amount, 0);
+    const invoiceBalanceDue = Math.max(0, invoiceGrandTotal - totalPaidAtCreation);
+    const invoiceStatus = invoiceBalanceDue <= 0 ? 'paid' : (totalPaidAtCreation > 0 ? 'partially_paid' : 'draft');
+
+    const newInvoice = await Invoice.create({
+      companyId:            req.user.companyId,
+      invoiceNumber,
+      clientId:             clientData._id || clientData,
+      projectId:            project._id,
+      quotationId:          prev._id,
+      gstType:             'cgst_sgst',
+      placeOfSupply:        company.address?.state || '',
+      clientGstinSnapshot:  clientData?.gstin || '',
+      companyGstinSnapshot: company.gstin || '',
+      items:                invoiceItems,
+      subtotal:             invoiceSubtotal,
+      discount:             invoiceDiscount,
+      amountAfterDiscount:  invoiceAfterDiscount,
+      cgst:                 invoiceCgst,
+      sgst:                 invoiceSgst,
+      igst:                 0,
+      gstAmount:            invoiceCgst + invoiceSgst,
+      grandTotal:           invoiceGrandTotal,
+      advancePaid:          totalPaidAtCreation,
+      balanceDue:           invoiceBalanceDue,
+      payments:             invoicePayments,
+      status:               invoiceStatus,
+      createdBy:            req.user.userId,
+    });
+
+    // 5. Update quotation: mark approved + link project and save advance
     const quotation = await Quotation.findByIdAndUpdate(
       prev._id,
-      { status: 'approved', approvedAt: new Date(), projectId: project._id },
+      { 
+        status: 'approved', 
+        approvedAt: new Date(), 
+        projectId: project._id,
+        advanceAmount: advancePayment?.amount ? Number(advancePayment.amount) : prev.advanceAmount
+      },
       { new: true }
     );
 
@@ -417,7 +594,8 @@ export const approveQuotation = async (req, res, next) => {
       data: quotation,
       project,
       jobCards,
-      message: `Quotation approved. Project ${projectNumber} and ${jobCards.length} job card(s) created automatically.`,
+      invoice: newInvoice,
+      message: `Quotation approved. Project ${projectNumber}, ${jobCards.length} job card(s), and Invoice ${invoiceNumber} created automatically.`,
     });
   } catch (err) {
     next(err);
@@ -455,49 +633,27 @@ export const rejectQuotation = async (req, res, next) => {
 
 export const reviseQuotation = async (req, res, next) => {
   try {
-    const original = await Quotation.findOne({ _id: req.params.id, ...req.companyFilter }).lean();
-    if (!original) return res.status(404).json({ success: false, message: 'Quotation not found' });
+    const quotation = await Quotation.findOneAndUpdate(
+      { _id: req.params.id, ...req.companyFilter },
+      { 
+        $set: { status: 'draft', pdfURL: '' },
+        $inc: { revisionNumber: 1 }
+      },
+      { new: true }
+    );
 
-    const [company, client] = await Promise.all([
-      Company.findById(req.user.companyId).lean(),
-      Client.findById(original.clientId).lean()
-    ]);
-    const quotationNumber = await generateQuotationNumber(req.user.companyId, company.quotationPrefix, client?.name);
-
-    const revisionData = {
-      ...original,
-      _id:            undefined,
-      quotationNumber,
-      status:         'draft',
-      revisionOf:     original._id,
-      revisionNumber: (original.revisionNumber || 1) + 1,
-      pdfURL:         undefined,
-      projectId:      undefined,
-      createdAt:      undefined,
-      updatedAt:      undefined,
-      ...req.body,
-      companyId:   req.user.companyId,
-      createdBy:   req.user.userId,
-      handledBy:   req.user.userId,
-    };
-
-    await Quotation.findByIdAndUpdate(original._id, { status: 'revised' });
-
-    const revision = await Quotation.create(revisionData);
+    if (!quotation) return res.status(404).json({ success: false, message: 'Quotation not found' });
 
     auditLog(req, {
-      action: 'create',
+      action: 'update',
       resourceType: 'Quotation',
-      resourceId: revision._id,
-      resourceLabel: quotationNumber,
-      metadata: {
-        revisionOf: original._id,
-        revisionNumber: revisionData.revisionNumber,
-        originalNumber: original.quotationNumber,
-      },
+      resourceId: quotation._id,
+      resourceLabel: quotation.quotationNumber,
+      changes: { status: { from: 'previous', to: 'draft' } },
+      metadata: { action: 'revision_reopened', revisionNumber: quotation.revisionNumber },
     });
 
-    res.status(201).json({ success: true, data: revision });
+    res.status(200).json({ success: true, data: quotation });
   } catch (err) {
     next(err);
   }

@@ -276,6 +276,7 @@ export const getDashboardStats = async (req, res, next) => {
     const [
       activeProjects,
       totalProjects,
+      completedProjects,
       jobCardByStatus,
       invoiceSummary,
       quotationSummary,
@@ -294,6 +295,7 @@ export const getDashboardStats = async (req, res, next) => {
     ] = await Promise.all([
       Project.countDocuments({ companyId, status: 'active' }),
       Project.countDocuments({ companyId }),
+      Project.countDocuments({ companyId, status: 'completed' }),
       JobCard.aggregate([
         { $match: { companyId: oid } },
         { $group: { _id: '$status', count: { $sum: 1 } } },
@@ -356,6 +358,7 @@ export const getDashboardStats = async (req, res, next) => {
         projects: {
           active: activeProjects,
           total: totalProjects,
+          completed: completedProjects,
           change: calcChange(currProjects, prevProjects)
         },
         jobCards: {

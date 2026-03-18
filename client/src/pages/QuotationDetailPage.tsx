@@ -58,13 +58,12 @@ export default function QuotationDetailPage() {
         if (action === 'approve') setShowApproveModal(true);
         if (action === 'reject')  await rejectMutation.mutateAsync(undefined as any);
         if (action === 'revise') {
-            const res: any = await reviseMutation.mutateAsync({});
-            if (res?.data?._id) navigate(`/quotations/${res.data._id}`);
+            await reviseMutation.mutateAsync({});
         }
     };
 
-    const handleApproveFinal = async (jobCardConfigs: any[]) => {
-        await approveMutation.mutateAsync({ jobCardConfigs });
+    const handleApproveFinal = async (jobCardConfigs: any[], advancePayment?: any) => {
+        await approveMutation.mutateAsync({ jobCardConfigs, advancePayment });
         setShowApproveModal(false);
     };
 
@@ -234,9 +233,9 @@ export default function QuotationDetailPage() {
                 <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl px-5 py-4 flex items-center gap-3">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
                     <div>
-                        <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">Quotation Approved — Project & Job Cards Created</p>
+                        <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">Quotation Approved — Project, Job Cards &amp; Invoice Created</p>
                         <p className="text-xs text-muted-foreground/60 font-medium mt-0.5">
-                            A project and individual job cards were automatically created for each item.{' '}
+                            A project, individual job cards, and an invoice were automatically created.{' '}
                             <Link to={`/projects/${q.projectId}`} className="text-primary font-bold hover:underline">View Project →</Link>
                         </p>
                     </div>

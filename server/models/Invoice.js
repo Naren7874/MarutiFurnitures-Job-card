@@ -25,6 +25,7 @@ const invoiceSchema = new mongoose.Schema(
     items: [
       {
         srNo:        Number,
+        category:    String,
         description: String,
         qty:         Number,
         unit:        String,

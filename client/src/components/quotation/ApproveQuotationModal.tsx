@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Loader2, CheckCircle2, User2, CalendarDays, Users, Package,
-    ArrowRight, Shield, Wrench, Truck, PencilLine, Plus, X
+    ArrowRight, Shield, Wrench, Truck, PencilLine, Plus, X, IndianRupee, CreditCard
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '../../lib/axios';
@@ -41,7 +41,7 @@ interface JobCardConfig {
 interface ApproveQuotationModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onConfirm: (jobCardConfigs: any[]) => void;
+    onConfirm: (jobCardConfigs: any[], advancePayment: any) => void;
     quotation: any;
     isSubmitting: boolean;
 }
@@ -60,6 +60,11 @@ export default function ApproveQuotationModal({
         expectedDelivery: '',
         assignedTo: { design: [], production: [], qc: [], dispatch: [] } as TeamAssignment,
     });
+    const [advancePayment, setAdvancePayment] = useState({
+        amount: 0,
+        mode: 'cash' as 'cash' | 'upi' | 'cheque' | 'neft' | 'card',
+        reference: '',
+    });
 
     const { data: usersRaw } = useQuery({
         queryKey: ['users', 'all'],
@@ -70,9 +75,7 @@ export default function ApproveQuotationModal({
 
     useEffect(() => {
         if (open && quotation?.items) {
-            // Pre-fill from quotation's general assigned staff if available
             const defaultStaffIds = (quotation.assignedStaff || []).map((s: any) => s._id || s);
-
             setConfigs(quotation.items.map((item: any) => ({
                 itemId: item._id,
                 srNo: item.srNo,
@@ -98,6 +101,8 @@ export default function ApproveQuotationModal({
                     dispatch: [] 
                 },
             });
+            // Reset advance payment fields
+            setAdvancePayment({ amount: 0, mode: 'cash', reference: '' });
         }
     }, [open, quotation]);
 
@@ -121,14 +126,17 @@ export default function ApproveQuotationModal({
     };
 
     const handleConfirm = () => {
-        onConfirm(configs.map(({ itemId, srNo, salesPerson, contactPerson, expectedDelivery, assignedTo }) => ({
-            itemId,
-            srNo,
-            salesPerson: salesPerson.id ? salesPerson : undefined,
-            contactPerson: contactPerson.name || undefined, 
-            expectedDelivery: expectedDelivery || undefined,
-            assignedTo,
-        })));
+        onConfirm(
+            configs.map(({ itemId, srNo, salesPerson, contactPerson, expectedDelivery, assignedTo }) => ({
+                itemId,
+                srNo,
+                salesPerson: salesPerson.id ? salesPerson : undefined,
+                contactPerson: contactPerson.name || undefined, 
+                expectedDelivery: expectedDelivery || undefined,
+                assignedTo,
+            })),
+            advancePayment.amount > 0 ? advancePayment : undefined
+        );
     };
 
     return (
@@ -155,8 +163,8 @@ export default function ApproveQuotationModal({
                     <div className="flex-1 overflow-y-auto p-8 pt-6 custom-scrollbar bg-background/50 backdrop-blur-sm">
                         <div className="space-y-10">
                             {/* Global Bulk Action */}
-                            <div className="bg-primary/[0.03] border border-primary/10 rounded-[40px] p-10 space-y-8 relative overflow-hidden shadow-sm">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/[0.02] rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl -z-10" />
+                            <div className="bg-primary/3 border border-primary/10 rounded-[40px] p-10 space-y-8 relative overflow-hidden shadow-sm">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/2 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl -z-10" />
                                 
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
@@ -303,6 +311,61 @@ export default function ApproveQuotationModal({
                                 </div>
                             </div>
 
+                            {/* Advance Payment Section */}
+                            <div className="bg-emerald-500/3 border border-emerald-500/15 rounded-[40px] p-10 space-y-6 relative overflow-hidden shadow-sm">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/2 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl -z-10" />
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-500 shadow-inner">
+                                        <IndianRupee size={22} />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">Advance Payment Received</p>
+                                        <p className="text-[11px] text-muted-foreground font-bold mt-0.5">Record any advance paid by the client at approval time</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <div className="space-y-2.5">
+                                        <label className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/80 ml-1 flex items-center gap-2">
+                                            <IndianRupee size={12} className="text-emerald-500" /> Amount (₹)
+                                        </label>
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            value={advancePayment.amount || ''}
+                                            onChange={e => setAdvancePayment(prev => ({ ...prev, amount: Number(e.target.value) }))}
+                                            placeholder="e.g. 50000"
+                                            className="h-12 rounded-2xl bg-background/50 border-border/60 text-sm font-bold shadow-sm focus:ring-emerald-500/20 hover:border-emerald-500/40 transition-colors"
+                                        />
+                                    </div>
+                                    <div className="space-y-2.5">
+                                        <label className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/80 ml-1 flex items-center gap-2">
+                                            <CreditCard size={12} className="text-emerald-500" /> Payment Mode
+                                        </label>
+                                        <Select value={advancePayment.mode} onValueChange={val => setAdvancePayment(prev => ({ ...prev, mode: val as any }))}>
+                                            <SelectTrigger className="h-12 rounded-2xl bg-background/50 border-border/60 text-sm font-bold shadow-sm focus:ring-emerald-500/20 hover:border-emerald-500/40 transition-colors">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
+                                                {['cash', 'upi', 'cheque', 'neft', 'card'].map(m => (
+                                                    <SelectItem key={m} value={m} className="text-sm font-bold rounded-xl py-3 focus:bg-emerald-500/10 capitalize">{m.toUpperCase()}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2.5">
+                                        <label className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/80 ml-1 flex items-center gap-2">
+                                            Reference / Note (optional)
+                                        </label>
+                                        <Input
+                                            value={advancePayment.reference}
+                                            onChange={e => setAdvancePayment(prev => ({ ...prev, reference: e.target.value }))}
+                                            placeholder="UPI ref, Cheque no, etc."
+                                            className="h-12 rounded-2xl bg-background/50 border-border/60 text-sm font-bold shadow-sm focus:ring-emerald-500/20 hover:border-emerald-500/40 transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Individual Item Configs */}
                             <div className="space-y-6">
                                     <div className="flex items-center gap-4 ml-2">
@@ -324,11 +387,11 @@ export default function ApproveQuotationModal({
                                             transition={{ delay: idx * 0.1, duration: 0.5, ease: "circOut" }}
                                             className="p-10 bg-card/40 border border-border/30 rounded-[48px] space-y-10 shadow-xl hover:shadow-2xl transition-all relative overflow-hidden group/card"
                                         >
-                                            <div className="absolute top-0 right-0 w-48 h-48 bg-primary/[0.03] rounded-bl-[120px] -z-10 group-hover/card:scale-125 transition-transform duration-700" />
+                                            <div className="absolute top-0 right-0 w-48 h-48 bg-primary/3 rounded-bl-[120px] -z-10 group-hover/card:scale-125 transition-transform duration-700" />
                                             
                                             <div className="flex items-start justify-between relative">
                                                 <div className="flex items-center gap-6">
-                                                    <div className="w-16 h-16 rounded-[24px] bg-gradient-to-br from-primary to-primary/80 text-white flex items-center justify-center text-2xl font-black shrink-0 shadow-2xl shadow-primary/30 ring-4 ring-primary/10">
+                                                    <div className="w-16 h-16 rounded-[24px] bg-linear-to-br from-primary to-primary/80 text-white flex items-center justify-center text-2xl font-black shrink-0 shadow-2xl shadow-primary/30 ring-4 ring-primary/10">
                                                         {config.srNo}
                                                     </div>
                                                     <div>
@@ -463,6 +526,8 @@ export default function ApproveQuotationModal({
                                 ))}
                             </div>
                         </div>
+
+
                     </div>
 
                     {/* Footer */}
