@@ -227,7 +227,7 @@ function OverridesTab({ userId, overrides }: { userId: string, overrides: Overri
                             </div>
                             <div>
                                 <p className="text-sm font-black text-foreground uppercase tracking-tight">{o.permission}</p>
-                                <p className="text-[10px] text-muted-foreground italic">By {o.grantedBy?.name || 'Admin'} · {new Date(o.grantedAt).toLocaleDateString()} {o.reason && `· "${o.reason}"`}</p>
+                                <p className="text-[10px] text-muted-foreground italic">By {o.grantedBy?.name || 'Admin'} · {new Date(o.grantedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })} {o.reason && `· "${o.reason}"`}</p>
                             </div>
                         </div>
                         <Button onClick={() => delMut.mutate(o._id)} variant="ghost" size="icon" className="size-8 rounded-lg opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500">
@@ -319,7 +319,7 @@ export default function UserDetailPage() {
                                 {user.phone && <span className="flex items-center gap-1.5"><Phone className="size-3" /> {user.phone}</span>}
                                 {user.lastLogin && (
                                     <span className="flex items-center gap-1.5">
-                                        <Clock className="size-3" /> Last login {new Date(user.lastLogin).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        <Clock className="size-3" /> Last login {new Date(user.lastLogin).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
                                     </span>
                                 )}
                             </div>
@@ -456,7 +456,7 @@ export default function UserDetailPage() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-xs font-bold text-foreground uppercase tracking-wider">{entry.action.replace(/_/g, ' ')}</p>
-                                                <p className="text-[10px] text-muted-foreground mt-0.5">By {entry.actorName} ({entry.actorRole}) · {new Date(entry.createdAt).toLocaleString()}</p>
+                                                <p className="text-[10px] text-muted-foreground mt-0.5">By {entry.actorName} ({entry.actorRole}) · {new Date(entry.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                                                 {entry.changes && <div className="mt-2 p-2 rounded-lg bg-card/50 border border-border/50 text-[10px] font-mono space-y-1">
                                                     {Object.entries(entry.changes).map(([k, v]) => <div key={k}>{k}: {String(v.from)} → {String(v.to)}</div>)}
                                                 </div>}

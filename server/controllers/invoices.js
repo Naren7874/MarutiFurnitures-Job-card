@@ -123,6 +123,87 @@ export const recordPayment = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ── PATCH /api/invoices/:id/payment/:paymentId ──────────────────────────────
+
+export const updatePayment = async (req, res, next) => {
+  try {
+    const { id, paymentId } = req.params;
+    const { amount, mode, reference, paidAt } = req.body;
+
+    const invoice = await Invoice.findOne({ _id: id, ...req.companyFilter });
+    if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+
+    const payment = invoice.payments.id(paymentId);
+    if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' });
+
+    const prevBalanceDue = invoice.balanceDue;
+    const prevStatus     = invoice.status;
+
+    if (amount !== undefined) payment.amount = amount;
+    if (mode) payment.mode = mode;
+    if (reference !== undefined) payment.reference = reference;
+    if (paidAt) payment.paidAt = paidAt;
+
+    const totalPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
+    invoice.advancePaid = totalPaid;
+    invoice.balanceDue  = Math.max(0, invoice.grandTotal - totalPaid);
+    invoice.status      = invoice.balanceDue <= 0 ? 'paid' : (totalPaid > 0 ? 'partially_paid' : (invoice.sentAt ? 'sent' : 'draft'));
+
+    await invoice.save();
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Invoice',
+      resourceId: invoice._id,
+      resourceLabel: invoice.invoiceNumber,
+      changes: {
+        balanceDue: { from: prevBalanceDue, to: invoice.balanceDue },
+        status:     { from: prevStatus,     to: invoice.status },
+      },
+      metadata: { paymentId, update: req.body },
+    });
+
+    res.status(200).json({ success: true, data: invoice });
+  } catch (err) { next(err); }
+};
+
+// ── DELETE /api/invoices/:id/payment/:paymentId ──────────────────────────────
+
+export const deletePayment = async (req, res, next) => {
+  try {
+    const { id, paymentId } = req.params;
+
+    const invoice = await Invoice.findOne({ _id: id, ...req.companyFilter });
+    if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+
+    const prevBalanceDue = invoice.balanceDue;
+    const prevStatus     = invoice.status;
+
+    invoice.payments.pull(paymentId);
+
+    const totalPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
+    invoice.advancePaid = totalPaid;
+    invoice.balanceDue  = Math.max(0, invoice.grandTotal - totalPaid);
+    invoice.status      = invoice.balanceDue <= 0 ? (totalPaid > 0 ? 'paid' : (invoice.sentAt ? 'sent' : 'draft')) : (totalPaid > 0 ? 'partially_paid' : (invoice.sentAt ? 'sent' : 'draft'));
+
+    await invoice.save();
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Invoice',
+      resourceId: invoice._id,
+      resourceLabel: invoice.invoiceNumber,
+      changes: {
+        balanceDue: { from: prevBalanceDue, to: invoice.balanceDue },
+        status:     { from: prevStatus,     to: invoice.status },
+      },
+      metadata: { deletedPaymentId: paymentId },
+    });
+
+    res.status(200).json({ success: true, data: invoice });
+  } catch (err) { next(err); }
+};
+
 // ── PATCH /api/invoices/:id/send — Generate PDF + send to client ────────────
 
 export const sendInvoice = async (req, res, next) => {
@@ -211,8 +292,9 @@ export const updateInvoice = async (req, res, next) => {
     }
     if (dueDate) invoice.dueDate = dueDate;
     if (req.body.placeOfSupply) invoice.placeOfSupply = req.body.placeOfSupply;
-    if (req.body.gstType) invoice.gstType = req.body.gstType;
-    if (req.body.notes !== undefined) invoice.notes = req.body.notes;
+    if (req.body.gstType)    invoice.gstType = req.body.gstType;
+    if (req.body.gstRate !== undefined) invoice.gstRate = req.body.gstRate;
+    if (req.body.notes !== undefined)   invoice.notes = req.body.notes;
 
     // Recalculate Totals
     const subtotal = invoice.items.reduce((sum, item) => sum + (item.qty * item.rate), 0);

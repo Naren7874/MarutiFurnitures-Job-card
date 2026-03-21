@@ -113,13 +113,14 @@ export const createJobCard = async (req, res, next) => {
 
 export const getJobCards = async (req, res, next) => {
   try {
-    const { status, priority, projectId, clientId, search, page = 1, limit = 20 } = req.query;
+    const { status, priority, projectId, clientId, quotationId, search, page = 1, limit = 20 } = req.query;
     const filter = { ...req.companyFilter };
 
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
     if (projectId) filter.projectId = projectId;
     if (clientId) filter.clientId = clientId;
+    if (quotationId) filter.quotationId = new mongoose.Types.ObjectId(quotationId);
     if (search) {
       filter.$or = [
         { jobCardNumber: new RegExp(search, 'i') },

@@ -253,7 +253,7 @@ export default function ProjectsPage() {
                                                         <div className="flex items-center gap-2.5">
                                                             <Calendar size={14} className="text-rose-500/30" />
                                                             <p className="text-muted-foreground/60 text-[11px] font-bold">
-                                                                {new Date(p.expectedCompletion).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                                {new Date(p.expectedCompletion).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
                                                             </p>
                                                         </div>
                                                     )}

@@ -77,7 +77,7 @@ export const passQC = async (req, res, next) => {
     // Generate QC certificate PDF
     const certUrl = await generateAndUploadPDF(
       'qc-certificate',
-      { JC_NUMBER: req.params.id, VERDICT: 'PASS', DATE: new Date().toLocaleDateString('en-IN') },
+      { JC_NUMBER: req.params.id, VERDICT: 'PASS', DATE: new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) },
       `${req.user.companyId}/qc-certs`,
       `QC-CERT-${req.params.id}`
     ).catch(() => null);  // Don't fail if template not ready yet

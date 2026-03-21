@@ -105,8 +105,9 @@ export default function NewInvoicePage() {
                 items: items.map(it => ({ ...it, amount: it.total })),
                 subtotal,
                 discount,
-                [form.gstType === 'cgst_sgst' ? 'cgst' : 'igst']: gstAmt / (form.gstType === 'cgst_sgst' ? 1 : 1),
-                ...(form.gstType === 'cgst_sgst' ? { cgst: gstAmt / 2, sgst: gstAmt / 2 } : { igst: gstAmt }),
+                gstRate: form.gstRate,
+                gstAmount: gstAmt,
+                ...(form.gstType === 'cgst_sgst' ? { cgst: gstAmt / 2, sgst: gstAmt / 2, igst: 0 } : { igst: gstAmt, cgst: 0, sgst: 0 }),
                 grandTotal,
             });
             navigate(`/invoices/${res?.data?._id || res?._id || ''}`);
@@ -316,18 +317,6 @@ export default function NewInvoicePage() {
                     <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-4">
                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 pb-2 border-b border-border/20">Tax & Dates</p>
 
-                        <div className="space-y-2">
-                            <Label className="text-xs font-bold text-muted-foreground/60">GST Type</Label>
-                            <div className="grid grid-cols-2 gap-2">
-                                {(['cgst_sgst', 'igst'] as const).map(t => (
-                                    <button key={t} type="button" onClick={() => setForm(f => ({ ...f, gstType: t }))}
-                                        className={cn('py-2 rounded-xl border text-xs font-black uppercase tracking-wider transition-all',
-                                            form.gstType === t ? 'bg-primary text-white border-primary' : 'border-border text-muted-foreground hover:border-primary/40')}>
-                                        {t === 'cgst_sgst' ? 'CGST+SGST' : 'IGST'}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
 
                         <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground/60">GST Rate</Label>

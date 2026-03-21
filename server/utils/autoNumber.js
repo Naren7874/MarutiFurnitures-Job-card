@@ -6,17 +6,34 @@ import { Counter } from '../models/Counter.js';
  * @param {string} type       - 'quotation' | 'jobcard' | 'invoice' | 'project' | 'po'
  * @param {boolean} dailyReset - If true, resets sequence daily
  */
-const getNextSeq = async (companyId, type, dailyReset = false) => {
+const getNextSeq = async (companyId, type, initialValue = 1, yearlyReset = false) => {
   let key = `${companyId}_${type}`;
-  if (dailyReset) {
-    key += `_${ddmmyy()}`;
+  if (yearlyReset) {
+    key += `_${new Date().getFullYear()}`;
   }
 
-  const doc = await Counter.findByIdAndUpdate(
-    key,
-    { $inc: { seq: 1 } },
-    { new: true, upsert: true }
+  // Atomically initialize to (initialValue - 1) if new, then increment by 1.
+  // This ensures the first sequence number is exactly initialValue.
+  const result = await Counter.collection.findOneAndUpdate(
+    { _id: key },
+    [
+      {
+        $set: {
+          seq: {
+            $switch: {
+              branches: [
+                { case: { $gt: ['$seq', 0] }, then: { $add: ['$seq', 1] } }
+              ],
+              default: initialValue
+            }
+          }
+        }
+      }
+    ],
+    { returnDocument: 'after', upsert: true }
   );
+  // MongoDB driver 6.0+ returns the doc directly, older versions return { value: doc }
+  const doc = result.value || result;
   return doc.seq;
 };
 
@@ -32,59 +49,57 @@ const ddmmyy = (date = new Date()) => {
   return `${d}${m}${y}`;
 };
 
-// YY from date
-const yy = (date = new Date()) => String(date.getFullYear()).slice(-2);
-
-// YYYY from date
-const yyyy = (date = new Date()) => String(date.getFullYear());
-
 // ── Public generators ───────────────────────────────────────
 
 /**
- * Quotation: MF – DDMMYY_01 – Client Name
- * Format: {prefix} – DDMMYY_{seq 2 digits} – {clientName}
+ * Quotation: MF - 170326-100 - Swapnil makwan
+ * Format: {prefix} - DDMMYY-seq - {clientName}
  */
 export const generateQuotationNumber = async (companyId, prefix = 'MF', clientName = '') => {
-  const seq = await getNextSeq(companyId, 'quotation', true);
+  const seq = await getNextSeq(companyId, 'quotation', 100, true);
   const dateStr = ddmmyy();
-  const sequenceStr = String(seq).padStart(2, '0');
   
-  if (!clientName) return `${prefix} – ${dateStr}_${sequenceStr}`;
-  return `${prefix} – ${dateStr}_${sequenceStr} – ${clientName}`;
+  const base = `${prefix} - ${dateStr}-${seq}`;
+  if (!clientName) return base;
+  return `${base} - ${clientName}`;
 };
 
 /**
- * Job Card: MF-26-011
- * Format: {prefix}-YY-{seq 3 digits}
+ * Job Card: MF - 170326-1000
+ * Format: {prefix} - DDMMYY-seq
  */
 export const generateJobCardNumber = async (companyId, prefix = 'MF') => {
-  const seq = await getNextSeq(companyId, 'jobcard');
-  return `${prefix}-${yy()}-${pad(seq)}`;
+  const seq = await getNextSeq(companyId, 'jobcard', 1000, true);
+  const dateStr = ddmmyy();
+  return `${prefix} - ${dateStr}-${seq}`;
 };
 
 /**
- * Invoice: MF-INV-2026-001
- * Format: {prefix}-INV-YYYY-{seq 3 digits}
+ * Invoice: MF - INV - 170326-100
+ * Format: {prefix} - INV - DDMMYY-seq
  */
 export const generateInvoiceNumber = async (companyId, prefix = 'MF') => {
-  const seq = await getNextSeq(companyId, 'invoice');
-  return `${prefix}-INV-${yyyy()}-${pad(seq)}`;
+  const seq = await getNextSeq(companyId, 'invoice', 100, true);
+  const dateStr = ddmmyy();
+  return `${prefix} - INV - ${dateStr}-${seq}`;
 };
 
 /**
- * Project: MF-PRJ-2026-001
- * Format: {prefix}-PRJ-YYYY-{seq 3 digits}
+ * Project: MF - PRJ - 170326-100
+ * Format: {prefix} - PRJ - DDMMYY-seq
  */
 export const generateProjectNumber = async (companyId, prefix = 'MF') => {
-  const seq = await getNextSeq(companyId, 'project');
-  return `${prefix}-PRJ-${yyyy()}-${pad(seq)}`;
+  const seq = await getNextSeq(companyId, 'project', 100, true);
+  const dateStr = ddmmyy();
+  return `${prefix} - PRJ - ${dateStr}-${seq}`;
 };
 
 /**
- * Purchase Order: MF-PO-2026-001
- * Format: {prefix}-PO-YYYY-{seq 3 digits}
+ * Purchase Order: MF - PO - 170326-100
+ * Format: {prefix} - PO - DDMMYY-seq
  */
 export const generatePONumber = async (companyId, prefix = 'MF') => {
-  const seq = await getNextSeq(companyId, 'po');
-  return `${prefix}-PO-${yyyy()}-${pad(seq)}`;
+  const seq = await getNextSeq(companyId, 'po', 100, true);
+  const dateStr = ddmmyy();
+  return `${prefix} - PO - ${dateStr}-${seq}`;
 };

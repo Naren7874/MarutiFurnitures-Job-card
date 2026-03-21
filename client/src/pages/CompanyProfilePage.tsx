@@ -2,7 +2,8 @@ import { useAuthStore } from '../stores/authStore';
 import {
     Building2, Globe, Phone, Mail, MapPin,
     Instagram, Youtube, Facebook, MessageSquare,
-    CheckCircle2, Loader2, Landmark, Hash, Image as ImageIcon
+    CheckCircle2, Loader2, Landmark, Hash, Image as ImageIcon,
+    RefreshCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -10,7 +11,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 
 export default function CompanyProfilePage() {
     const { user, company, setCompany } = useAuthStore();
@@ -21,6 +21,14 @@ export default function CompanyProfilePage() {
         queryKey: ['company-detail', companyId],
         queryFn: () => api.get(`/companies/${companyId}`).then(r => r.data.data),
         enabled: !!companyId,
+    });
+
+    const resetSequencesMut = useMutation({
+        mutationFn: () => api.post(`/companies/${companyId}/reset-sequences`),
+        onSuccess: (res) => {
+            toast.success(res.data.message || 'Sequential numbers have been reset');
+        },
+        onError: () => toast.error('Failed to reset sequential numbers'),
     });
 
     const updateCompanyMut = useMutation({
@@ -273,15 +281,10 @@ export default function CompanyProfilePage() {
                                 <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                                     <Hash className="text-primary size-5" />
                                 </div>
-                                <CardTitle className="text-lg font-black tracking-tight">Tax & Document Prefixes</CardTitle>
+                                <CardTitle className="text-lg font-black tracking-tight">Document Configuration</CardTitle>
                             </div>
                         </CardHeader>
                         <CardContent className="p-8 space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase text-muted-foreground/40 ml-1">GSTIN</label>
-                                <input name="gstin" defaultValue={fullCompany?.gstin} className="w-full bg-muted/20 border border-border/40 p-4 rounded-2xl text-foreground font-black uppercase tracking-widest focus:ring-2 ring-primary/20" />
-                            </div>
-                            <Separator className="bg-border/20" />
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-bold text-muted-foreground/60 uppercase ml-1">Quotation SQ</label>
@@ -302,6 +305,34 @@ export default function CompanyProfilePage() {
                             </div>
                         </CardContent>
                     </Card>
+                </div>
+
+                <div className="col-span-full pt-12 border-t border-border/20">
+                    <div className="flex flex-col md:flex-row items-center justify-between p-8 rounded-[24px] bg-amber-500/5 border border-amber-500/10 relative overflow-hidden group/reset gap-6">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-bl-[100px] -mr-10 -mt-10 blur-2xl group-hover/reset:scale-150 transition-transform duration-700" />
+                        <div className="relative z-10">
+                            <h3 className="text-amber-600 dark:text-amber-500 text-lg font-black tracking-tight mb-1 flex items-center gap-2">
+                                <Hash size={18} /> Sequential Numbering Control
+                            </h3>
+                            <p className="text-muted-foreground/60 text-xs font-medium max-w-md">
+                                Force reset all sequence counters (Quotation, Job Card, Invoice). Use this for testing or annual maintenance. <span className="text-amber-600/60 font-black">THIS ACTION CANNOT BE UNDONE.</span>
+                            </p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            type="button"
+                            onClick={() => {
+                                if (confirm('Are you absolutely sure you want to reset all document numbering sequences? This will restart all counters from their initial values (100, 1000).')) {
+                                    resetSequencesMut.mutate();
+                                }
+                            }}
+                            disabled={resetSequencesMut.isPending}
+                            className="relative z-10 border-amber-500/20 text-amber-600 hover:bg-amber-500 hover:text-white font-black text-[10px] uppercase tracking-widest px-8 rounded-xl h-11 transition-all shadow-lg shadow-amber-500/5"
+                        >
+                            {resetSequencesMut.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : <RefreshCcw size={14} className="mr-2" />}
+                            Reset All Sequences
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="flex justify-end pt-6">

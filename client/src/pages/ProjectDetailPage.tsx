@@ -33,7 +33,7 @@ const JC_STATUS: Record<string, { label: string; color: string }> = {
     cancelled: { label: 'Cancelled', color: 'text-rose-500' },
 };
 
-const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '—';
 
 export default function ProjectDetailPage() {
     const { id } = useParams<{ id: string }>();

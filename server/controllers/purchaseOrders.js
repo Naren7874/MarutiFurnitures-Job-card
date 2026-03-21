@@ -9,7 +9,7 @@ import { auditLog } from '../utils/auditLogger.js';
 export const createPO = async (req, res, next) => {
   try {
     const company = await Company.findById(req.user.companyId).lean();
-    const poNumber = await generatePONumber(req.user.companyId, company.quotationPrefix);
+    const poNumber = await generatePONumber(req.user.companyId, company.poPrefix);
 
     // High-value PO threshold: ₹50,000
     const total = req.body.items?.reduce((s, i) => s + (i.qty * i.pricePerUnit), 0) || 0;

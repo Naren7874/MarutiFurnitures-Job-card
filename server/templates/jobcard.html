@@ -15,7 +15,7 @@
   }
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    font-size: 15px;
+    font-size: 12px;
     line-height: 1.5;
     color: #1a1a1a;
     background: #fff;
@@ -52,7 +52,7 @@
     gap: 3px;
   }
   .company-name {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 900;
     color: #1a1a1a;
     text-transform: uppercase;
@@ -61,7 +61,7 @@
     margin-top: 2px; /* Slight adjustment to align with small icons */
   }
   .contact-line {
-    font-size: 14px;
+    font-size: 11px;
     color: #1a1a1a;
     font-weight: 700;
   }
@@ -70,7 +70,7 @@
     margin: 0 4px;
   }
   .address-line {
-    font-size: 13px;
+    font-size: 11px;
     color: #555;
     font-weight: 500;
     line-height: 1.5;
@@ -112,7 +112,7 @@
   /* DOCUMENT TITLE */
   .doc-title {
     text-align: center;
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 900;
     letter-spacing: 1px;
     margin-bottom: 15px;
@@ -128,7 +128,7 @@
   .meta-table td {
     padding: 8px 10px;
     border: 1px solid #ddd;
-    font-size: 14px;
+    font-size: 12px;
   }
   .meta-table .label {
     font-weight: bold;
@@ -152,13 +152,25 @@
     font-weight: bold;
     padding: 8px 10px;
     border: 1px solid #777;
-    font-size: 14px;
+    font-size: 11px;
     text-align: left;
+    text-transform: uppercase;
   }
   .items-table td {
     border: 1px solid #ccc;
     padding: 12px;
     vertical-align: top;
+    font-size: 12px;
+  }
+  .category-row td {
+    background: #f2f2f2;
+    font-weight: 900;
+    font-size: 11px;
+    text-align: center;
+    color: #333;
+    padding: 6px 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
   }
   .col-no {
     width: 50px;
@@ -221,22 +233,24 @@
   }
 
   .item-title {
-    font-size: 18px;
+    font-size: 14px;
     color: #2e6073;
-    margin-bottom: 8px;
-    font-weight: normal;
+    margin-bottom: 15px;
+    font-weight: 800;
+    line-height:1.2;
   }
   
   .spec-line {
-    font-size: 14px;
+    font-size: 12px;
     color: #1a1a1a;
-    line-height: 2;
+    line-height: 1.4;
+    margin-top: 5px;
   }
   .spec-divider {
-    border-bottom: 0.5px solid #ececec;
-    padding-bottom: 4px;
-    margin-bottom: 4px;
+    padding-bottom: 2px;
+    margin-bottom: 2px;
     display: block;
+    color: #444;
   }
 
   /* BOTTOM ACCENT */
@@ -314,7 +328,7 @@
       <td class="label">Job Card No.:</td>
       <td class="value"><strong><%= jobCard.jobCardNumber %></strong></td>
       <td class="label">Order Date:</td>
-      <td class="value"><strong><%= new Date(jobCard.orderDate).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'2-digit'}) %></strong></td>
+      <td class="value"><strong><%= new Date(jobCard.orderDate).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'2-digit', timeZone: 'Asia/Kolkata'}) %></strong></td>
     </tr>
     <tr>
       <td class="label">Name:</td>
@@ -331,7 +345,7 @@
       <td class="value"><%= jobCard.projectId?.siteAddress?.location || '—' %></td>
       <td class="label">Delivery Date:</td>
       <td class="value">
-        <%= jobCard.expectedDelivery ? new Date(jobCard.expectedDelivery).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'2-digit'}) : '—' %>
+        <%= jobCard.expectedDelivery ? new Date(jobCard.expectedDelivery).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'2-digit', timeZone: 'Asia/Kolkata'}) : '—' %>
       </td>
     </tr>
   </table>
@@ -345,7 +359,12 @@
       </tr>
     </thead>
     <tbody>
-      <% jobCard.items.forEach(function(item) { %>
+      <% let lastCategory = null; jobCard.items.forEach(function(item) { %>
+        <% if (item.category && item.category !== lastCategory) { lastCategory = item.category; %>
+          <tr class="category-row">
+            <td colspan="2"><%= item.category %></td>
+          </tr>
+        <% } %>
         <tr>
           <td class="col-no"><%= item.srNo %></td>
           <td>
@@ -378,11 +397,16 @@
               </div>
             <% } %>
             <!-- Description -->
-            <div class="item-title"><%= item.description %></div>
+            <div class="item-title">
+              <% if (item.category) { %>
+                <span style="color: #666; font-size: 14px; text-transform: uppercase;"><%= item.category %></span><br/>
+              <% } %>
+              <%= item.description %>
+            </div>
 
             <!-- Specs -->
             <div class="spec-line">
-              <span class="spec-divider"><%= item.description %> : <%= item.qty %> <%= item.unit %></span>
+              <span class="spec-divider">Quantity : <%= item.qty %> <%= item.unit %></span>
               <% if(item.specifications && item.specifications.polish) { %><span class="spec-divider">Polish : <%= item.specifications.polish %></span><% } %>
               <% if(item.specifications && item.specifications.size) { %><span class="spec-divider">Size : <%= item.specifications.size %></span><% } %>
               <% if(item.specifications && item.specifications.fabric) { %><span class="spec-divider">Fabric : <%= item.specifications.fabric %></span><% } %>

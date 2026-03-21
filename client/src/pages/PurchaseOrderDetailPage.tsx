@@ -19,7 +19,7 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; bor
     rejected: { label: 'Rejected', color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20', icon: XCircle },
 };
 
-const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '—';
 
 export default function PurchaseOrderDetailPage() {
     const { id } = useParams<{ id: string }>();

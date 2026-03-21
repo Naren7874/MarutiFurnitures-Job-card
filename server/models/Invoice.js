@@ -44,6 +44,7 @@ const invoiceSchema = new mongoose.Schema(
     cgst:      { type: Number, default: 0 },
     sgst:      { type: Number, default: 0 },
     igst:      { type: Number, default: 0 },
+    gstRate:   { type: Number, default: 18 },
     gstAmount: { type: Number, default: 0 },
     grandTotal:{ type: Number, default: 0 },
 

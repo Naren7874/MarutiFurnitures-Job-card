@@ -32,7 +32,7 @@ export const scheduleDispatch = async (req, res, next) => {
       'challan',
       {
         JC_NUMBER:    req.params.id,
-        DATE:         new Date(scheduledDate).toLocaleDateString('en-IN'),
+        DATE:         new Date(scheduledDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }),
         TIME_SLOT:    timeSlot,
         VEHICLE:      vehicle?.number || '',
         DRIVER_NAME:  deliveryTeam?.[0]?.name || '',
@@ -53,7 +53,7 @@ export const scheduleDispatch = async (req, res, next) => {
         WA_TEMPLATES.DELIVERY_SCHEDULED,
         [
           jobCard.jobCardNumber,
-          new Date(scheduledDate).toLocaleDateString('en-IN'),
+          new Date(scheduledDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }),
           timeSlot,
           vehicle?.number || 'N/A',
           deliveryTeam?.[0]?.name || 'N/A',

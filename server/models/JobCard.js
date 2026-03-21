@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const itemSchema = new mongoose.Schema(
   {
     srNo:        { type: Number, required: true },
+    category:    { type: String },
     description: { type: String },
     photo:       { type: String },                       // Cloudinary URL — primary design image
     fabricPhoto: { type: String },                       // Secondary photo for fabric/texture

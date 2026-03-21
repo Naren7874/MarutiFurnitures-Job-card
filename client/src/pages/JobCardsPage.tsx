@@ -242,7 +242,11 @@ export default function JobCardsPage() {
                                                             </div>
                                                             <div>
                                                                 <p className="text-foreground font-black text-base tracking-tight">{jc.jobCardNumber}</p>
-                                                                <p className="text-muted-foreground/60 text-xs font-black uppercase tracking-tighter truncate max-w-[200px]">{jc.title}</p>
+                                                                <p className="text-muted-foreground/60 text-xs font-black uppercase tracking-tighter truncate max-w-[200px]">
+                                                                    {jc.items?.[0]?.category && !jc.title?.startsWith(jc.items[0].category) 
+                                                                        ? `${jc.items[0].category} - ${jc.title}` 
+                                                                        : jc.title}
+                                                                </p>
                                                             </div>
                                                         </Link>
                                                     </TableCell>
@@ -400,7 +404,11 @@ export default function JobCardsPage() {
                                                                         )}
                                                                     </div>
 
-                                                                    <p className="text-foreground font-black text-sm tracking-tight mb-2 line-clamp-1 group-hover:text-primary transition-colors">{jc.title}</p>
+                                                                    <p className="text-foreground font-black text-sm tracking-tight mb-2 line-clamp-1 group-hover:text-primary transition-colors">
+                                                                        {jc.items?.[0]?.category && !jc.title?.startsWith(jc.items[0].category) 
+                                                                            ? `${jc.items[0].category} - ${jc.title}` 
+                                                                            : jc.title}
+                                                                    </p>
 
                                                                     <div className="flex items-center justify-between pt-4 border-t border-border/10">
                                                                         <div className="flex items-center gap-2">

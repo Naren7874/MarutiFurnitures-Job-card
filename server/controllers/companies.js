@@ -1,4 +1,5 @@
 import Company from '../models/Company.js';
+import { Counter } from '../models/Counter.js';
 import { auditLog } from '../utils/auditLogger.js';
 
 // ── GET /api/companies (Super Admin only) ────────────────────────────────────
@@ -91,6 +92,33 @@ export const updateCompany = async (req, res, next) => {
     });
 
     res.status(200).json({ success: true, data: company });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ── POST /api/companies/:id/reset-sequences — Deletes counters for this company ──
+
+export const resetCompanySequences = async (req, res, next) => {
+  try {
+    // Only super_admin or company admin with settings.edit privilege
+    if (!req.user.isSuperAdmin && req.params.id !== req.user.companyId.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // Delete all counter documents for this company. 
+    // Keys start with companyId
+    const result = await Counter.deleteMany({ _id: new RegExp(`^${req.params.id}_`) });
+
+    auditLog(req, {
+      action: 'delete',
+      resourceType: 'Counter',
+      resourceId: req.params.id,
+      resourceLabel: 'All Company Sequences',
+      metadata: { deletedCount: result.deletedCount },
+    });
+
+    res.status(200).json({ success: true, message: `Successfully reset ${result.deletedCount} sequence counters.` });
   } catch (err) {
     next(err);
   }

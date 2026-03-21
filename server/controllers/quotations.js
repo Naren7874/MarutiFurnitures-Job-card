@@ -173,10 +173,17 @@ export const updateQuotation = async (req, res, next) => {
 
         if (matchingJC) {
           // UPDATE EXISTING
-          matchingJC.title = quoItem.description || matchingJC.title;
+          matchingJC.title = quoItem.category ? `${quoItem.category} - ${quoItem.description}` : (quoItem.description || matchingJC.title);
+          matchingJC.salesperson = {
+            id:   quotation.salesPerson?.id || quotation.salesPerson,
+            name: (typeof quotation.salesPerson === 'object' && quotation.salesPerson?.name) ? quotation.salesPerson.name : (quotation.salesPerson?.name || '')
+          };
+          matchingJC.contactPerson = quotation.contactPerson || '';
+          
           matchingJC.items = [{
             _id:            quoItem._id, // preserve ID link
             srNo:           quoItem.srNo,
+            category:       quoItem.category,
             description:    quoItem.description,
             photo:          quoItem.photo,
             fabricPhoto:    quoItem.fabricPhoto,
@@ -200,10 +207,11 @@ export const updateQuotation = async (req, res, next) => {
             projectId:     quotation.projectId,
             clientId:      quotation.clientId,
             quotationId:   quotation._id,
-            title:         quoItem.description || `Item ${quoItem.srNo}`,
+            title:         quoItem.category ? `${quoItem.category} - ${quoItem.description}` : (quoItem.description || `Item ${quoItem.srNo}`),
             items: [{
               _id:            quoItem._id,
               srNo:           quoItem.srNo,
+              category:       quoItem.category,
               description:    quoItem.description,
               photo:          quoItem.photo,
               fabricPhoto:    quoItem.fabricPhoto,
@@ -458,9 +466,10 @@ export const approveQuotation = async (req, res, next) => {
         projectId:   project._id,
         clientId:    prev.clientId._id || prev.clientId,
         quotationId: prev._id,
-        title:       item.description || `Item ${item.srNo}`,
+        title:       item.category ? `${item.category} - ${item.description}` : (item.description || `Item ${item.srNo}`),
         items: [{
           srNo:           item.srNo,
+          category:       item.category,
           description:    item.description,
           photo:          item.photo,
           fabricPhoto:    item.fabricPhoto,
@@ -735,6 +744,66 @@ export const assignStaffToQuotation = async (req, res, next) => {
   }
 };
 
+/**
+ * Update teams for all Job Cards associated with a quotation
+ * req.body.jobCardConfigs: Array of { srNo, assignedTo, salesperson, contactPerson, expectedDelivery }
+ */
+export const updateQuotationJobCardTeams = async (req, res, next) => {
+  try {
+    const { jobCardConfigs } = req.body;
+
+    if (!Array.isArray(jobCardConfigs)) {
+      return res.status(400).json({ success: false, message: 'jobCardConfigs must be an array' });
+    }
+
+    const quotation = await Quotation.findOne({ _id: req.params.id, ...req.companyFilter });
+    if (!quotation) {
+      return res.status(404).json({ success: false, message: 'Quotation not found' });
+    }
+
+    const updatedJobCards = [];
+
+    for (const config of jobCardConfigs) {
+      const { srNo, assignedTo, salesperson, contactPerson, expectedDelivery } = config;
+
+      // Find the Job Card that matches this quotation and item
+      const jobCard = await JobCard.findOne({
+        quotationId: quotation._id,
+        'items.srNo': srNo,
+        companyId: req.user.companyId
+      });
+
+      if (jobCard) {
+        if (assignedTo) jobCard.assignedTo = assignedTo;
+        if (salesperson) jobCard.salesperson = salesperson;
+        if (contactPerson) jobCard.contactPerson = contactPerson;
+        if (expectedDelivery) jobCard.expectedDelivery = expectedDelivery;
+
+        await jobCard.save();
+        updatedJobCards.push(jobCard._id);
+
+        auditLog(req, {
+          action: 'update',
+          resourceType: 'JobCard',
+          resourceId: jobCard._id,
+          resourceLabel: jobCard.jobCardNumber,
+          metadata: { action: 'teams_updated_via_quotation' },
+        });
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Updated ${updatedJobCards.length} job cards`,
+      updatedJobCards 
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 // ── Template data flattener ──────────────────────────────────────────────────
 
 const flattenForTemplate = (quotation, company) => ({
@@ -744,7 +813,7 @@ const flattenForTemplate = (quotation, company) => ({
   COMPANY_EMAIL:     company.email,
   COMPANY_GSTIN:     company.gstin,
   QUOTATION_NUMBER:  quotation.quotationNumber,
-  QUOTATION_DATE:    new Date(quotation.createdAt).toLocaleDateString('en-IN'),
+  QUOTATION_DATE:    new Date(quotation.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }),
   CLIENT_NAME:       quotation.clientId?.name || '',
   CLIENT_FIRM:       quotation.clientId?.firmName || '',
   CLIENT_PHONE:      quotation.clientId?.phone || '',
@@ -757,5 +826,5 @@ const flattenForTemplate = (quotation, company) => ({
   GRAND_TOTAL:       quotation.grandTotal?.toLocaleString('en-IN') || '0',
   ADVANCE_AMOUNT:    quotation.advanceAmount?.toLocaleString('en-IN') || '0',
   DELIVERY_DAYS:     quotation.deliveryDays || '',
-  VALID_UNTIL:       quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString('en-IN') : '',
+  VALID_UNTIL:       quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : '',
 });

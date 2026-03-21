@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
-import { Bell, Shield, Building2, User, ChevronRight, CheckCircle2, Globe, Laptop, Fingerprint, LogOut, ScrollText, Download, Calendar as CalendarIcon, ArrowRight, Hash, Inbox, Loader2 } from 'lucide-react';
+import { Bell, Shield, User, ChevronRight, Globe, Laptop, Fingerprint, LogOut, ScrollText, Download, Calendar as CalendarIcon, ArrowRight, Hash, Inbox } from 'lucide-react';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { toast } from 'sonner';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
@@ -17,6 +15,7 @@ import { Card, CardContent, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
     Pagination,
@@ -28,34 +27,15 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination"
 
-type Tab = 'profile' | 'company' | 'notifications' | 'security' | 'auditlog';
+type Tab = 'profile' | 'notifications' | 'security' | 'auditlog';
 
 export default function SettingsPage() {
     const [tab, setTab] = useState<Tab>('profile');
-    const { user, company, logout, setCompany } = useAuthStore();
-    const qc = useQueryClient();
-    const companyId = company?.id;
+    const { user, logout } = useAuthStore();
 
-    // Fetch full company details (store only has minimal info)
-    const { data: fullCompany, isLoading: isLoadingCompany } = useQuery({
-        queryKey: ['company-detail', companyId],
-        queryFn: () => api.get(`/companies/${companyId}`).then(r => r.data.data),
-        enabled: !!companyId,
-    });
-
-    const updateCompanyMut = useMutation({
-        mutationFn: (data: any) => api.put(`/companies/${companyId}`, data),
-        onSuccess: (res) => {
-            qc.invalidateQueries({ queryKey: ['company-detail', companyId] });
-            setCompany(res.data.data); // Update local store
-            toast.success('Organization profile synchronized successfully');
-        },
-        onError: () => toast.error('Failed to update organization profile'),
-    });
 
     const TABS: { key: Tab; icon: React.ElementType; label: string; desc: string }[] = [
         { key: 'profile', icon: User, label: 'Identity', desc: 'Personal preferences' },
-        { key: 'company', icon: Building2, label: 'Organization', desc: 'Corporate details' },
         { key: 'notifications', icon: Bell, label: 'Alerts', desc: 'Activity streams' },
         { key: 'security', icon: Shield, label: 'Security', desc: 'Protection status' },
         ...(user?.isSuperAdmin ? [{ key: 'auditlog' as Tab, icon: ScrollText, label: 'Audit Log', desc: 'System event trail' }] : []),
@@ -183,99 +163,6 @@ export default function SettingsPage() {
                                                             </div>
                                                         </SettingRow>
                                                     </div>
-                                                </div>
-                                            )}
-
-                                            {tab === 'company' && (
-                                                <div className="space-y-12" key={companyId}>
-                                                    {isLoadingCompany ? (
-                                                        <div className="flex h-64 items-center justify-center">
-                                                            <Loader2 className="size-8 animate-spin text-primary" />
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="space-y-1">
-                                                                    <h2 className="text-foreground text-2xl font-black tracking-tight">Organization Profile</h2>
-                                                                    <CardDescription className="text-muted-foreground/60 text-sm font-medium">Verified corporate credentials and branding preferences</CardDescription>
-                                                                </div>
-                                                                <Button
-                                                                    onClick={() => {
-                                                                        if (!companyId) return;
-                                                                        const formData = (document.getElementById('company-form') as HTMLFormElement);
-                                                                        const data = Object.fromEntries(new FormData(formData).entries());
-                                                                        // Nest GST rates correctly
-                                                                        (data as any).gstRates = {
-                                                                            cgst: Number(data.cgst),
-                                                                            sgst: Number(data.sgst),
-                                                                            igst: Number(data.igst)
-                                                                        };
-                                                                        delete (data as any).cgst;
-                                                                        delete (data as any).sgst;
-                                                                        delete (data as any).igst;
-                                                                        updateCompanyMut.mutate(data);
-                                                                    }}
-                                                                    disabled={updateCompanyMut.isPending}
-                                                                    className="rounded-xl h-10 px-8 font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20"
-                                                                >
-                                                                    {updateCompanyMut.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : <CheckCircle2 className="size-4 mr-2" />}
-                                                                    Sync Organization
-                                                                </Button>
-                                                            </div>
-
-                                                            <form id="company-form" className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                                                                <div className="space-y-2">
-                                                                    <label className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] block">Legal Entity Name</label>
-                                                                    <input name="name" defaultValue={fullCompany?.name} className="w-full bg-muted/40 border border-border/40 p-4 rounded-2xl text-foreground font-black tracking-tight focus:outline-none focus:ring-2 ring-primary/20" />
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    <label className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] block">GST Identification</label>
-                                                                    <input name="gstin" defaultValue={fullCompany?.gstin} className="w-full bg-white dark:bg-muted/40 border border-border dark:border-border/40 p-4 rounded-2xl text-foreground font-black tracking-widest uppercase focus:outline-none focus:ring-2 ring-primary/20" />
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    <label className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] block">Official Email</label>
-                                                                    <input name="email" type="email" defaultValue={fullCompany?.email} className="w-full bg-muted/20 border border-border/40 p-4 rounded-2xl text-foreground font-bold focus:outline-none focus:ring-2 ring-primary/20" />
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    <label className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] block">Contact Number</label>
-                                                                    <input name="phone" defaultValue={fullCompany?.phone} className="w-full bg-muted/20 border border-border/40 p-4 rounded-2xl text-foreground font-bold focus:outline-none focus:ring-2 ring-primary/20" />
-                                                                </div>
-
-                                                                <div className="col-span-full pt-8 border-t border-border/20">
-                                                                    <h3 className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] mb-6">Document Branding Prefixes</h3>
-                                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                                                        {[
-                                                                            { label: 'Quotation', name: 'quotationPrefix', val: fullCompany?.quotationPrefix || 'QT' },
-                                                                            { label: 'Job Card', name: 'jobCardPrefix', val: fullCompany?.jobCardPrefix || 'JC' },
-                                                                            { label: 'Invoice', name: 'invoicePrefix', val: fullCompany?.invoicePrefix || 'INV' },
-                                                                            { label: 'Project', name: 'projectPrefix', val: fullCompany?.projectPrefix || 'PRJ' },
-                                                                        ].map(p => (
-                                                                            <div key={p.name} className="space-y-2">
-                                                                                <label className="text-[9px] font-bold text-muted-foreground/60 uppercase ml-1">{p.label}</label>
-                                                                                <input name={p.name} defaultValue={p.val} className="w-full bg-accent/5 border border-border/40 p-3 rounded-xl text-center font-black text-xs focus:ring-2 ring-primary/20" />
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="col-span-full pt-8 border-t border-border/20">
-                                                                    <h3 className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] mb-6">Default Taxation (GST)</h3>
-                                                                    <div className="grid grid-cols-3 gap-6">
-                                                                        {[
-                                                                            { label: 'CGST (%)', name: 'cgst', val: fullCompany?.gstRates?.cgst || 9 },
-                                                                            { label: 'SGST (%)', name: 'sgst', val: fullCompany?.gstRates?.sgst || 9 },
-                                                                            { label: 'IGST (%)', name: 'igst', val: fullCompany?.gstRates?.igst || 18 },
-                                                                        ].map(g => (
-                                                                            <div key={g.name} className="space-y-2">
-                                                                                <label className="text-[9px] font-bold text-muted-foreground/60 uppercase ml-1">{g.label}</label>
-                                                                                <input name={g.name} type="number" step="0.5" defaultValue={g.val} className="w-full bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-2xl text-center font-black text-emerald-600 focus:ring-2 ring-emerald-500/20" />
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            </form>
-                                                        </>
-                                                    )}
                                                 </div>
                                             )}
 

@@ -38,8 +38,9 @@ const companySchema = new mongoose.Schema(
     // PDF branding — prefix for all auto-numbers
     quotationPrefix: { type: String, default: "QT" },   // QT-311025-01
     jobCardPrefix:   { type: String, default: "JC" },   // JC-26-011
-    invoicePrefix:   { type: String, default: "INV" },  // INV-2026-001
-    projectPrefix:   { type: String, default: "PRJ" },  // PRJ-2026-001
+    invoicePrefix:   { type: String, default: "INV" },  // INV-170326-100
+    projectPrefix:   { type: String, default: "PRJ" },  // PRJ-170326-100
+    poPrefix:        { type: String, default: "PO" },   // PO-170326-100
 
     gstRates: {
       cgst: { type: Number, default: 9 },

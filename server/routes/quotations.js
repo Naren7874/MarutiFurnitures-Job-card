@@ -10,6 +10,7 @@ import {
   reviseQuotation,
   getQuotationPDF,
   assignStaffToQuotation,
+  updateQuotationJobCardTeams,
 } from '../controllers/quotations.js';
 import { authenticateJWT }    from '../middleware/auth.js';
 import { injectCompanyScope } from '../middleware/scope.js';
@@ -32,6 +33,7 @@ router.post('/:id/revise',        checkPermission('quotation.create'), reviseQuo
 
 // ── Assign Staff to Quotation ──────────────────────────────────
 router.patch('/:id/assign-staff', checkPermission('jobcard.assign'),   assignStaffToQuotation);
+router.patch('/:id/jobcard-teams', checkPermission('jobcard.assign'),   updateQuotationJobCardTeams);
 
 // ── Image Upload ───────────────────────────────────────────────
 // Accepts: multipart/form-data with field 'file'

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
     ArrowLeft, Download, Send, CheckCircle2, XCircle, RefreshCw,
@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import {
     useQuotation, useSendQuotation, useApproveQuotation,
-    useRejectQuotation, useReviseQuotation,
+    useRejectQuotation, useReviseQuotation, useJobCards
 } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ImagePreview } from '@/components/ui/image-preview';
 import ApproveQuotationModal from '../components/quotation/ApproveQuotationModal';
+import ManageTeamsModal from '../components/quotation/ManageTeamsModal';
+import { Users } from 'lucide-react';
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -43,6 +45,10 @@ export default function QuotationDetailPage() {
     const [confirmAction, setConfirmAction] = useState<null | 'send' | 'approve' | 'reject' | 'revise'>(null);
     const [pdfLoading, setPdfLoading] = useState(false);
     const [showApproveModal, setShowApproveModal] = useState(false);
+    const [isManageTeamsOpen, setIsManageTeamsOpen] = useState(false);
+
+    const { data: jobCardsRaw } = useJobCards({ quotationId: id });
+    const jobCards = (jobCardsRaw as any)?.data || [];
 
     const isBusy = sendMutation.isPending || approveMutation.isPending || rejectMutation.isPending || reviseMutation.isPending;
 
@@ -102,7 +108,7 @@ export default function QuotationDetailPage() {
     const cfg    = STATUS_CFG[status] || STATUS_CFG.draft;
     const client = q.clientId;
     const fmt    = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
-    const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+    const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '—';
 
     // Editable statuses: draft, sent, approved (admin can add items post-approval)
     const canEditNow = canEdit && !['converted', 'rejected', 'revised'].includes(status);
@@ -154,6 +160,17 @@ export default function QuotationDetailPage() {
                             </Button>
                         </Link>
                     )}
+
+                    {status === 'approved' && (
+                        <Button 
+                            variant="outline"
+                            onClick={() => setIsManageTeamsOpen(true)}
+                            className="h-10 px-6 rounded-xl text-xs font-black gap-2 border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary transition-all shadow-lg shadow-primary/5"
+                        >
+                            <Users size={14} className="animate-pulse" /> Manage Teams
+                        </Button>
+                    )}
+
 
                     {/* Send to Client — only for draft */}
                     {status === 'draft' && canSend && (
@@ -295,6 +312,20 @@ export default function QuotationDetailPage() {
                             <InfoRow label="Revision" value={`Rev. ${q.revisionNumber || 1}`} />
                         </div>
                     </InfoCard>
+
+                    {/* Extra Terms */}
+                    {q.additionalTerms?.length > 0 && (
+                        <InfoCard title="Extra Terms" icon={FileText}>
+                            <ul className="space-y-2">
+                                {q.additionalTerms.map((term: string, idx: number) => (
+                                    <li key={idx} className="flex gap-2 text-xs text-muted-foreground/60 font-medium border-b border-border/10 pb-1.5 last:border-0 last:pb-0">
+                                        <span className="text-primary font-black opacity-50">•</span>
+                                        {term}
+                                    </li>
+                                ))}
+                            </ul>
+                        </InfoCard>
+                    )}
                 </div>
 
                 {/* === Right — Items + Totals === */}
@@ -316,44 +347,54 @@ export default function QuotationDetailPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/20">
-                                    {(q.items || []).map((item: any) => (
-                                        <tr key={item._id} className="hover:bg-muted/20 transition-colors">
-                                            <td className="px-5 py-4 text-muted-foreground/30 font-black text-xs">{item.srNo}</td>
-                                            <td className="px-5 py-4">
-                                                {item.category && <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/40 mb-0.5">{item.category}</p>}
-                                                <div className="flex gap-4">
-                                                    {/* Images: main, fabric, and extra photos */}
-                                                    {(item.photo || item.fabricPhoto || item.photos?.length > 0) && (
-                                                        <div className="flex gap-2 shrink-0 flex-wrap">
-                                                            {item.photo && (
-                                                                <div className="w-16 h-16">
-                                                                    <ImagePreview src={item.photo} alt="Main" />
+                                    {(() => {
+                                        let lastCategory: string | null = null;
+                                        return (q.items || []).map((item: any) => {
+                                            const showCategoryHeader = item.category && item.category !== lastCategory;
+                                            if (showCategoryHeader) lastCategory = item.category;
+
+                                            return (
+                                                <Fragment key={`${item._id}-frag` || item.srNo}>
+                                                    <tr key={item._id} className="hover:bg-muted/20 transition-colors">
+                                                        <td className="px-5 py-4 text-muted-foreground/30 font-black text-xs">{item.srNo}</td>
+                                                        <td className="px-5 py-4">
+                                                            <div className="flex gap-4">
+                                                                {/* Images: main, fabric, and extra photos */}
+                                                                {(item.photo || item.fabricPhoto || item.photos?.length > 0) && (
+                                                                    <div className="flex gap-2 shrink-0 flex-wrap">
+                                                                        {item.photo && (
+                                                                            <div className="w-16 h-16">
+                                                                                <ImagePreview src={item.photo} alt="Main" />
+                                                                            </div>
+                                                                        )}
+                                                                        {item.fabricPhoto && (
+                                                                            <div className="w-16 h-16">
+                                                                                <ImagePreview src={item.fabricPhoto} alt="Fabric" />
+                                                                            </div>
+                                                                        )}
+                                                                        {item.photos?.map((url: string, i: number) => (
+                                                                            <div key={i} className="w-16 h-16">
+                                                                                <ImagePreview src={url} alt={`Photo ${i + 1}`} />
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                                <div className="flex-1">
+                                                                    <p className="text-sm font-bold text-foreground">{item.category}</p>
+                                                                    <p className="text-sm font-bold text-foreground">{item.description}</p>
+                                                                    {item.specifications?.size && <p className="text-[10px] text-muted-foreground/40 font-medium mt-0.5">{item.specifications.size}</p>}
+                                                                    {item.specifications?.material && <p className="text-[10px] text-muted-foreground/40 font-medium">{item.specifications.material}</p>}
                                                                 </div>
-                                                            )}
-                                                            {item.fabricPhoto && (
-                                                                <div className="w-16 h-16">
-                                                                    <ImagePreview src={item.fabricPhoto} alt="Fabric" />
-                                                                </div>
-                                                            )}
-                                                            {item.photos?.map((url: string, i: number) => (
-                                                                <div key={i} className="w-16 h-16">
-                                                                    <ImagePreview src={url} alt={`Photo ${i + 1}`} />
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-bold text-foreground">{item.description}</p>
-                                                        {item.specifications?.size && <p className="text-[10px] text-muted-foreground/40 font-medium mt-0.5">{item.specifications.size}</p>}
-                                                        {item.specifications?.material && <p className="text-[10px] text-muted-foreground/40 font-medium">{item.specifications.material}</p>}
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-5 py-4 text-sm font-bold text-foreground/70">{item.qty} {item.unit || 'pcs'}</td>
-                                            <td className="px-5 py-4 text-sm font-bold text-foreground/70">{fmt(item.sellingPrice)}</td>
-                                            <td className="px-5 py-4 text-sm font-black text-foreground">{fmt(item.totalPrice)}</td>
-                                        </tr>
-                                    ))}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-5 py-4 text-sm font-bold text-foreground/70">{item.qty} {item.unit || 'pcs'}</td>
+                                                        <td className="px-5 py-4 text-sm font-bold text-foreground/70">{fmt(item.sellingPrice)}</td>
+                                                        <td className="px-5 py-4 text-sm font-black text-foreground">{fmt(item.totalPrice)}</td>
+                                                    </tr>
+                                                </Fragment>
+                                            );
+                                        });
+                                    })()}
                                 </tbody>
                             </table>
                         </div>
@@ -387,6 +428,13 @@ export default function QuotationDetailPage() {
                 onConfirm={handleApproveFinal}
                 quotation={q}
                 isSubmitting={approveMutation.isPending}
+            />
+
+            <ManageTeamsModal 
+                open={isManageTeamsOpen}
+                onOpenChange={setIsManageTeamsOpen}
+                quotation={q}
+                jobCards={jobCards}
             />
         </motion.div>
     );

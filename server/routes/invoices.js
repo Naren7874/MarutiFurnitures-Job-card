@@ -1,5 +1,5 @@
 import express from 'express';
-import { createInvoice, getInvoices, getInvoiceById, recordPayment, sendInvoice, getInvoicePDF, updateInvoice } from '../controllers/invoices.js';
+import { createInvoice, getInvoices, getInvoiceById, recordPayment, updatePayment, deletePayment, sendInvoice, getInvoicePDF, updateInvoice } from '../controllers/invoices.js';
 import { authenticateJWT } from '../middleware/auth.js';
 import { injectCompanyScope } from '../middleware/scope.js';
 import { checkPermission } from '../middleware/permission.js';
@@ -14,5 +14,7 @@ router.patch('/:id',           checkPermission('invoice.edit'),    updateInvoice
 router.get('/:id/pdf',         checkPermission('invoice.view'),    getInvoicePDF);
 router.patch('/:id/send',      checkPermission('invoice.edit'),    sendInvoice);
 router.post('/:id/payment',    checkPermission('invoice.payment'), recordPayment);
+router.patch('/:id/payment/:paymentId', checkPermission('invoice.payment'), updatePayment);
+router.delete('/:id/payment/:paymentId', checkPermission('invoice.payment'), deletePayment);
 
 export default router;

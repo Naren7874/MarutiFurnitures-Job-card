@@ -101,6 +101,7 @@ const quotationSchema = new mongoose.Schema(
 
     // Terms & Conditions — array of lines like your real quotation
     termsAndConditions: [{ type: String }],
+    additionalTerms: [{ type: String }],
 
     // Quotation lifecycle
     status: {

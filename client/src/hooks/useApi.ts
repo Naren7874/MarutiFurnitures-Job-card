@@ -611,6 +611,27 @@ export const useRecordPayment = (id: string) => {
     });
 };
 
+export const useUpdatePayment = (id: string) => {
+    const qc = useQueryClient();
+    const { company } = useAuthStore();
+    const cid = company?.id || '';
+    return useMutation({
+        mutationFn: ({ paymentId, ...data }: { paymentId: string; amount?: number; mode?: string; reference?: string; paidAt?: string }) => 
+            apiPatch(`/invoices/${id}/payment/${paymentId}`, data),
+        onSuccess: () => qc.invalidateQueries({ queryKey: QK.invoice(cid, id) }),
+    });
+};
+
+export const useDeletePayment = (id: string) => {
+    const qc = useQueryClient();
+    const { company } = useAuthStore();
+    const cid = company?.id || '';
+    return useMutation({
+        mutationFn: (paymentId: string) => apiDelete(`/invoices/${id}/payment/${paymentId}`),
+        onSuccess: () => qc.invalidateQueries({ queryKey: QK.invoice(cid, id) }),
+    });
+};
+
 // ─── Inventory ────────────────────────────────────────────────────────────────
 
 export const useInventory = (params: object = {}) => {

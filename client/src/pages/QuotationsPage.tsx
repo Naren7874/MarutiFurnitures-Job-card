@@ -150,9 +150,9 @@ export default function QuotationsPage() {
                                                             <p className="text-foreground font-black text-sm tracking-tight">{q.quotationNumber}</p>
                                                             <div className="flex items-center gap-2 mt-0.5">
                                                                 <Clock size={10} className="text-muted-foreground/40" />
-                                                                <p className="text-muted-foreground/60 text-[10px] font-bold">
-                                                                    {new Date(q.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                                                </p>
+                                                                 <p className="text-muted-foreground/60 text-[10px] font-bold">
+                                                                     {new Date(q.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
+                                                                 </p>
                                                             </div>
                                                         </div>
                                                     </Link>

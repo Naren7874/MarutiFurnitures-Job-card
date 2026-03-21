@@ -210,7 +210,7 @@ export default function InvoicesPage() {
                                                     <div className="flex items-center gap-2">
                                                         <Clock size={12} className="text-muted-foreground/30" />
                                                         <span className="text-muted-foreground/60 text-[11px] font-bold">
-                                                            {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                                                            {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '—'}
                                                         </span>
                                                     </div>
                                                 </td>

@@ -207,7 +207,7 @@ export default function PurchaseOrdersPage() {
                                                             </div>
                                                             <div>
                                                                 <p className="text-foreground font-black text-sm tracking-tight">{po.poNumber}</p>
-                                                                <p className="text-muted-foreground/40 text-[9px] font-black uppercase">{new Date(po.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</p>
+                                                                <p className="text-muted-foreground/40 text-[9px] font-black uppercase">{new Date(po.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'Asia/Kolkata' })}</p>
                                                             </div>
                                                         </div>
                                                     </Link>

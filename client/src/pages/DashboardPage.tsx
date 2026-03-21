@@ -102,7 +102,7 @@ function AdminDashboard() {
                 <div className="flex items-center gap-2 bg-white dark:bg-card border border-border dark:border-border px-4 py-2 rounded-2xl shadow-sm">
                     <Clock size={16} className="text-primary" />
                     <span className="text-xs font-bold text-foreground">
-                        {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
+                        {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })}
                     </span>
                 </div>
             </motion.div>
@@ -223,7 +223,7 @@ function AdminDashboard() {
                                                         <div className="flex items-center gap-2">
                                                             <Clock size={12} className="text-muted-foreground/40" />
                                                             <span className="text-muted-foreground/60 text-[11px] font-black">
-                                                                {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'}
+                                                                {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'Asia/Kolkata' }) : '—'}
                                                             </span>
                                                         </div>
                                                     </TableCell>

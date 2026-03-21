@@ -11,15 +11,15 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Loader2, CheckCircle2, User2, CalendarDays, Users, Package,
-    ArrowRight, Shield, Wrench, Truck, PencilLine, Plus, X, IndianRupee, CreditCard
+    ArrowRight, Shield, Wrench, Truck, PencilLine, IndianRupee, CreditCard,
+    RefreshCw
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '../../lib/axios';
 import { motion } from 'motion/react';
-import { cn } from '../../lib/utils';
+
 import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { StaffMultiSelect } from '../shared/StaffMultiSelect';
 
 interface TeamAssignment {
     design: string[];
@@ -243,9 +243,9 @@ export default function ApproveQuotationModal({
                                 </div>
 
                                 <div className="pt-8 border-t border-primary/10">
-                                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/80 mb-6 ml-1 flex items-center gap-2">
+                                    <div className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/80 mb-6 ml-1 flex items-center gap-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-primary" /> Team Assignment (Set for All)
-                                    </p>
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                         <StaffMultiSelect 
                                             label="Design Team" 
@@ -555,98 +555,5 @@ export default function ApproveQuotationModal({
     );
 }
 
-const StaffMultiSelect = ({ 
-    label, 
-    icon: Icon, 
-    selectedIds, 
-    onToggle, 
-    allUsers 
-}: { 
-    label: string, 
-    icon: any, 
-    selectedIds: string[], 
-    onToggle: (id: string) => void, 
-    allUsers: any[] 
-}) => {
-    const selectedUsers = allUsers.filter(u => selectedIds.includes(u._id));
 
-    return (
-        <div className="space-y-2 flex-1">
-            <label className="text-[10px] font-black uppercase tracking-[0.15em] text-foreground/60 ml-1 flex items-center gap-2">
-                <Icon size={12} className="text-primary/50" /> {label}
-            </label>
-            <Popover>
-                <PopoverTrigger asChild>
-                    <div className="min-h-12 p-2.5 rounded-2xl bg-muted/20 border border-border/30 flex flex-wrap gap-2 cursor-pointer hover:bg-muted/40 transition-all shadow-inner group-hover/card:bg-background">
-                        {selectedUsers.length > 0 ? (
-                            selectedUsers.map(u => (
-                                <Badge key={u._id} variant="secondary" className="rounded-xl py-1 px-3 text-[11px] font-black gap-2 bg-primary/10 text-primary border border-primary/20 shadow-sm hover:bg-primary/20 transition-colors">
-                                    {u.name}
-                                    <X size={12} className="hover:text-rose-500 transition-colors" onClick={(e) => { e.stopPropagation(); onToggle(u._id); }} />
-                                </Badge>
-                            ))
-                        ) : (
-                            <span className="text-xs text-muted-foreground/30 font-bold ml-1.5 mt-1.5">Assign staff...</span>
-                        )}
-                        <div className="ml-auto flex items-center pr-1 opacity-20 group-hover/card:opacity-40 transition-opacity">
-                            <Plus size={16} />
-                        </div>
-                    </div>
-                </PopoverTrigger>
-                <PopoverContent className="w-[240px] p-0 rounded-3xl border-border/40 overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] bg-card" align="start">
-                    <Command className="bg-transparent">
-                        <div className="p-3 pb-0">
-                            <CommandInput placeholder={`Search ${label}...`} className="h-10 bg-muted/50 rounded-xl border-none text-sm font-bold placeholder:text-muted-foreground/30" />
-                        </div>
-                        <CommandList className="max-h-[250px] p-2 custom-scrollbar">
-                            <CommandEmpty className="py-8 text-center text-xs font-black uppercase tracking-widest text-muted-foreground/40">No staff found.</CommandEmpty>
-                            <CommandGroup>
-                                {allUsers.map(user => {
-                                    const isSelected = selectedIds.includes(user._id);
-                                    return (
-                                        <CommandItem
-                                            key={user._id}
-                                            onSelect={() => onToggle(user._id)}
-                                            className="flex items-center gap-3 px-3 py-3 text-sm font-bold cursor-pointer rounded-xl mb-1 aria-selected:bg-primary/10 aria-selected:text-primary transition-all"
-                                        >
-                                            <div className={cn(
-                                                "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all",
-                                                isSelected ? "bg-primary border-primary scale-110 shadow-lg shadow-primary/20" : "border-border/60"
-                                            )}>
-                                                {isSelected && <CheckCircle2 size={12} className="text-white" />}
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className="leading-none">{user.name}</span>
-                                                <span className="text-[9px] font-black uppercase tracking-widest opacity-40 mt-1">{user.role}</span>
-                                            </div>
-                                        </CommandItem>
-                                    );
-                                })}
-                            </CommandGroup>
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
-            </Popover>
-        </div>
-    );
-};
 
-const RefreshCw = ({ className, size }: { className?: string, size?: number }) => (
-    <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        width={size || 24} 
-        height={size || 24} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="2" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        className={cn("lucide lucide-refresh-cw", className)}
-    >
-        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-        <path d="M21 3v5h-5"/>
-        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-        <path d="M3 21v-5h5"/>
-    </svg>
-);

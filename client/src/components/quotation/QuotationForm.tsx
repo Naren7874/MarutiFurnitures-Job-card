@@ -10,7 +10,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft, Plus, Trash2, Save, Loader2,
     User2, ReceiptText, Search, X, ImagePlus, List, Check,
+    Users,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { apiGet } from '../../lib/axios';
+import { StaffMultiSelect } from '../shared/StaffMultiSelect';
 import {
     useCreateQuotation, useUpdateQuotation,
     useClients, useQuotation, useClient,
@@ -129,6 +133,14 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     const [discount, setDiscount] = useState(0);
     const [gstType, setGstType] = useState<'cgst_sgst' | 'igst'>('cgst_sgst');
     const [advancePercent, setAdvancePercent] = useState(50);
+    const [additionalTerms, setAdditionalTerms] = useState<string[]>([]);
+    const [assignedStaff, setAssignedStaff] = useState<string[]>([]);
+
+    const { data: usersRaw } = useQuery({
+        queryKey: ['users', 'all'],
+        queryFn: () => apiGet('/users'),
+    });
+    const allUsers: any[] = (usersRaw as any)?.data ?? [];
 
     // ── Populate form in edit mode ────────────────────────────────────────────
     const [loaded, setLoaded] = useState(false);
@@ -150,6 +162,8 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
             setDiscount(existingQ.discount || 0);
             setGstType(existingQ.gstType || 'cgst_sgst');
             setAdvancePercent(existingQ.advancePercent || 50);
+            setAdditionalTerms(existingQ.additionalTerms || []);
+            setAssignedStaff((existingQ.assignedStaff || []).map((s: any) => s._id || s));
             if (existingQ.items?.length) setItems(existingQ.items.map(dbItemToLocal));
             setLoaded(true);
         }
@@ -236,6 +250,8 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         discount,
         gstType,
         advancePercent,
+        additionalTerms: additionalTerms.filter(t => t.trim() !== ''),
+        assignedStaff,
     });
 
     // ── Item-Level Save ───────────────────────────────────────────────────────
@@ -466,8 +482,24 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                             <Input type="date" value={project.validUntil} onChange={e => setProject(p => ({ ...p, validUntil: e.target.value }))} className={inputCls} />
                         </div>
                         <div className="md:col-span-2">
-                            <label className={labelCls}>Site Location</label>
                             <Input value={project.siteAddress.location} onChange={e => setProject(p => ({ ...p, siteAddress: { ...p.siteAddress, location: e.target.value } }))} placeholder="e.g. Ahmedabad, Gujarat" className={inputCls} />
+                        </div>
+
+                        {/* Staff Assignment */}
+                        <div className="md:col-span-2">
+                            <StaffMultiSelect 
+                                label="Default Assigned Team" 
+                                icon={Users} 
+                                selectedIds={assignedStaff}
+                                onToggle={(id) => setAssignedStaff(prev => 
+                                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                                )}
+                                allUsers={allUsers}
+                                placeholder="Assign staff who will handle this quotation (Design, Production, etc.)..."
+                            />
+                            <p className="text-[10px] text-muted-foreground italic mt-2">
+                                * These staff members will be automatically assigned to all Job Cards created from this quotation.
+                            </p>
                         </div>
                     </div>
                 </FormSection>
@@ -655,6 +687,46 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                             <p className="font-black text-foreground text-base">Final Amt</p>
                             <p className="font-black text-primary text-xl">₹{finalAmt.toLocaleString('en-IN')}</p>
                         </div>
+                    </div>
+                </FormSection>
+
+                {/* === Section 4: Extra Terms === */}
+                <FormSection title="Extra Terms & Conditions" icon={ReceiptText}>
+                    <div className="space-y-3">
+                        {additionalTerms.map((term, idx) => (
+                            <div key={idx} className="flex gap-2">
+                                <Input 
+                                    value={term} 
+                                    onChange={e => {
+                                        const newTerms = [...additionalTerms];
+                                        newTerms[idx] = e.target.value;
+                                        setAdditionalTerms(newTerms);
+                                    }}
+                                    placeholder={`Extra term ${idx + 1}`}
+                                    className={smallInputCls}
+                                />
+                                <Button 
+                                    type="button" 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => setAdditionalTerms(prev => prev.filter((_, i) => i !== idx))}
+                                    className="text-rose-500 hover:text-rose-600 p-2"
+                                >
+                                    <Trash2 size={14} />
+                                </Button>
+                            </div>
+                        ))}
+                        <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => setAdditionalTerms(prev => [...prev, ''])}
+                            className="text-xs font-bold gap-2 py-2 h-auto"
+                        >
+                            <Plus size={12} /> Add Extra Term
+                        </Button>
+                        <p className="text-[10px] text-muted-foreground italic mt-2">
+                            * These terms will appear below the default Maruti Furniture terms on the PDF.
+                        </p>
                     </div>
                 </FormSection>
 

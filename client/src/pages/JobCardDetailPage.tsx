@@ -175,7 +175,16 @@ export default function JobCardDetailPage() {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="space-y-1">
                         <p className="text-primary text-xs font-black tracking-widest uppercase">{jc.jobCardNumber}</p>
-                        <h1 className="text-foreground text-2xl font-black mt-1 tracking-tight">{jc.title}</h1>
+                        {jc.items?.[0]?.category && (
+                            <div className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider mb-1">
+                                {jc.items[0].category}
+                            </div>
+                        )}
+                        <h1 className="text-foreground text-2xl font-black mt-1 tracking-tight">
+                            {jc.items?.[0]?.category && !jc.title?.startsWith(jc.items[0].category) 
+                                ? `${jc.items[0].category} - ${jc.title}` 
+                                : jc.title}
+                        </h1>
                         <p className="text-muted-foreground/60 text-sm font-medium">{jc.clientId?.name} <span className="mx-1.5 opacity-30">/</span> {jc.projectId?.projectName}</p>
                     </div>
                     <div className="flex flex-col items-end gap-3">
@@ -227,9 +236,9 @@ export default function JobCardDetailPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mt-6 pt-5 border-t border-border/40">
                     {[
                         { label: 'Priority', value: jc.priority },
-                        { label: 'Expect Del.', value: jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN') : '—' },
+                        { label: 'Expect Del.', value: jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—' },
                         { label: 'Quotation', value: jc.quotationId?.quotationNumber ?? '—' },
-                        { label: 'Created', value: jc.createdAt ? new Date(jc.createdAt).toLocaleDateString('en-IN') : '—' },
+                        { label: 'Created', value: jc.createdAt ? new Date(jc.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—' },
                     ].map(({ label, value }) => (
                         <div key={label} className="space-y-1">
                             <p className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-widest">{label}</p>
@@ -337,6 +346,7 @@ function OverviewTab({ jc }: any) {
                                                     </div>
                                                 )}
                                                 <div className="flex-1">
+                                                    {item.category && <p className="text-[10px] font-black uppercase tracking-wider text-primary mb-0.5">{item.category}</p>}
                                                     <p className="font-bold text-foreground text-sm">{item.description}</p>
                                                     {item.specifications && (
                                                         <div className="mt-1 flex flex-wrap gap-2">
@@ -416,7 +426,7 @@ function OverviewTab({ jc }: any) {
                                     </p>
                                     <p className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest mt-0.5">
                                         {new Date(log.timestamp).toLocaleString('en-IN', {
-                                            day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric', hour12: true
+                                            day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'Asia/Kolkata'
                                         })}
                                     </p>
                                     {log.note && <p className="text-xs font-bold text-slate-500 bg-slate-500/10 p-2.5 rounded-xl mt-2 border border-slate-500/20 relative w-fit"><span className="absolute -top-1.5 left-4 text-slate-500/20">"</span>{log.note}</p>}
@@ -602,7 +612,7 @@ function DesignTab({ id, jc, qcClient, canEdit }: any) {
                     <div>
                         <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Expected Delivery</p>
                         <p className={cn('text-sm font-bold', !jc.expectedDelivery ? 'text-muted-foreground/40' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
-                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}
+                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : 'Not set'}
                         </p>
                     </div>
                     <AssignedStaffList users={jc.assignedTo?.design} roleLabel="Assigned Designers" color="bg-violet-500" />

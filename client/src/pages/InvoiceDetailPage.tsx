@@ -3,13 +3,15 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
     ArrowLeft, Receipt, Download, Send,
     AlertCircle, Loader2, Plus, Wallet, Building2, CreditCard, CheckCircle2,
+    Pencil, Trash2
 } from 'lucide-react';
-import { useInvoice, useRecordPayment, useSendInvoice } from '../hooks/useApi';
+import { useInvoice, useRecordPayment, useUpdatePayment, useDeletePayment, useSendInvoice } from '../hooks/useApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { toast } from 'sonner';
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
     draft: { label: 'Draft', color: 'text-slate-500', bg: 'bg-slate-500/10', border: 'border-slate-500/20' },
@@ -40,7 +42,11 @@ export default function InvoiceDetailPage() {
     const paymentMut = useRecordPayment(id!);
     const sendMut = useSendInvoice(id!);
 
+    const updatePaymentMut = useUpdatePayment(id!);
+    const deletePaymentMut = useDeletePayment(id!);
+
     const [showPayment, setShowPayment] = useState(false);
+    const [editingPayment, setEditingPayment] = useState<any>(null);
     const [payForm, setPayForm] = useState({ amount: '', mode: 'upi', reference: '' });
     const [payError, setPayError] = useState('');
     const [confirm, setConfirm] = useState<'send' | null>(null);
@@ -66,13 +72,42 @@ export default function InvoiceDetailPage() {
 
         setPayError('');
         try {
-            await paymentMut.mutateAsync({ amount: Number(payForm.amount), mode: payForm.mode, reference: payForm.reference });
+            if (editingPayment) {
+                await updatePaymentMut.mutateAsync({ 
+                    paymentId: editingPayment._id, 
+                    amount: Number(payForm.amount), 
+                    mode: payForm.mode, 
+                    reference: payForm.reference 
+                });
+                toast.success('Payment updated');
+            } else {
+                await paymentMut.mutateAsync({ amount: Number(payForm.amount), mode: payForm.mode, reference: payForm.reference });
+                toast.success('Payment recorded');
+            }
             setShowPayment(false);
+            setEditingPayment(null);
             setPayForm({ amount: '', mode: 'upi', reference: '' });
             refetch();
         } catch (e: any) {
-            setPayError(e?.response?.data?.message || 'Failed to record payment');
+            setPayError(e?.response?.data?.message || 'Failed to save payment');
         }
+    };
+
+    const handleDeletePayment = async (paymentId: string) => {
+        if (!window.confirm('Are you sure you want to delete this payment?')) return;
+        try {
+            await deletePaymentMut.mutateAsync(paymentId);
+            toast.success('Payment deleted');
+            refetch();
+        } catch (e: any) {
+            toast.error(e?.response?.data?.message || 'Failed to delete payment');
+        }
+    };
+
+    const startEditPayment = (p: any) => {
+        setEditingPayment(p);
+        setPayForm({ amount: String(p.amount), mode: p.mode, reference: p.reference || '' });
+        setShowPayment(true);
     };
 
     if (isLoading) {
@@ -135,7 +170,7 @@ export default function InvoiceDetailPage() {
                         </Button>
                     )}
                     {!isPaid && (
-                        <Button onClick={() => setShowPayment(true)} className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-emerald-500 text-white hover:bg-emerald-600">
+                        <Button onClick={() => { setEditingPayment(null); setPayForm({ amount: '', mode: 'upi', reference: '' }); setShowPayment(true); }} className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-emerald-500 text-white hover:bg-emerald-600">
                             <Plus size={13} /> Record Payment
                         </Button>
                     )}
@@ -202,7 +237,6 @@ export default function InvoiceDetailPage() {
 
                     <InfoCard title="Invoice Details" icon={Receipt}>
                         <div className="space-y-2">
-                            <InfoRow label="GST Type" value={inv.gstType === 'cgst_sgst' ? 'CGST + SGST' : 'IGST'} />
                             <InfoRow label="Place of Supply" value={inv.placeOfSupply} />
                             {inv.dueDate && <InfoRow label="Due Date" value={fmtDate(inv.dueDate)} />}
                             {inv.sentAt && <InfoRow label="Sent At" value={fmtDate(inv.sentAt)} />}
@@ -222,14 +256,16 @@ export default function InvoiceDetailPage() {
                         <div className="space-y-3 max-w-sm ml-auto">
                             <TotalRow label="Sub Total" value={fmt(inv.subtotal)} />
                             {inv.discount > 0 && <TotalRow label="Discount" value={`-${fmt(inv.discount)}`} valueClass="text-rose-500" />}
-                            {inv.gstType === 'cgst_sgst' ? (
-                                <>
-                                    <TotalRow label="CGST" value={fmt(inv.cgst)} />
-                                    <TotalRow label="SGST" value={fmt(inv.sgst)} />
-                                </>
-                            ) : (
-                                <TotalRow label="IGST" value={fmt(inv.igst)} />
-                            )}
+                            {(() => {
+                                let displayRate = inv.gstRate;
+                                if ((displayRate === undefined || displayRate === null) && inv.gstAmount > 0) {
+                                    const taxable = inv.taxableAmount || (inv.subtotal - (inv.discount || 0));
+                                    if (taxable > 0) {
+                                        displayRate = Math.round((inv.gstAmount / taxable) * 100);
+                                    }
+                                }
+                                return <TotalRow label={(displayRate !== undefined && displayRate !== null) ? `GST (${displayRate}%)` : "GST"} value={fmt(inv.gstAmount)} />;
+                            })()}
                             <div className="pt-3 border-t border-border/40 flex justify-between items-center">
                                 <p className="font-black text-foreground text-base">Grand Total</p>
                                 <p className="font-black text-primary text-xl">{fmt(inv.grandTotal)}</p>
@@ -259,7 +295,7 @@ export default function InvoiceDetailPage() {
                             {showPayment && (
                                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                                     className="px-6 py-4 border-b border-border/20 bg-emerald-500/5 space-y-3">
-                                    <p className="text-xs font-black text-foreground">Record Payment</p>
+                                    <p className="text-xs font-black text-foreground">{editingPayment ? 'Edit Payment' : 'Record Payment'}</p>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                         <Input
                                             type="number"
@@ -289,10 +325,10 @@ export default function InvoiceDetailPage() {
                                         </div>
                                     </div>
                                     <div className="flex gap-3">
-                                        <Button variant="outline" size="sm" onClick={() => setShowPayment(false)} className="rounded-xl font-bold text-xs">Cancel</Button>
-                                        <Button size="sm" onClick={handlePayment} disabled={!payForm.amount || paymentMut.isPending} className="rounded-xl font-black text-xs gap-2">
-                                            {paymentMut.isPending && <Loader2 size={12} className="animate-spin" />}
-                                            Save Payment
+                                        <Button variant="outline" size="sm" onClick={() => { setShowPayment(false); setEditingPayment(null); }} className="rounded-xl font-bold text-xs">Cancel</Button>
+                                        <Button size="sm" onClick={handlePayment} disabled={!payForm.amount || paymentMut.isPending || updatePaymentMut.isPending} className="rounded-xl font-black text-xs gap-2">
+                                            {(paymentMut.isPending || updatePaymentMut.isPending) && <Loader2 size={12} className="animate-spin" />}
+                                            {editingPayment ? 'Update Payment' : 'Save Payment'}
                                         </Button>
                                     </div>
                                 </motion.div>
@@ -316,7 +352,15 @@ export default function InvoiceDetailPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <p className="text-xs text-muted-foreground/50 font-bold">{fmtDate(p.paidAt)}</p>
+                                        <div className="flex items-center gap-2">
+                                            <Button variant="ghost" size="icon" onClick={() => startEditPayment(p)} className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors">
+                                                <Pencil size={14} />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDeletePayment(p._id)} className="h-8 w-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-500 transition-colors">
+                                                <Trash2 size={14} />
+                                            </Button>
+                                            <p className="text-xs text-muted-foreground/50 font-bold">{fmtDate(p.paidAt)}</p>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
