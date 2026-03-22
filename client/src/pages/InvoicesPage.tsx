@@ -66,7 +66,7 @@ export default function InvoicesPage() {
                 className="flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">Invoice Ledger</h1>
+                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">Proforma Invoice Ledger</h1>
                     <div className="flex items-center gap-3.5">
                         <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                         <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
@@ -77,7 +77,7 @@ export default function InvoicesPage() {
                 {canCreate && (
                     <Link to="/invoices/new">
                         <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2.5 font-black text-[11px] uppercase tracking-[0.15em] h-12 px-7 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                            <Plus size={18} strokeWidth={3} /> Issue New Invoice
+                            <Plus size={18} strokeWidth={3} /> Issue New Proforma Invoice
                         </Button>
                     </Link>
                 )}
@@ -95,7 +95,7 @@ export default function InvoicesPage() {
                 />
                 <StatCard
                     icon={CheckCircle}
-                    label="Paid Invoices"
+                    label="Settled Proforma Invoices"
                     value={totalPaid}
                     sub="Settled"
                     colorClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
@@ -131,7 +131,7 @@ export default function InvoicesPage() {
                     <Input
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                        placeholder="Search Invoice ID or Client Identity..."
+                        placeholder="Search Proforma Invoice ID or Client Identity..."
                         className="pl-12 bg-card border-border/80 text-foreground h-12 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/40 shadow-sm backdrop-blur-md"
                     />
                 </div>
@@ -175,7 +175,7 @@ export default function InvoicesPage() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-border/40 bg-muted/20">
-                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Invoice Unit</th>
+                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Proforma Invoice Unit</th>
                                     <th className="text-left px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em] hidden sm:table-cell">Client Name</th>
                                     <th className="text-left px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em] hidden md:table-cell">Settlement Due</th>
                                     <th className="text-right px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Gross Total</th>

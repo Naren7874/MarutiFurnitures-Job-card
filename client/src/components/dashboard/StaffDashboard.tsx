@@ -360,13 +360,13 @@ const AccountantDashboard = () => {
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-                <StatCard icon={Banknote}     label="Delivered — Awaiting Invoice" value={pending.length} colorClass="bg-emerald-500/10 text-emerald-500" delay={0.1} />
+                <StatCard icon={Banknote}     label="Delivered Awaiting Proforma Invoice" value={pending.length} colorClass="bg-emerald-500/10 text-emerald-500" delay={0.1} />
                 <StatCard icon={Receipt}      label="Closed Jobs"                  value={closed.length}  colorClass="bg-zinc-500/10 text-zinc-500"        delay={0.2} />
                 <StatCard icon={BarChart3}    label="Total Handled"                value={all.length}     colorClass="bg-primary/10 text-primary"           delay={0.3} />
                 <StatCard icon={ClipboardList} label="Finance Queue"               value={all.length}     colorClass="bg-rose-500/10 text-rose-500" sub="Active" delay={0.4} />
             </div>
             <Card className="rounded-[28px] border-border/40 p-6 shadow-sm">
-                <SectionTitle title="Delivered Jobs — Awaiting Invoice" count={pending.length} />
+                <SectionTitle title="Delivered Jobs — Awaiting Proforma Invoice" count={pending.length} />
                 {isLoading ? <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 rounded-2xl" />)}</div>
                     : all.length === 0 ? <EmptyState label="No delivered jobs yet" />
                     : <div className="space-y-1">{all.slice(0, 20).map((jc, i) => <JCRow key={jc._id} jc={jc} idx={i} />)}</div>
@@ -374,7 +374,7 @@ const AccountantDashboard = () => {
                 <div className="mt-5 pt-4 border-t border-border/20">
                     <Link to="/invoices">
                         <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary hover:underline">
-                            <Receipt size={12} /> View All Invoices <ArrowRight size={12} />
+                            <Receipt size={12} /> View All Proforma Invoices <ArrowRight size={12} />
                         </div>
                     </Link>
                 </div>

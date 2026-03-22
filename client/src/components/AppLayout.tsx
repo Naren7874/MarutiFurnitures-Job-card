@@ -24,7 +24,7 @@ const ALL_NAV = [
     { label: 'Quotations', icon: FileText, path: '/quotations', permission: 'quotation.view' },
     { label: 'Projects', icon: Folder, path: '/projects', permission: 'project.view' },
     { label: 'Job Cards', icon: ClipboardList, path: '/jobcards', permission: 'jobcard.view' },
-    { label: 'Invoices', icon: Receipt, path: '/invoices', permission: 'invoice.view' },
+    { label: 'Proforma Invoices', icon: Receipt, path: '/invoices', permission: 'invoice.view' },
     { label: 'Inventory', icon: Package, path: '/inventory', permission: 'inventory.view' },
     { label: 'Purchase Orders', icon: ShoppingCart, path: '/purchase-orders', permission: 'purchaseOrder.view' },
     { label: 'Reports', icon: BarChart3, path: '/reports', permission: 'report.view' },

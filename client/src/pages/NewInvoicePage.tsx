@@ -21,7 +21,7 @@ interface LineItem {
     total: number;
 }
 
-const GST_RATES = [0, 5, 12, 18, 28];
+const GST_RATES = [0, 5, 9, 12, 18];
 
 export default function NewInvoicePage() {
     const navigate = useNavigate();
@@ -130,7 +130,7 @@ export default function NewInvoicePage() {
                         <span className="p-2.5 rounded-xl bg-primary/10 text-primary shadow-inner"><Receipt size={20} /></span>
                         New Invoice
                     </h1>
-                    <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-wide mt-1.5 opacity-70">Create and issue a new invoice to your client</p>
+                    <p className="text-muted-foreground text-[11px] font-black uppercase tracking-[0.2em] opacity-70">New Proforma Invoice</p>
                 </div>
             </div>
 
@@ -419,7 +419,7 @@ export default function NewInvoicePage() {
                         <Button variant="outline" onClick={() => navigate('/invoices')} className="rounded-xl h-11 px-6 font-bold text-xs border-border/60">Cancel</Button>
                         <Button onClick={handleSubmit} disabled={createInvoice.isPending} className="rounded-xl h-11 px-8 font-black text-xs gap-2">
                             {createInvoice.isPending && <Loader2 size={13} className="animate-spin" />}
-                            Create Invoice
+                            Create Proforma Invoice
                         </Button>
                     </div>
                 </div>

@@ -127,7 +127,7 @@ export default function InvoiceDetailPage() {
         return (
             <div className="p-8 text-center">
                 <AlertCircle size={48} className="mx-auto text-muted-foreground/20 mb-4" />
-                <p className="text-muted-foreground font-bold">Invoice not found</p>
+                <p className="text-muted-foreground font-bold">Proforma Invoice not found</p>
                 <Link to="/invoices" className="text-primary text-sm font-bold mt-4 inline-block">← Back</Link>
             </div>
         );
@@ -189,7 +189,7 @@ export default function InvoiceDetailPage() {
                 {confirm === 'send' && (
                     <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                         className="bg-card border border-border rounded-2xl p-5 flex items-center justify-between gap-4">
-                        <p className="text-sm font-bold text-foreground">Send invoice to {inv.clientId?.name} via email?</p>
+                        <p className="text-sm font-bold text-foreground">Send proforma invoice to {inv.clientId?.name} via email?</p>
                         <div className="flex gap-3 shrink-0">
                             <Button variant="outline" size="sm" onClick={() => setConfirm(null)} className="rounded-xl font-bold text-xs">Cancel</Button>
                             <Button size="sm" onClick={async () => { await sendMut.mutateAsync(); setConfirm(null); refetch(); }} className="rounded-xl font-bold text-xs">Send</Button>
@@ -242,7 +242,7 @@ export default function InvoiceDetailPage() {
                         </div>
                     </InfoCard>
 
-                    <InfoCard title="Invoice Details" icon={Receipt}>
+                    <InfoCard title="Proforma Invoice Details" icon={Receipt}>
                         <div className="space-y-2">
                             <InfoRow label="Place of Supply" value={inv.placeOfSupply} />
                             {inv.dueDate && <InfoRow label="Due Date" value={fmtDate(inv.dueDate)} />}

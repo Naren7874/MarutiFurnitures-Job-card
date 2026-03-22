@@ -177,7 +177,7 @@ export default function SettingsPage() {
                                                         {[
                                                             { label: 'Lifecycle Status Changes', desc: 'Alert when job cards migrate across production stages', def: true, id: 'lifecycle' },
                                                             { label: 'Delivery Integrity Overdue', desc: 'Critical alerts for delayed client commitments', def: true, id: 'delivery' },
-                                                            { label: 'Financial Approval Stream', desc: 'Updates on quotation and invoice authorization', def: false, id: 'financial' },
+                                                            { label: 'Financial Approval Stream', desc: 'Updates on quotation and proforma invoice authorization', def: false, id: 'financial' },
                                                             { label: 'Inventory Depletion Alert', desc: 'Notifications for stock falling below safety thresholds', def: true, id: 'inventory' },
                                                             { label: 'Cloud WhatsApp Gateway', desc: 'Real-time push notifications via encrypted mobile channel', def: false, id: 'whatsapp' },
                                                         ].map((item, idx) => (

@@ -42,7 +42,7 @@ export function OverdueInvoices({ invoices }: OverdueInvoicesProps) {
                         <AlertCircle className="size-4 text-red-500" />
                     </div>
                     <div>
-                        <CardTitle className="text-base font-bold">Overdue Invoices</CardTitle>
+                        <CardTitle className="text-base font-bold">Overdue Proforma Invoices</CardTitle>
                         <p className="text-xs text-muted-foreground mt-0.5">
                             Total: <span className="font-bold text-red-600 dark:text-red-400">{formatAmount(totalOverdue)}</span> outstanding
                         </p>
@@ -57,7 +57,7 @@ export function OverdueInvoices({ invoices }: OverdueInvoicesProps) {
                 {invoices.length === 0 ? (
                     <div className="h-28 flex flex-col items-center justify-center">
                         <div className="text-xl mb-1">✓</div>
-                        <p className="text-xs text-muted-foreground font-medium">No overdue invoices</p>
+                        <p className="text-xs text-muted-foreground font-medium">No overdue proforma invoices</p>
                     </div>
                 ) : (
                     <ScrollArea className="h-[220px]">

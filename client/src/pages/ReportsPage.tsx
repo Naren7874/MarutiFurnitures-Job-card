@@ -55,7 +55,7 @@ export default function ReportsPage() {
         { label: 'Total Revenue (MTD)', value: fmt(stats.revenue?.thisMonth || 0), icon: TrendingUp, color: 'bg-emerald-500/10 text-emerald-500' },
         { label: 'Active Projects', value: String(stats.projects?.active || 0), icon: BarChart3, color: 'bg-violet-500/10 text-violet-500' },
         { label: 'Pending Quotations', value: String(stats.quotations?.pending || 0), icon: FileText, color: 'bg-blue-500/10 text-blue-500' },
-        { label: 'Invoices Overdue', value: String(stats.invoices?.overdue || 0), icon: Receipt, color: 'bg-rose-500/10 text-rose-500' },
+        { label: 'Proforma Invoices Overdue', value: String(stats.invoices?.overdue || 0), icon: Receipt, color: 'bg-rose-500/10 text-rose-500' },
         { label: 'Low Stock Items', value: String(stats.inventory?.lowStock || 0), icon: Package, color: 'bg-amber-500/10 text-amber-500' },
         { label: 'Open Purchase Orders', value: String(stats.purchaseOrders?.pending || 0), icon: ShoppingCart, color: 'bg-indigo-500/10 text-indigo-500' },
     ];
@@ -227,12 +227,12 @@ export default function ReportsPage() {
                     className="bg-card border border-border/60 rounded-2xl p-6 space-y-4 shadow-sm">
                     <div className="flex items-center gap-3 pb-3 border-b border-border/20">
                         <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500"><Receipt size={16} /></div>
-                        <p className="font-black text-sm uppercase tracking-wider text-foreground">Invoice & Payment Summary</p>
+                        <p className="font-black text-sm uppercase tracking-wider text-foreground">Proforma Invoice & Payment Summary</p>
                     </div>
                     {canViewFinancial ? (
                         <div className="grid grid-cols-2 gap-4">
                             {[
-                                { label: 'Total Invoiced', value: fmt(stats.invoices?.totalAmount || 0), color: 'text-foreground' },
+                                { label: 'Total Proforma Invoiced', value: fmt(stats.invoices?.totalAmount || 0), color: 'text-foreground' },
                                 { label: 'Amount Received', value: fmt(stats.invoices?.received || 0), color: 'text-emerald-500' },
                                 { label: 'Balance Pending', value: fmt((stats.invoices?.totalAmount || 0) - (stats.invoices?.received || 0)), color: 'text-amber-500' },
                                 { label: 'Overdue Amount', value: fmt(stats.invoices?.overdueAmount || 0), color: 'text-rose-500' },
@@ -246,7 +246,7 @@ export default function ReportsPage() {
                     ) : (
                         <div className="flex flex-col items-center justify-center py-10 opacity-30">
                             <Receipt size={24} className="mb-2" />
-                            <p className="text-[10px] font-black uppercase tracking-widest italic text-center">Invoice Data Restricted</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest italic text-center">Proforma Invoice Data Restricted</p>
                         </div>
                     )}
                 </motion.div>

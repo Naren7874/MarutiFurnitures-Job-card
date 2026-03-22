@@ -21,7 +21,7 @@ interface LineItem {
     total: number;
 }
 
-const GST_RATES = [0, 5, 12, 18, 28];
+const GST_RATES = [0, 5, 9, 12, 18, 28];
 
 export default function EditInvoicePage() {
     const { id } = useParams<{ id: string }>();
@@ -168,7 +168,7 @@ export default function EditInvoicePage() {
                         <span className="p-2.5 rounded-xl bg-primary/10 text-primary shadow-inner"><Receipt size={20} /></span>
                         Edit Invoice
                     </h1>
-                    <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-wide mt-1.5 opacity-70">Modify invoice details for {(rawInv as any)?.data?.invoiceNumber}</p>
+                    <p className="text-muted-foreground text-[11px] font-black uppercase tracking-[0.2em] opacity-70">Edit Proforma Invoice details for {(rawInv as any)?.data?.invoiceNumber}</p>
                 </div>
             </div>
 
@@ -360,7 +360,7 @@ export default function EditInvoicePage() {
                         <Button variant="outline" onClick={() => navigate(`/invoices/${id}`)} className="rounded-xl h-11 px-6 font-bold text-xs border-border/60">Cancel</Button>
                         <Button onClick={handleSubmit} disabled={updateInvoice.isPending} className="rounded-xl h-11 px-8 font-black text-xs gap-2">
                             {updateInvoice.isPending && <Loader2 size={13} className="animate-spin" />}
-                            Update Invoice
+                            Update Proforma Invoice
                         </Button>
                     </div>
                 </div>

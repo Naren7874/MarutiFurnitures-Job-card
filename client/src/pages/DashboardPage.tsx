@@ -355,7 +355,7 @@ function AdminDashboard() {
                                                     </Avatar>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2 mb-1">
-                                                            <span className="text-[12px] font-black text-foreground group-hover:text-primary transition-colors">{activity.actor}</span>
+                                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40 group-hover:opacity-100 transition-opacity">{activity.actor}</p>
                                                             <span
                                                                 className="text-[8px] font-black px-1.5 py-0.5 rounded-[4px] uppercase tracking-widest"
                                                                 style={{ backgroundColor: `${roleColor}10`, color: roleColor }}

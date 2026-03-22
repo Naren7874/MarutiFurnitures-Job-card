@@ -89,7 +89,8 @@ export default function ClientDetailPage() {
                     )}
                     {canCreateQuote && (
                         <Link to={`/quotations/new?clientId=${id}`}>
-                            <Button className="h-10 px-6 rounded-xl bg-primary font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">
+                            <Button className="h-10 px-6 rounded-xl bg-primary hover:bg-primary/90 font-black text-[10px] uppercase tracking-[0.15em] gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                                <FileText size={16} />
                                 Create Quotation
                             </Button>
                         </Link>
@@ -152,7 +153,7 @@ export default function ClientDetailPage() {
                         <div className="flex flex-wrap gap-4 items-center justify-center md:justify-start pt-2 border-t border-border/30">
                             {[
                                 { label: 'Client ID', value: id?.slice(-6).toUpperCase(), color: 'text-indigo-500' },
-                                { label: 'Invoiced', value: `₹${totalInvoiced.toLocaleString('en-IN')}`, color: 'text-primary' },
+                                { label: 'Proforma Invoiced', value: `₹${totalInvoiced.toLocaleString('en-IN')}`, color: 'text-primary' },
                                 { label: 'Status', value: client.isActive ? 'ACTIVE' : 'INACTIVE', color: client.isActive ? 'text-emerald-500' : 'text-rose-500' },
                                 { label: 'Type', value: client.clientType?.replace('_', ' ').toUpperCase() || 'CORE', color: 'text-amber-500' },
                             ].map((s, idx) => (
@@ -225,7 +226,7 @@ export default function ClientDetailPage() {
                     {/* Financial Matrix */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {[
-                            { label: 'Total Invoiced', value: totalInvoiced, icon: FileText, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                            { label: 'Total Proforma Invoiced', value: totalInvoiced, icon: FileText, color: 'text-blue-500', bg: 'bg-blue-500/10' },
                             { label: 'Total Paid', value: totalPaid, icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
                             { label: 'Outstanding', value: balanceDue, icon: Clock, color: 'text-rose-500', bg: 'bg-rose-500/10' },
                         ].map((fin, i) => (
@@ -243,7 +244,7 @@ export default function ClientDetailPage() {
                                     <p className="text-muted-foreground/50 text-[9px] font-black uppercase tracking-widest">{fin.label}</p>
                                     <p className="text-xl font-black tracking-tight text-foreground">₹{fin.value.toLocaleString('en-IN')}</p>
                                 </div>
-                                {fin.label === 'Total Invoiced' && totalInvoiced > 0 && (
+                                {fin.label === 'Total Proforma Invoiced' && totalInvoiced > 0 && (
                                     <div className="mt-auto pt-4 border-t border-border/20">
                                         <div className="flex justify-between items-center text-[8px] font-black uppercase mb-1">
                                             <span className="text-emerald-500">Collected: {Math.round((totalPaid / totalInvoiced) * 100)}%</span>
