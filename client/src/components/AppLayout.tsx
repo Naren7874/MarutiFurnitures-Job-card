@@ -97,18 +97,18 @@ function CompanySwitcher() {
                                 className={cn(
                                     "aspect-square rounded-[2.5rem] transition-all duration-500 group/item relative overflow-visible border-4",
                                     company?.id === c.id 
-                                        ? "border-primary bg-white shadow-[0_20px_40px_rgba(var(--primary),0.15)] scale-[1.02]" 
-                                        : "border-transparent bg-white shadow-sm hover:border-gray-100 hover:shadow-xl hover:scale-[1.05]"
+                                        ? "border-primary bg-card shadow-[0_20px_40px_rgba(var(--primary),0.15)] scale-[1.02]" 
+                                        : "border-transparent bg-card shadow-sm hover:border-border/40 hover:shadow-xl hover:scale-[1.05]"
                                 )}
                             >
                                 {/* White Logo Square */}
-                                <div className="absolute inset-0 flex items-center justify-center p-6 bg-white rounded-[2.2rem]">
+                                <div className="absolute inset-0 flex items-center justify-center p-6 bg-card rounded-[2.2rem]">
                                     {renderLogo(c, "size-full object-contain")}
                                 </div>
 
                                 {/* Active Badge - Primary Circle with Checkmark */}
                                 {company?.id === c.id && (
-                                    <div className="absolute -top-3 -right-3 size-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-[0_4px_12px_rgba(var(--primary),0.4)] z-30 animate-in zoom-in-50 duration-500 ring-4 ring-white">
+                                    <div className="absolute -top-3 -right-3 size-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-[0_4px_12px_rgba(var(--primary),0.4)] z-30 animate-in zoom-in-50 duration-500 ring-4 ring-card">
                                         <Check size={12} strokeWidth={4} />
                                     </div>
                                 )}
@@ -124,18 +124,21 @@ function CompanySwitcher() {
 // ── Main Layout ───────────────────────────────────────────────────────────────
 
 export default function AppLayout() {
-    const { user, company, logout, hasPermission, updateCompanies } = useAuthStore();
+    const { user, company, logout, hasPermission, updateUser, updateCompanies } = useAuthStore();
     const { sidebarCollapsed, toggleSidebar } = useUIStore();
     const { unreadCount, setSheetOpen } = useNotificationStore();
     const navigate = useNavigate();
 
-    // Sync companies from backend to store to ensure logos are fresh
+    // Sync profile & companies from backend to store to ensure permissions/logos are fresh
     const { data: meContent } = useMe() as any;
     useEffect(() => {
+        if (meContent?.user) {
+            updateUser(meContent.user);
+        }
         if (meContent?.allCompanies) {
             updateCompanies(meContent.allCompanies);
         }
-    }, [meContent, updateCompanies]);
+    }, [meContent, updateUser, updateCompanies]);
 
     const nav = ALL_NAV.filter((item) => !item.permission || hasPermission(item.permission));
 
@@ -152,7 +155,7 @@ export default function AppLayout() {
 
                 {/* Logo */}
                 <div className={cn('flex items-center gap-3 px-4 py-3.5 border-b border-border', sidebarCollapsed && 'justify-center px-0')}>
-                    <div className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center shrink-0 overflow-hidden border border-border/50 p-1">
+                    <div className="w-9 h-9 rounded-lg bg-white dark:bg-card shadow-sm flex items-center justify-center shrink-0 overflow-hidden border border-border/50 p-1">
                         {renderLogo(company, "size-full object-contain scale-[1.35] transition-transform duration-500")}
                     </div>
                     {!sidebarCollapsed && (

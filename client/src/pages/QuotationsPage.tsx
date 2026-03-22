@@ -49,18 +49,18 @@ export default function QuotationsPage() {
                 className="flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
                 <div>
-                    <h1 className="text-foreground text-3xl font-black tracking-tight mb-2">Quotations</h1>
-                    <div className="flex items-center gap-3">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary/40" />
-                        <p className="text-muted-foreground text-sm font-semibold tracking-wide uppercase opacity-70">
+                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">Quotations</h1>
+                    <div className="flex items-center gap-3.5">
+                        <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                        <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
                             {pagination.total ?? 0} Global Estimates
                         </p>
                     </div>
                 </div>
                 {canCreate && (
                     <Link to="/quotations/new">
-                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                            <Plus size={18} strokeWidth={3} /> Create Quotation
+                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-3 font-black text-[13px] uppercase tracking-[0.2em] h-12 px-8 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 group">
+                            <Plus size={18} strokeWidth={3} className="group-hover:rotate-90 transition-transform" /> Create Quotation
                         </Button>
                     </Link>
                 )}
@@ -78,12 +78,12 @@ export default function QuotationsPage() {
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         placeholder="SEARCH BY QUOTE, PROJECT OR CLIENT..."
-                        className="pl-14 pr-6 bg-white dark:bg-card/50 border border-border dark:border-border/60 text-foreground h-[52px] rounded-full focus:ring-4 focus:ring-primary/10 transition-all font-black text-[10px] uppercase tracking-widest placeholder:text-muted-foreground/20 shadow-sm w-full"
+                        className="pl-14 pr-6 bg-card border-border/80 text-foreground h-[60px] rounded-2xl focus:ring-4 focus:ring-primary/10 transition-all font-black text-[11px] uppercase tracking-[0.15em] placeholder:text-muted-foreground/40 shadow-xs w-full"
                     />
                 </div>
                 <div>
                 <Select value={status || 'all'} onValueChange={(v: string) => { setStatus(v === 'all' ? '' : v); setPage(1); }}>
-                    <SelectTrigger className="h-[52px]! bg-white dark:bg-card/50 border border-border dark:border-border/60 text-foreground rounded-full font-black text-[10px] uppercase tracking-widest px-8 shadow-sm focus:ring-4 focus:ring-primary/10 transition-all">
+                    <SelectTrigger className="h-[60px]! bg-card border-border/80 text-foreground rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] px-8 shadow-xs focus:ring-4 focus:ring-primary/10 transition-all">
                         <SelectValue placeholder="STATUS FILTER" />
                     </SelectTrigger>
                     <SelectContent className="rounded-3xl shadow-2xl border-border/50">
@@ -110,7 +110,7 @@ export default function QuotationsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-white/80 dark:bg-card/30 border border-border dark:border-border/50 rounded-[32px] overflow-hidden shadow-2xl shadow-black/5 backdrop-blur-xl"
+                className="bg-card border border-border focus-within:border-primary/50 rounded-[32px] overflow-hidden shadow-2xl shadow-black/5"
             >
                 {isLoading ? (
                     <div className="p-8 space-y-6">
@@ -147,10 +147,10 @@ export default function QuotationsPage() {
                                                             <FileText size={18} />
                                                         </div>
                                                         <div>
-                                                            <p className="text-foreground font-black text-sm tracking-tight">{q.quotationNumber}</p>
-                                                            <div className="flex items-center gap-2 mt-0.5">
-                                                                <Clock size={10} className="text-muted-foreground/40" />
-                                                                 <p className="text-muted-foreground/60 text-[10px] font-bold">
+                                                            <p className="text-foreground font-black text-[15px] tracking-tight">{q.quotationNumber}</p>
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <Clock size={12} className="text-muted-foreground/40" />
+                                                                 <p className="text-muted-foreground/60 text-[11px] font-black uppercase tracking-tight">
                                                                      {new Date(q.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
                                                                  </p>
                                                             </div>
@@ -158,16 +158,16 @@ export default function QuotationsPage() {
                                                     </Link>
                                                 </td>
                                                 <td className="px-8 py-5 hidden sm:table-cell">
-                                                    <p className="text-foreground/80 font-bold text-xs">{q.clientId?.name || 'N/A'}</p>
-                                                    <p className="text-muted-foreground/40 text-[10px] font-semibold uppercase tracking-tight truncate max-w-[200px]">{q.projectName || '—'}</p>
+                                                    <p className="text-foreground/80 font-black text-[13px]">{q.clientId?.name || 'N/A'}</p>
+                                                    <p className="text-muted-foreground/40 text-[11px] font-black uppercase tracking-tight truncate max-w-[200px]">{q.projectName || '—'}</p>
                                                 </td>
                                                 <td className="px-8 py-5 hidden md:table-cell text-right">
-                                                    <p className="text-foreground font-black text-sm">₹{q.grandTotal?.toLocaleString('en-IN')}</p>
-                                                    <p className="text-[10px] text-muted-foreground/40 font-bold uppercase">Incl. GST</p>
+                                                    <p className="text-foreground font-black text-[15px]">₹{q.grandTotal?.toLocaleString('en-IN')}</p>
+                                                    <p className="text-[11px] text-muted-foreground/40 font-black uppercase tracking-widest">Incl. GST</p>
                                                 </td>
                                                 <td className="px-8 py-5 text-center">
                                                     <span className={cn(
-                                                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-xs transition-colors",
+                                                        "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] border shadow-xs transition-colors",
                                                         cfg.bg, cfg.text, cfg.border
                                                     )}>
                                                         <div className={cn("size-1.5 rounded-full", cfg.text.replace('text-', 'bg-'))} />

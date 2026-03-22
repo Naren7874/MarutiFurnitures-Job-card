@@ -117,18 +117,18 @@ export default function NewInvoicePage() {
     };
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-5xl mx-auto space-y-8">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
             {/* Header */}
             <div className="flex items-center gap-4">
                 <button onClick={() => navigate('/invoices')} className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border hover:bg-primary/10 hover:border-primary/30 transition text-muted-foreground hover:text-primary">
                     <ArrowLeft size={16} />
                 </button>
                 <div>
-                    <h1 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-3">
-                        <span className="p-2 rounded-xl bg-primary/10 text-primary"><Receipt size={18} /></span>
+                    <h1 className="text-3xl font-black tracking-tighter text-foreground flex items-center gap-3.5">
+                        <span className="p-2.5 rounded-xl bg-primary/10 text-primary shadow-inner"><Receipt size={20} /></span>
                         New Invoice
                     </h1>
-                    <p className="text-muted-foreground/50 text-xs font-bold mt-1">Create and issue a new invoice to your client</p>
+                    <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-wide mt-1.5 opacity-70">Create and issue a new invoice to your client</p>
                 </div>
             </div>
 
@@ -144,11 +144,11 @@ export default function NewInvoicePage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left — Client + Settings */}
                 <div className="space-y-5">
-                    <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 pb-2 border-b border-border/20">Client & Project</p>
+                    <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-4 shadow-sm">
+                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 pb-2.5 border-b border-border/20">Client & Project</p>
 
-                        <div className="space-y-2">
-                            <Label className="text-xs font-bold text-muted-foreground/60">Client *</Label>
+                        <div className="space-y-2.5 pt-2">
+                            <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 ml-1">Client *</Label>
                             <Popover open={clientOpen} onOpenChange={setClientOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
@@ -314,8 +314,8 @@ export default function NewInvoicePage() {
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 pb-2 border-b border-border/20">Tax & Dates</p>
+                    <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-4 shadow-sm">
+                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 pb-2.5 border-b border-border/20">Tax & Dates</p>
 
 
                         <div className="space-y-2">
@@ -346,11 +346,11 @@ export default function NewInvoicePage() {
 
                     {/* Summary */}
                     <div className="bg-primary/5 border border-primary/15 rounded-2xl p-5 space-y-3">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 pb-2 border-b border-primary/10">Summary</p>
+                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/60 pb-2.5 border-b border-primary/10">Summary</p>
                         <div className="space-y-2 text-sm">
-                            <div className="flex justify-between"><span className="text-muted-foreground/60 font-bold">Subtotal</span><span className="font-bold">₹{subtotal.toLocaleString('en-IN')}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground/80 font-bold">Subtotal</span><span className="font-bold">₹{subtotal.toLocaleString('en-IN')}</span></div>
                             {form.discountPct > 0 && <div className="flex justify-between"><span className="text-rose-500/70 font-bold">Discount ({form.discountPct}%)</span><span className="font-bold text-rose-500">-₹{discount.toLocaleString('en-IN')}</span></div>}
-                            <div className="flex justify-between"><span className="text-muted-foreground/60 font-bold">GST ({form.gstRate}%)</span><span className="font-bold">₹{gstAmt.toLocaleString('en-IN')}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground/80 font-bold">GST ({form.gstRate}%)</span><span className="font-bold">₹{gstAmt.toLocaleString('en-IN')}</span></div>
                             <div className="flex justify-between pt-2 border-t border-primary/15"><span className="font-black text-foreground">Grand Total</span><span className="font-black text-primary text-base">₹{grandTotal.toLocaleString('en-IN')}</span></div>
                         </div>
                     </div>
@@ -358,9 +358,9 @@ export default function NewInvoicePage() {
 
                 {/* Right — Line Items */}
                 <div className="lg:col-span-2 space-y-4">
-                    <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl overflow-hidden">
+                    <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
                         <div className="flex items-center justify-between px-5 py-4 border-b border-border/20">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Line Items</p>
+                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Line Items</p>
                             <Button onClick={addItem} variant="outline" size="sm" className="rounded-lg text-xs font-bold h-8 gap-1.5 border-border/60">
                                 <Plus size={12} /> Add Row
                             </Button>
@@ -370,11 +370,11 @@ export default function NewInvoicePage() {
                             <table className="w-full text-xs">
                                 <thead>
                                     <tr className="bg-muted/20 text-muted-foreground/50">
-                                        <th className="text-left px-4 py-3 font-black uppercase tracking-widest">Category</th>
-                                        <th className="text-center px-3 py-3 font-black uppercase tracking-widest w-16">Qty</th>
-                                        <th className="text-right px-3 py-3 font-black uppercase tracking-widest w-24">Rate (₹)</th>
-                                        <th className="text-right px-3 py-3 font-black uppercase tracking-widest w-24">Total (₹)</th>
-                                        <th className="w-10" />
+                                        <th className="text-left px-5 py-4 font-black uppercase tracking-[0.15em] text-[11px]">Category</th>
+                                        <th className="text-center px-4 py-4 font-black uppercase tracking-[0.15em] text-[11px] w-20">Qty</th>
+                                        <th className="text-right px-4 py-4 font-black uppercase tracking-[0.15em] text-[11px] w-28">Rate (₹)</th>
+                                        <th className="text-right px-5 py-4 font-black uppercase tracking-[0.15em] text-[11px] w-32">Total (₹)</th>
+                                        <th className="w-12" />
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/20">
@@ -389,8 +389,8 @@ export default function NewInvoicePage() {
                                                     className="rounded-lg h-9 border-border/40 text-center font-bold text-xs w-16" />
                                             </td>
                                             <td className="px-3 py-2">
-                                                <Input type="number" value={item.rate} min={0} onChange={e => updateItem(i, 'rate', Number(e.target.value))}
-                                                    className="rounded-lg h-9 border-border/40 text-right font-bold text-xs w-24" />
+                                                <Input type="number" value={item.rate || ''} min={0} onChange={e => updateItem(i, 'rate', Number(e.target.value))}
+                                                    placeholder="0" className="rounded-lg h-9 border-border/40 text-right font-bold text-xs w-24" />
                                             </td>
                                             <td className="px-3 py-2 text-right">
                                                 <span className="font-black text-foreground">₹{item.total.toLocaleString('en-IN')}</span>

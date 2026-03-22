@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search, Phone, Building2, CheckCircle, XCircle, Users, MapPin, ArrowUpRight, Edit2, Trash2 } from 'lucide-react';
 import { useClients, useDeleteClientPermanent } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
@@ -26,7 +26,9 @@ export default function ClientsPage() {
     const [page, setPage] = useState(1);
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const { hasPermission } = useAuthStore();
+    const navigate = useNavigate();
     const canCreate = hasPermission('client.create');
+    const canEdit   = hasPermission('client.edit');
 
     const { data: raw, isLoading } = useClients({ search, clientType: clientType || undefined, page, limit: 20 });
     const resp: any = raw;
@@ -65,7 +67,7 @@ export default function ClientsPage() {
                 </div>
                 {canCreate && (
                     <Link to="/clients/new">
-                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-[0.15em] h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
                             <Plus size={18} strokeWidth={3} /> Add New Client
                         </Button>
                     </Link>
@@ -85,30 +87,30 @@ export default function ClientsPage() {
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         placeholder="Search by name, phone, firm name, or GSTIN..."
-                        className="pl-12 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground h-14 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/30 shadow-sm backdrop-blur-md w-full"
+                        className="pl-12 bg-card border-border/80 text-foreground h-14 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/40 shadow-sm backdrop-blur-md w-full"
                     />
                 </div>
                 <div>
                     <Select value={clientType || 'all'} onValueChange={(v) => { setClientType(v === 'all' ? '' : v); setPage(1); }}>
-                        <SelectTrigger className="h-14! bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground rounded-2xl font-bold text-xs uppercase tracking-widest px-6 shadow-sm focus:ring-2 focus:ring-primary/10 transition-all">
+                        <SelectTrigger className="h-14! bg-card border-border/80 text-foreground rounded-2xl font-bold text-xs uppercase tracking-[0.15em] px-6 shadow-sm focus:ring-2 focus:ring-primary/10 transition-all">
                             <SelectValue placeholder="FILTER BY TYPE" />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl shadow-2xl border-border/50">
-                            <SelectItem value="all" className="rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-3">All Categories</SelectItem>
-                            <SelectItem value="direct_client" className="rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-3">Direct Clients</SelectItem>
-                            <SelectItem value="architect" className="rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-3">Architects</SelectItem>
-                            <SelectItem value="project_designer" className="rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-3">Project Designers</SelectItem>
-                            <SelectItem value="factory_manager" className="rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-3">Factory Managers</SelectItem>
+                            <SelectItem value="all" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] hover:bg-primary/10 transition-colors py-3">All Categories</SelectItem>
+                            <SelectItem value="direct_client" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] hover:bg-primary/10 transition-colors py-3">Direct Clients</SelectItem>
+                            <SelectItem value="architect" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] hover:bg-primary/10 transition-colors py-3">Architects</SelectItem>
+                            <SelectItem value="project_designer" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] hover:bg-primary/10 transition-colors py-3">Project Designers</SelectItem>
+                            <SelectItem value="factory_manager" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] hover:bg-primary/10 transition-colors py-3">Factory Managers</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
 
                 {(search || clientType) && (
                     <div className="md:col-span-4 flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase text-muted-foreground/40 tracking-widest ml-2">Active Filters:</span>
+                        <span className="text-[10px] font-black uppercase text-muted-foreground/40 tracking-[0.15em] ml-2">Active Filters:</span>
                         {clientType && (
                             <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
-                                <span className="text-[9px] font-black uppercase text-primary tracking-widest">{CLIENT_TYPE_LABELS[clientType]}</span>
+                                <span className="text-[9px] font-black uppercase text-primary tracking-[0.15em]">{CLIENT_TYPE_LABELS[clientType]}</span>
                                 <button onClick={() => setClientType('')} className="text-primary hover:text-primary/70">
                                     <XCircle size={12} />
                                 </button>
@@ -116,7 +118,7 @@ export default function ClientsPage() {
                         )}
                         {search && (
                             <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
-                                <span className="text-[9px] font-black uppercase text-primary tracking-widest">Search: {search}</span>
+                                <span className="text-[9px] font-black uppercase text-primary tracking-[0.15em]">Search: {search}</span>
                                 <button onClick={() => setSearch('')} className="text-primary hover:text-primary/70">
                                     <XCircle size={12} />
                                 </button>
@@ -145,32 +147,37 @@ export default function ClientsPage() {
                                 exit={{ opacity: 0, scale: 0.98, y: -10 }}
                                 transition={{ delay: idx * 0.05 }}
                             >
-                                <Link to={`/clients/${c._id}`} className="group block h-full">
-                                    <div className="bg-white dark:bg-card/20 border border-border dark:border-border/50 rounded-[32px] p-6 h-full flex flex-col transition-all hover:bg-card/80 hover:shadow-2xl hover:shadow-primary/5 hover:border-primary/20 hover:-translate-y-1 relative overflow-hidden backdrop-blur-xl group">
+                                <div 
+                                    onClick={() => navigate(`/clients/${c._id}`)} 
+                                    className="group block h-full cursor-pointer"
+                                >
+                                    <div className="bg-card border border-border/60 rounded-[32px] p-6 h-full flex flex-col transition-all hover:bg-card/80 hover:shadow-2xl hover:shadow-primary/5 hover:border-primary/20 hover:-translate-y-1 relative overflow-hidden group">
                                         
                                         {/* Background Accent */}
                                         <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-bl from-primary/5 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
 
                                         {/* Quick Actions Overlay */}
-                                        <div className="absolute top-4 right-4 flex flex-col gap-2 translate-x-12 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300 z-20">
-                                            <Link 
-                                                to={`/clients/${c._id}/edit`}
-                                                className="size-10 rounded-xl bg-white/80 dark:bg-card/50 border border-border flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm"
-                                                onClick={(e) => e.stopPropagation()}
-                                            >
-                                                <Edit2 size={16} />
-                                            </Link>
-                                            <button 
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    setDeleteId(c._id);
-                                                }}
-                                                className="size-10 rounded-xl bg-white/80 dark:bg-card/50 border border-border flex items-center justify-center text-muted-foreground hover:bg-red-500 hover:text-white hover:border-red-500 transition-all shadow-sm"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
+                                        {canEdit && (
+                                            <div className="absolute top-4 right-4 flex flex-col gap-2 translate-x-12 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300 z-20">
+                                                <Link 
+                                                    to={`/clients/${c._id}/edit`}
+                                                    className="size-10 rounded-xl bg-white/80 dark:bg-card/50 border border-border flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <Edit2 size={16} />
+                                                </Link>
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        setDeleteId(c._id);
+                                                    }}
+                                                    className="size-10 rounded-xl bg-white/80 dark:bg-card/50 border border-border flex items-center justify-center text-muted-foreground hover:bg-red-500 hover:text-white hover:border-red-500 transition-all shadow-sm"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        )}
 
                                         {/* Card Header: Avatar & Type */}
                                         <div className="flex items-start justify-between mb-6 pr-10">
@@ -178,7 +185,7 @@ export default function ClientsPage() {
                                                 {c.name?.charAt(0) ?? '?'}
                                             </div>
                                             <div className={cn(
-                                                "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border shadow-xs transition-colors shrink-0",
+                                                "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.15em] border shadow-xs transition-colors shrink-0",
                                                 "bg-primary/5 text-primary/80 border-primary/20"
                                             )}>
                                                 {CLIENT_TYPE_LABELS[c.clientType] ?? 'Direct Client'}
@@ -215,7 +222,7 @@ export default function ClientsPage() {
 
                                             {c.gstin && (
                                                 <div className={cn(
-                                                    "mt-4 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border",
+                                                    "mt-4 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-[0.15em] border",
                                                     c.gstVerified 
                                                         ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
                                                         : "bg-muted text-muted-foreground/50 border-border"
@@ -233,7 +240,7 @@ export default function ClientsPage() {
                                             </div>
                                         </div>
                                     </div>
-                                </Link>
+                                </div>
                             </motion.div>
                         ))}
                     </AnimatePresence>
@@ -249,7 +256,7 @@ export default function ClientsPage() {
                     <p className="text-muted-foreground max-w-xs mb-8">Try adjusting your search criteria or add a new client to the directory.</p>
                     {canCreate && (
                         <Link to="/clients/new">
-                            <Button className="bg-primary hover:bg-primary/90 font-black text-xs uppercase tracking-widest px-8 h-12 rounded-2xl">
+                            <Button className="bg-primary hover:bg-primary/90 font-black text-xs uppercase tracking-[0.15em] px-8 h-12 rounded-2xl">
                                 Register First Client
                             </Button>
                         </Link>
@@ -262,7 +269,7 @@ export default function ClientsPage() {
                 <motion.div
                     initial={{ opacity: 0 }}
                     whileInView={{ opacity: 1 }}
-                    className="flex items-center justify-between px-8 py-6 bg-white/80 dark:bg-card/30 border border-border dark:border-border/50 rounded-[32px]"
+                    className="flex items-center justify-between px-8 py-6 bg-card border border-border focus-within:border-primary/50 rounded-[32px] shadow-sm"
                 >
                     <span className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em]">
                         Page {page} of {pagination.pages}
@@ -273,7 +280,7 @@ export default function ClientsPage() {
                             size="sm"
                             disabled={page <= 1}
                             onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            className="h-10 px-6 rounded-xl border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30 transition-all font-bold text-[10px] uppercase tracking-widest"
+                            className="h-10 px-6 rounded-xl border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30 transition-all font-bold text-[10px] uppercase tracking-[0.15em]"
                         >
                             Previous
                         </Button>
@@ -282,7 +289,7 @@ export default function ClientsPage() {
                             size="sm"
                             disabled={page >= pagination.pages}
                             onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            className="h-10 px-6 rounded-xl border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30 transition-all font-bold text-[10px] uppercase tracking-widest"
+                            className="h-10 px-6 rounded-xl border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30 transition-all font-bold text-[10px] uppercase tracking-[0.15em]"
                         >
                             Next
                         </Button>

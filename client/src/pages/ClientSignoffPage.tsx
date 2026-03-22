@@ -43,7 +43,7 @@ export default function ClientSignoffPage() {
                 <XCircle size={32} className="text-rose-500" />
             </div>
             <h1 className="text-2xl font-black text-foreground">Link Expired or Invalid</h1>
-            <p className="text-muted-foreground/60 font-medium max-w-sm">This sign-off link is no longer valid. Please contact your project manager for a new link.</p>
+            <p className="text-muted-foreground/80 font-medium max-w-sm">This sign-off link is no longer valid. Please contact your project manager for a new link.</p>
         </div>
     );
 
@@ -63,7 +63,7 @@ export default function ClientSignoffPage() {
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-xl bg-white dark:bg-card/40 border border-border/30 rounded-[32px] overflow-hidden shadow-2xl">
+                className="w-full max-w-xl bg-card border border-border/60 rounded-[32px] overflow-hidden shadow-2xl">
                 {/* Header */}
                 <div className="bg-linear-to-br from-primary to-indigo-600 p-8 text-white">
                     <div className="flex items-center gap-3 mb-4">
@@ -78,7 +78,7 @@ export default function ClientSignoffPage() {
                     {/* Design Files */}
                     {signoff.files?.length > 0 && (
                         <div className="space-y-3">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Design Files ({signoff.files.length})</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Design Files ({signoff.files.length})</p>
                             <div className="grid grid-cols-2 gap-3">
                                 {signoff.files.map((f: any, i: number) => (
                                     <a key={i} href={f.url} target="_blank" rel="noreferrer"
@@ -94,8 +94,8 @@ export default function ClientSignoffPage() {
 
                     {/* Notes from designer */}
                     {signoff.designerNotes && (
-                        <div className="p-4 rounded-2xl bg-muted/20 border border-border/30">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-2">Designer Notes</p>
+                        <div className="p-4 rounded-2xl bg-muted/20 border border-border/60">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 mb-2">Designer Notes</p>
                             <p className="text-sm font-medium text-foreground/80">{signoff.designerNotes}</p>
                         </div>
                     )}
@@ -117,7 +117,7 @@ export default function ClientSignoffPage() {
                     <AnimatePresence>
                         {decision && (
                             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-2">
-                                <p className="text-xs font-bold text-muted-foreground/60">{decision === 'approved' ? 'Add any final remarks (optional)' : 'Please describe the changes needed *'}</p>
+                                <p className="text-xs font-bold text-muted-foreground/80">{decision === 'approved' ? 'Add any final remarks (optional)' : 'Please describe the changes needed *'}</p>
                                 <Textarea value={remarks} onChange={e => setRemarks(e.target.value)} rows={3} className="rounded-2xl"
                                     placeholder={decision === 'approved' ? 'Looks great! Proceed with production.' : 'Please change the drawer handle style and add more shelf space…'} />
                             </motion.div>

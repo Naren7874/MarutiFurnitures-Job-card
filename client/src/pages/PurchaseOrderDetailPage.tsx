@@ -4,6 +4,7 @@ import {
     ArrowLeft, ShoppingCart, Building2, Package, ShieldCheck,
     Truck, AlertCircle, Clock, Loader2, XCircle,
 } from 'lucide-react';
+import { useAuthStore } from '../stores/authStore';
 import { useApprovePO, useReceivePO } from '../hooks/useApi';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '../lib/axios';
@@ -32,6 +33,10 @@ export default function PurchaseOrderDetailPage() {
     });
     const po: any = (raw as any)?.data;
 
+    const { hasPermission } = useAuthStore();
+    const canApprove = hasPermission('purchaseOrder.approve');
+    const canEmitReceived = hasPermission('purchaseOrder.edit');
+
     const approveMut = useApprovePO(id!);
     const receiveMut = useReceivePO(id!);
 
@@ -52,7 +57,7 @@ export default function PurchaseOrderDetailPage() {
 
     if (isLoading) {
         return (
-            <div className="p-8 max-w-4xl mx-auto space-y-6">
+            <div className="p-8 max-w-[1600px] mx-auto space-y-6">
                 {[...Array(3)].map((_, i) => <div key={i} className="h-28 bg-muted/20 rounded-3xl animate-pulse border border-border/20" />)}
             </div>
         );
@@ -72,7 +77,7 @@ export default function PurchaseOrderDetailPage() {
     const StatusIcon = cfg.icon;
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-4xl mx-auto space-y-8">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -92,12 +97,12 @@ export default function PurchaseOrderDetailPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {po.status === 'pending' && (
+                    {po.status === 'pending' && canApprove && (
                         <Button onClick={() => setConfirm('approve')} className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-emerald-500 text-white hover:bg-emerald-600">
                             <ShieldCheck size={14} /> Approve
                         </Button>
                     )}
-                    {po.status === 'approved' && (
+                    {po.status === 'approved' && canEmitReceived && (
                         <Button onClick={() => setConfirm('receive')} className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-indigo-500 text-white hover:bg-indigo-600">
                             <Package size={14} /> Mark Received
                         </Button>
@@ -155,7 +160,7 @@ export default function PurchaseOrderDetailPage() {
                         </div>
                         {po.totalAmount >= 50000 && (
                             <p className="text-xs text-amber-500 font-bold mt-2 flex items-center gap-1">
-                                <AlertCircle size={11} /> High-value order requires Super Admin approval
+                                <AlertCircle size={11} /> High-value order requires authorized approval
                             </p>
                         )}
                     </div>
@@ -163,7 +168,7 @@ export default function PurchaseOrderDetailPage() {
 
                 {/* Right — Items */}
                 <div className="md:col-span-2">
-                    <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl overflow-hidden">
+                    <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-border/20">
                             <div className="p-2 rounded-xl bg-primary/10 text-primary"><Package size={14} /></div>
                             <p className="font-black text-sm uppercase tracking-wider text-foreground">Items ({po.items?.length || 0})</p>
@@ -208,10 +213,10 @@ export default function PurchaseOrderDetailPage() {
 
 function InfoCard({ title, icon: Icon, children }: { title: string; icon: any; children: React.ReactNode }) {
     return (
-        <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-3">
+        <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-3 shadow-sm">
             <div className="flex items-center gap-2 pb-2 border-b border-border/20">
-                <Icon size={12} className="text-muted-foreground/40" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">{title}</p>
+                <Icon size={12} className="text-muted-foreground/50" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">{title}</p>
             </div>
             {children}
         </div>
@@ -221,7 +226,7 @@ function InfoCard({ title, icon: Icon, children }: { title: string; icon: any; c
 function InfoRow({ label, value }: { label: string; value: string }) {
     return (
         <div className="flex justify-between items-center text-xs">
-            <p className="text-muted-foreground/40 font-bold">{label}</p>
+            <p className="text-muted-foreground/50 font-bold">{label}</p>
             <p className="font-bold text-foreground/80">{value}</p>
         </div>
     );

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Receipt, CheckCircle, Clock, XCircle, FilterX, Wallet, FileText, TrendingUp } from 'lucide-react';
 import { useInvoices } from '../hooks/useApi';
+import { useAuthStore } from '../stores/authStore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,17 +26,17 @@ const StatCard = ({ icon: Icon, label, value, sub, colorClass, delay = 0 }: any)
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay }}
         whileHover={{ y: -4, scale: 1.02 }}
-        className="bg-white dark:bg-card border border-border dark:border-transparent rounded-[24px] p-6 flex flex-col gap-4 hover:shadow-2xl hover:shadow-primary/5 transition-all group relative overflow-hidden shadow-sm"
+        className="bg-card border border-border/60 rounded-[24px] p-6 flex flex-col gap-4 hover:shadow-2xl hover:shadow-primary/5 transition-all group relative overflow-hidden shadow-sm"
     >
         <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-bl from-primary/5 to-transparent rounded-bl-[100px] opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-6", colorClass)}>
             <Icon size={22} strokeWidth={2.5} />
         </div>
         <div>
-            <p className="text-muted-foreground/50 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{label}</p>
+            <p className="text-muted-foreground/50 text-[11px] font-black uppercase tracking-[0.2em] mb-1">{label}</p>
             <div className="flex items-baseline gap-2">
                 <p className="text-foreground text-3xl font-black tracking-tight">{value ?? '0'}</p>
-                {sub && <span className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-widest">{sub}</span>}
+                {sub && <span className="text-muted-foreground/40 text-[11px] font-black uppercase tracking-widest">{sub}</span>}
             </div>
         </div>
     </motion.div>
@@ -45,6 +46,8 @@ export default function InvoicesPage() {
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('');
     const [page, setPage] = useState(1);
+    const { hasPermission } = useAuthStore();
+    const canCreate = hasPermission('invoice.create');
 
     const { data: raw, isLoading } = useInvoices({ search, status, page, limit: 20 });
     const resp: any = raw;
@@ -55,7 +58,7 @@ export default function InvoicesPage() {
     const totalOverdue = invoices.filter((i: any) => i.status === 'overdue').length;
 
     return (
-        <div className="p-8 space-y-10 max-w-[1700px] mx-auto">
+        <div className="p-8 space-y-10 max-w-[1600px] mx-auto">
             {/* Header Area */}
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
@@ -63,19 +66,21 @@ export default function InvoicesPage() {
                 className="flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
                 <div>
-                    <h1 className="text-foreground text-3xl font-black tracking-tight mb-2">Invoice Ledger</h1>
-                    <div className="flex items-center gap-3">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary/40" />
-                        <p className="text-muted-foreground text-sm font-semibold tracking-wide uppercase opacity-70">
+                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">Invoice Ledger</h1>
+                    <div className="flex items-center gap-3.5">
+                        <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                        <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
                             Financial Operations Control
                         </p>
                     </div>
                 </div>
-                <Link to="/invoices/new">
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                        <Plus size={18} strokeWidth={3} /> Issue New Invoice
-                    </Button>
-                </Link>
+                {canCreate && (
+                    <Link to="/invoices/new">
+                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2.5 font-black text-[11px] uppercase tracking-[0.15em] h-12 px-7 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                            <Plus size={18} strokeWidth={3} /> Issue New Invoice
+                        </Button>
+                    </Link>
+                )}
             </motion.div>
 
             {/* Quick Stats Summary */}
@@ -119,7 +124,7 @@ export default function InvoicesPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="flex flex-wrap items-center gap-3"
+                className="flex items-center gap-3"
             >
                 <div className="relative flex-1 min-w-[300px] group">
                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
@@ -127,28 +132,28 @@ export default function InvoicesPage() {
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         placeholder="Search Invoice ID or Client Identity..."
-                        className="pl-12 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground h-12 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/30 shadow-sm backdrop-blur-md"
+                        className="pl-12 bg-card border-border/80 text-foreground h-12 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/40 shadow-sm backdrop-blur-md"
                     />
                 </div>
                 <Select value={status || 'all'} onValueChange={(v: string) => { setStatus(v === 'all' ? '' : v); setPage(1); }}>
-                    <SelectTrigger className="h-12 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground rounded-2xl font-bold text-xs uppercase tracking-widest px-6 shadow-sm min-w-[200px]">
+                    <SelectTrigger className="h-12 bg-card border-border/80 text-foreground rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] px-6 shadow-sm min-w-[200px]">
                         <SelectValue placeholder="Status Filter" />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl shadow-2xl">
-                        <SelectItem value="all" className="text-[10px] font-black uppercase tracking-widest">Global Status</SelectItem>
-                        <SelectItem value="draft" className="text-[10px] font-black uppercase tracking-widest">Drafting</SelectItem>
-                        <SelectItem value="sent" className="text-[10px] font-black uppercase tracking-widest">Dispatched</SelectItem>
-                        <SelectItem value="partially_paid" className="text-[10px] font-black uppercase tracking-widest text-amber-500">Partial Payment</SelectItem>
-                        <SelectItem value="paid" className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Fully Settled</SelectItem>
-                        <SelectItem value="overdue" className="text-[10px] font-black uppercase tracking-widest text-rose-500">Overdue Risk</SelectItem>
+                        <SelectItem value="all" className="text-[11px] font-black uppercase tracking-[0.15em] py-3">Global Status</SelectItem>
+                        <SelectItem value="draft" className="text-[11px] font-black uppercase tracking-[0.15em] py-3">Drafting</SelectItem>
+                        <SelectItem value="sent" className="text-[11px] font-black uppercase tracking-[0.15em] py-3">Dispatched</SelectItem>
+                        <SelectItem value="partially_paid" className="text-[11px] font-black uppercase tracking-[0.15em] py-3 text-amber-500">Partial Payment</SelectItem>
+                        <SelectItem value="paid" className="text-[11px] font-black uppercase tracking-[0.15em] py-3 text-emerald-500">Fully Settled</SelectItem>
+                        <SelectItem value="overdue" className="text-[11px] font-black uppercase tracking-[0.15em] py-3 text-rose-500">Overdue Risk</SelectItem>
                     </SelectContent>
                 </Select>
                 <Button
                     variant="ghost"
                     onClick={() => { setStatus(''); setSearch(''); setPage(1); }}
-                    className="h-12 rounded-2xl text-muted-foreground hover:text-rose-500 font-bold text-[10px] uppercase tracking-widest px-6"
+                    className="h-12 rounded-2xl text-muted-foreground hover:text-rose-500 font-black text-[11px] uppercase tracking-widest px-8 transition-colors"
                 >
-                    <FilterX size={14} className="mr-2" /> Reset
+                    <FilterX size={16} className="mr-2.5" /> Reset
                 </Button>
             </motion.div>
 
@@ -157,7 +162,7 @@ export default function InvoicesPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="bg-white/80 dark:bg-card/30 border border-border dark:border-border/50 rounded-[32px] overflow-hidden shadow-2xl backdrop-blur-xl"
+                className="bg-card border border-border focus-within:border-primary/50 rounded-[32px] overflow-hidden shadow-2xl"
             >
                 {isLoading ? (
                     <div className="p-8 space-y-6">
@@ -170,12 +175,12 @@ export default function InvoicesPage() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-border/40 bg-muted/20">
-                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Invoice Unit</th>
-                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden sm:table-cell">Client Name</th>
-                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden md:table-cell">Settlement Due</th>
-                                    <th className="text-right px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Gross Total</th>
-                                    <th className="text-right px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden md:table-cell">Balance Outstanding</th>
-                                    <th className="text-center px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Status</th>
+                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Invoice Unit</th>
+                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em] hidden sm:table-cell">Client Name</th>
+                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em] hidden md:table-cell">Settlement Due</th>
+                                    <th className="text-right px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Gross Total</th>
+                                    <th className="text-right px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em] hidden md:table-cell">Balance Outstanding</th>
+                                    <th className="text-center px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/20">
@@ -197,14 +202,14 @@ export default function InvoicesPage() {
                                                             <Receipt size={18} />
                                                         </div>
                                                         <div>
-                                                            <p className="text-foreground font-black text-sm tracking-tight">{inv.invoiceNumber}</p>
-                                                            <p className="text-muted-foreground/40 text-[9px] font-black uppercase">Ref: {inv._id?.slice(-6)}</p>
+                                                            <p className="text-foreground font-black text-[15px] tracking-tight">{inv.invoiceNumber}</p>
+                                                            <p className="text-muted-foreground/40 text-[11px] font-black uppercase tracking-wider">Ref: {inv._id?.slice(-6)}</p>
                                                         </div>
                                                     </Link>
                                                 </td>
                                                 <td className="px-8 py-5 hidden sm:table-cell">
-                                                    <p className="text-foreground font-bold text-xs">{inv.clientId?.name}</p>
-                                                    <p className="text-muted-foreground/40 text-[9px] font-black uppercase truncate max-w-[120px]">{inv.projectName || inv.jobCardId?.projectName || 'External Account'}</p>
+                                                    <p className="text-foreground font-bold text-[13px]">{inv.clientId?.name}</p>
+                                                    <p className="text-muted-foreground/40 text-[11px] font-black uppercase tracking-wider truncate max-w-[120px]">{inv.projectName || inv.jobCardId?.projectName || 'External Account'}</p>
                                                 </td>
                                                 <td className="px-8 py-5 hidden md:table-cell">
                                                     <div className="flex items-center gap-2">
@@ -215,7 +220,7 @@ export default function InvoicesPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-5 text-right">
-                                                    <p className="text-foreground font-black text-sm">₹{inv.grandTotal?.toLocaleString('en-IN')}</p>
+                                                    <p className="text-foreground font-black text-[15px] tracking-tight">₹{inv.grandTotal?.toLocaleString('en-IN')}</p>
                                                 </td>
                                                 <td className="px-8 py-5 text-right hidden md:table-cell">
                                                     <span className={cn(
@@ -227,10 +232,10 @@ export default function InvoicesPage() {
                                                 </td>
                                                 <td className="px-8 py-5 text-center">
                                                     <span className={cn(
-                                                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-xs transition-colors",
+                                                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] border shadow-xs transition-colors",
                                                         cfg.bg, cfg.text, cfg.border
                                                     )}>
-                                                        <StatusIcon size={12} className={cn("shrink-0", cfg.text)} />
+                                                        <StatusIcon size={13} className={cn("shrink-0", cfg.text)} />
                                                         {inv.status?.replace(/_/g, ' ')}
                                                     </span>
                                                 </td>
@@ -249,16 +254,16 @@ export default function InvoicesPage() {
                 {/* Pagination Controls */}
                 {pagination.pages > 1 && (
                     <div className="flex items-center justify-between px-8 py-6 border-t border-border/20 bg-muted/10">
-                        <span className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em]">
+                        <span className="text-muted-foreground/40 text-[11px] font-black uppercase tracking-[0.2em]">
                             Ledger Page {page} of {pagination.pages}
                         </span>
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                             <Button
                                 variant="outline"
                                 size="sm"
                                 disabled={page <= 1}
                                 onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                className="h-10 px-6 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-bold text-[10px] uppercase tracking-widest"
+                                className="h-10 px-8 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-black text-[11px] uppercase tracking-widest"
                             >
                                 Previous
                             </Button>
@@ -267,7 +272,7 @@ export default function InvoicesPage() {
                                 size="sm"
                                 disabled={page >= pagination.pages}
                                 onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                className="h-10 px-6 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-bold text-[10px] uppercase tracking-widest"
+                                className="h-10 px-8 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-black text-[11px] uppercase tracking-widest"
                             >
                                 Next
                             </Button>

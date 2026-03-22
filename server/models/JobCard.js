@@ -12,7 +12,8 @@ const itemSchema = new mongoose.Schema(
     specifications: {
       size:     String,
       polish:   String,
-      fabric:   String,
+      fabric:   String,                                  // legacy single fabric
+      fabrics:  [{ type: String }],                      // NEW — multiple fabric names
       material: String,
       finish:   String,
       hardware: String,

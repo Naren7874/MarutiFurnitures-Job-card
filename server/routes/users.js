@@ -11,27 +11,28 @@ import {
   resetUserPassword,
 } from '../controllers/users.js';
 import { authenticateJWT, requireRole } from '../middleware/auth.js';
+import { checkPermission } from '../middleware/permission.js';
 
 const router = express.Router();
 
 // All user routes require a valid JWT
 router.use(authenticateJWT);
 
-// ── List & Create — super_admin only ──────────────────────────────────────────
-router.get('/',    requireRole('super_admin'), getUsers);
-router.post('/',   requireRole('super_admin'), createUser);
+// ── List & Create ─────────────────────────────────────────────────────────────
+router.get('/',    checkPermission('user.view'),   getUsers);
+router.post('/',   checkPermission('user.create'), createUser);
 
 // ── Single user operations ─────────────────────────────────────────────────────
-router.get('/:id',    requireRole('super_admin'), getUserById);
-router.put('/:id',    requireRole('super_admin'), updateUser);
-router.delete('/:id', requireRole('super_admin'), deleteUser);
+router.get('/:id',    checkPermission('user.view'), getUserById);
+router.put('/:id',    checkPermission('user.edit'), updateUser);
+router.delete('/:id', checkPermission('user.delete'), deleteUser);
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
-router.patch('/:id/role',       requireRole('super_admin'), changeUserRole);
-router.patch('/:id/deactivate', requireRole('super_admin'), deactivateUser);
-router.patch('/:id/activate',   requireRole('super_admin'), activateUser);
+router.patch('/:id/role',       checkPermission('user.edit'),       changeUserRole);
+router.patch('/:id/deactivate', checkPermission('user.deactivate'), deactivateUser);
+router.patch('/:id/activate',   checkPermission('user.deactivate'), activateUser);
 
 // ── Admin password reset ──────────────────────────────────────────────────────
-router.post('/:id/reset-password', requireRole('super_admin'), resetUserPassword);
+router.post('/:id/reset-password', checkPermission('user.edit'), resetUserPassword);
 
 export default router;

@@ -61,6 +61,6 @@ const hasPermission = (effectivePermissions, required) => {
   const [resource, action] = required.split('.');
   return effectivePermissions.some((p) => {
     const [r, a] = p.split('.');
-    return r === resource && (a === '*' || a === action);
+    return (r === '*' || r === resource) && (a === '*' || a === action);
   });
 };

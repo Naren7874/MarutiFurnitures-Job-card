@@ -6,15 +6,26 @@ let transporter = null;
 
 const getTransporter = () => {
   if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host:   process.env.EMAIL_HOST,
-      port:   Number(process.env.EMAIL_PORT) || 587,
-      secure: process.env.EMAIL_PORT === '465',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    // If we have Gmail credentials but no host/port, use the 'gmail' service shortcut
+    const transportConfig = process.env.EMAIL_HOST 
+      ? {
+          host:   process.env.EMAIL_HOST,
+          port:   Number(process.env.EMAIL_PORT) || 587,
+          secure: process.env.EMAIL_PORT === '465',
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+        }
+      : {
+          service: 'gmail',
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+        };
+    
+    transporter = nodemailer.createTransport(transportConfig);
   }
   return transporter;
 };

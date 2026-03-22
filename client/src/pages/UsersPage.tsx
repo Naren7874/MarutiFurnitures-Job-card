@@ -19,6 +19,7 @@ import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import api from '@/lib/axios'
+import { useAuthStore } from '@/stores/authStore'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import {
     DropdownMenu,
@@ -35,6 +36,9 @@ type Dept = 'sales' | 'design' | 'store' | 'production' | 'qc' | 'dispatch' | 'a
 
 interface AppUser {
     _id: string
+    firstName: string
+    middleName?: string
+    lastName: string
     name: string
     email: string
     role: UserRole
@@ -44,16 +48,24 @@ interface AppUser {
     isActive: boolean
     lastLogin?: string
     createdAt: string
+    firmName?: string
+    factoryName?: string
+    factoryLocation?: string
 }
 
 interface UserFormData {
-    name: string
+    firstName: string
+    middleName: string
+    lastName: string
     email: string
     password: string
     role: UserRole | ''
     department: Dept | ''
     phone: string
     whatsappNumber: string
+    firmName: string
+    factoryName: string
+    factoryLocation: string
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -67,13 +79,24 @@ const SYSTEM_ROLES: Record<string, { label: string; color: string; bg: string }>
     'qc': { label: 'Quality Control', color: '#10B981', bg: '#10B98115' },
     'dispatch': { label: 'Dispatch', color: '#8ffb03', bg: '#8ffb0315' },
     'accountant': { label: 'Accountant', color: '#EC4899', bg: '#EC489915' },
+    'architect': { label: 'Architecture', color: '#06B6D4', bg: '#06B6D415' },
+    'Architecture': { label: 'Architecture', color: '#06B6D4', bg: '#06B6D415' },
+    'project_designer': { label: 'Project Designer', color: '#F97316', bg: '#F9731615' },
+    'Project Designer': { label: 'Project Designer', color: '#F97316', bg: '#F9731615' },
+    'factory_manager': { label: 'Factory Manager', color: '#64748B', bg: '#64748B15' },
+    'Factory Manager': { label: 'Factory Manager', color: '#64748B', bg: '#64748B15' },
 }
+const getRoleCfg = (role: string) => SYSTEM_ROLES[role] || { label: role, color: '#64748B', bg: '#64748B15' };
+
+const IS_ARCHITECT = (role: string | undefined) => ['architect', 'Architecture', 'Project Designer', 'project_designer'].some(r => r.toLowerCase() === role?.toLowerCase());
+const IS_FACTORY_MGR = (role: string | undefined) => ['factory_manager', 'Factory Manager'].some(r => r.toLowerCase() === role?.toLowerCase());
 
 
 const DEPARTMENTS: Dept[] = ['sales', 'design', 'store', 'production', 'qc', 'dispatch', 'accounts', 'management']
 
 const EMPTY_FORM: UserFormData = {
-    name: '', email: '', password: '', role: '', department: '', phone: '', whatsappNumber: ''
+    firstName: '', middleName: '', lastName: '', email: '', password: '', role: '', department: '', phone: '', whatsappNumber: '',
+    firmName: '', factoryName: '', factoryLocation: ''
 }
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -105,9 +128,6 @@ const resetPassword = async ({ id, newPassword }: { id: string; newPassword: str
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getRoleCfg(role: string) {
-    return SYSTEM_ROLES[role] ?? { color: '#6366F1', bg: '#6366F115', label: role }
-}
 
 function getInitials(name: string) {
     return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
@@ -131,7 +151,7 @@ function RoleBadge({ role }: { role: UserRole }) {
     const cfg = getRoleCfg(role)
     return (
         <span
-            className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border"
+            className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-widest border"
             style={{ color: cfg.color, borderColor: `${cfg.color}40`, backgroundColor: cfg.bg }}
         >
             {cfg.label}
@@ -151,26 +171,29 @@ function UserDrawer({
 }) {
     const qc = useQueryClient()
     const [form, setForm] = useState<UserFormData>(EMPTY_FORM)
-    const [showPass, setShowPass] = useState(false)
     const [error, setError] = useState('')
 
     // Pre-fill when editing — re-runs whenever drawer opens or target user changes
     useEffect(() => {
         if (editUser) {
             setForm({
-                name: editUser.name,
+                firstName: editUser.firstName,
+                middleName: editUser.middleName || '',
+                lastName: editUser.lastName,
                 email: editUser.email,
                 password: '',
                 role: editUser.role,
                 department: editUser.department || '',
                 phone: editUser.phone || '',
                 whatsappNumber: editUser.whatsappNumber || '',
+                firmName: editUser.firmName || '',
+                factoryName: editUser.factoryName || '',
+                factoryLocation: editUser.factoryLocation || '',
             })
         } else {
             setForm(EMPTY_FORM)
         }
         setError('')
-        setShowPass(false)
     }, [open, editUser])
 
     const createMut = useMutation({
@@ -190,17 +213,22 @@ function UserDrawer({
     const handleSubmit = (e?: React.FormEvent) => {
         e?.preventDefault()
         setError('')
-        if (!form.name || !form.email || (!editUser && !form.password) || !form.role) {
-            setError('Name, email, role and (for new users) password are required')
+        if (!form.firstName || !form.lastName || !form.email || !form.role) {
+            setError('First name, last name, email, and role are required')
             return
         }
         if (editUser) {
             const body: any = {
-                name: form.name,
+                firstName: form.firstName,
+                middleName: form.middleName,
+                lastName: form.lastName,
                 role: form.role,
                 department: form.department || undefined,
                 phone: form.phone || undefined,
                 whatsappNumber: form.whatsappNumber || undefined,
+                firmName: form.firmName || undefined,
+                factoryName: form.factoryName || undefined,
+                factoryLocation: form.factoryLocation || undefined,
             }
             updateMut.mutate({ id: editUser._id, body })
         } else {
@@ -250,7 +278,7 @@ function UserDrawer({
                                     <h2 className="font-black text-lg text-foreground tracking-tight">
                                         {editUser ? 'Edit User' : 'Add New User'}
                                     </h2>
-                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                    <p className="text-[13px] text-muted-foreground mt-0.5">
                                         {editUser ? `Updating ${editUser.name}` : 'Create a new team member account'}
                                     </p>
                                 </div>
@@ -276,24 +304,51 @@ function UserDrawer({
                                     )}
                                 </AnimatePresence>
 
-                                {/* Name */}
+                                {/* Name Section */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="firstName" className="text-[13px] font-bold uppercase tracking-widest text-muted-foreground">
+                                            First Name *
+                                        </Label>
+                                        <Input
+                                            id="firstName"
+                                            placeholder="e.g. Rajesh"
+                                            value={form.firstName}
+                                            onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))}
+                                            className="rounded-xl h-11"
+                                            autoFocus={!editUser}
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="lastName" className="text-[13px] font-bold uppercase tracking-widest text-muted-foreground">
+                                            Last Name *
+                                        </Label>
+                                        <Input
+                                            id="lastName"
+                                            placeholder="e.g. Patel"
+                                            value={form.lastName}
+                                            onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))}
+                                            className="rounded-xl h-11"
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                        Full Name *
+                                    <Label htmlFor="middleName" className="text-[13px] font-bold uppercase tracking-widest text-muted-foreground">
+                                        Middle Name <span className="text-muted-foreground/50 lowercase font-normal">(optional)</span>
                                     </Label>
                                     <Input
-                                        id="name"
-                                        placeholder="e.g. Rajesh Patel"
-                                        value={form.name}
-                                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                                        id="middleName"
+                                        placeholder="e.g. Kumar"
+                                        value={form.middleName}
+                                        onChange={e => setForm(f => ({ ...f, middleName: e.target.value }))}
                                         className="rounded-xl h-11"
-                                        autoFocus={!editUser}
                                     />
                                 </div>
 
                                 {/* Email */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                    <Label htmlFor="email" className="text-[13px] font-bold uppercase tracking-widest text-muted-foreground">
                                         Email Address *
                                     </Label>
                                     <div className="relative">
@@ -309,39 +364,12 @@ function UserDrawer({
                                         />
                                     </div>
                                     {editUser && (
-                                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                            <ShieldCheck className="size-3" />
+                                        <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 tracking-wide">
+                                            <ShieldCheck className="size-3.5" />
                                             Email cannot be changed after creation
                                         </p>
                                     )}
                                 </div>
-
-                                {/* Password — new users only */}
-                                {!editUser && (
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                            Password *
-                                        </Label>
-                                        <div className="relative">
-                                            <Input
-                                                id="password"
-                                                type={showPass ? 'text' : 'password'}
-                                                placeholder="Min 6 characters"
-                                                value={form.password}
-                                                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                                                className="rounded-xl h-11 pr-10"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowPass(v => !v)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                                            >
-                                                {showPass ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
                                 <Separator />
 
                                 {/* Role */}
@@ -381,6 +409,69 @@ function UserDrawer({
                                         );
                                     })}
                                 </div>
+
+                                {/* Conditional Fields Based on Role */}
+                                <AnimatePresence>
+                                    {IS_ARCHITECT(form.role) && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            className="overflow-hidden space-y-5 pt-2"
+                                        >
+                                            <Separator />
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="firmName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                                    Firm Name *
+                                                </Label>
+                                                <Input
+                                                    id="firmName"
+                                                    placeholder="e.g. Dreamscape Architecture"
+                                                    value={form.firmName}
+                                                    onChange={e => setForm(f => ({ ...f, firmName: e.target.value }))}
+                                                    className="rounded-xl h-11 border-primary/20 bg-primary/5 focus:bg-background transition-colors"
+                                                />
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    {IS_FACTORY_MGR(form.role) && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            className="overflow-hidden space-y-5 pt-2"
+                                        >
+                                            <Separator />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1.5">
+                                                    <Label htmlFor="factoryName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                                        Factory Name *
+                                                    </Label>
+                                                    <Input
+                                                        id="factoryName"
+                                                        placeholder="e.g. Maruti Workshop"
+                                                        value={form.factoryName}
+                                                        onChange={e => setForm(f => ({ ...f, factoryName: e.target.value }))}
+                                                        className="rounded-xl h-11 border-primary/20 bg-primary/5 focus:bg-background transition-colors"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <Label htmlFor="factoryLocation" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                                        Location *
+                                                    </Label>
+                                                    <Input
+                                                        id="factoryLocation"
+                                                        placeholder="e.g. Vadodara"
+                                                        value={form.factoryLocation}
+                                                        onChange={e => setForm(f => ({ ...f, factoryLocation: e.target.value }))}
+                                                        className="rounded-xl h-11 border-primary/20 bg-primary/5 focus:bg-background transition-colors"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
 
                                 {/* Department */}
                                 <div className="space-y-1.5">
@@ -555,6 +646,12 @@ export default function UsersPage() {
     const [editTarget, setEditTarget] = useState<AppUser | null>(null)
     const [resetTarget, setResetTarget] = useState<AppUser | null>(null)
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+    const { hasPermission } = useAuthStore()
+
+    const canCreate = hasPermission('user.create')
+    const canEdit   = hasPermission('user.edit')
+    const canDeactivate = hasPermission('user.deactivate')
+    const canManagePrivs = hasPermission('privilege.view')
 
     const { data: users = [], isLoading, error: loadError } = useQuery<AppUser[]>({
         queryKey: ['users'],
@@ -600,37 +697,33 @@ export default function UsersPage() {
 
     return (
         <TooltipProvider>
-            <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-6">
+            <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-6">
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-primary/10">
-                                <Users className="size-6 text-primary" />
-                            </div>
-                            User Management
-                        </h1>
-                        <div className="flex items-center gap-3 mt-1.5">
-                            <span className="text-sm text-muted-foreground">{users.length} team members</span>
-                            <span className="flex items-center gap-1 text-xs font-semibold text-emerald-500">
-                                <span className="size-1.5 rounded-full bg-emerald-500 inline-block" />
-                                {activeCount} active
+                        <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none truncate">User Management</h1>
+                        <div className="flex items-center gap-3.5">
+                            <span className="text-[13px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">{users.length} Team Members</span>
+                            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                            <span className="text-[11px] font-black uppercase tracking-widest text-emerald-500/80">
+                                {activeCount} Authorized
                             </span>
                             {inactiveCount > 0 && (
-                                <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-                                    <span className="size-1.5 rounded-full bg-muted-foreground/40 inline-block" />
-                                    {inactiveCount} inactive
+                                <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/40">
+                                    {inactiveCount} Restricted
                                 </span>
                             )}
                         </div>
                     </div>
-                    <Button onClick={openCreate} className="rounded-xl h-11 px-6 font-bold gap-2 shrink-0">
-                        <Plus className="size-4" /> Add User
-                    </Button>
+                    {canCreate && (
+                        <Button onClick={openCreate} className="rounded-xl h-11 px-6 font-bold gap-2 shrink-0">
+                            <Plus className="size-4" /> Add User
+                        </Button>
+                    )}
                 </div>
 
                 {/* Filters */}
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-3">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                         <Input
@@ -656,13 +749,13 @@ export default function UsersPage() {
                         <button
                             onClick={() => { setRoleFilter('all'); setSearch('') }}
                             className={cn(
-                                'px-3 py-1.5 rounded-lg text-xs font-bold border transition-all',
+                                'px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border transition-all',
                                 roleFilter === 'all'
                                     ? 'border-primary/40 bg-primary/10 text-primary'
-                                    : 'border-border text-muted-foreground hover:border-muted-foreground/40'
+                                    : 'border-border text-muted-foreground/60 hover:border-muted-foreground hover:bg-muted/50'
                             )}
                         >
-                            All
+                            Overview
                         </button>
                         {roles.filter(r => users.some(u => u.role === r.name)).map(r => {
                             const cfg = getRoleCfg(r.name);
@@ -671,7 +764,7 @@ export default function UsersPage() {
                                 <button
                                     key={r._id}
                                     onClick={() => setRoleFilter(isActive ? 'all' : r.name)}
-                                    className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
+                                    className="px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border transition-all"
                                     style={isActive
                                         ? { color: cfg.color, backgroundColor: cfg.bg, borderColor: `${cfg.color}40` }
                                         : { borderColor: 'var(--border)', color: 'var(--muted-foreground)' }
@@ -713,7 +806,7 @@ export default function UsersPage() {
                         <p className="text-sm text-muted-foreground font-medium">
                             {search || roleFilter !== 'all' ? 'No users matching your filters' : 'No users yet'}
                         </p>
-                        {!search && roleFilter === 'all' && (
+                        {canCreate && !search && roleFilter === 'all' && (
                             <Button variant="outline" onClick={openCreate} className="rounded-xl text-xs">
                                 + Add First User
                             </Button>
@@ -756,32 +849,44 @@ export default function UsersPage() {
                                             {/* Info */}
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="font-bold text-foreground text-sm">{user.name}</span>
+                                                    <span className="font-black text-foreground text-[15px] tracking-tight">{user.name}</span>
                                                     <RoleBadge role={user.role} />
+                                                    {IS_ARCHITECT(user.role) && user.firmName && (
+                                                        <span className="text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md flex items-center gap-1.5 tracking-wide">
+                                                            <Building2 size={11} />
+                                                            {user.firmName}
+                                                        </span>
+                                                    )}
+                                                    {IS_FACTORY_MGR(user.role) && user.factoryName && (
+                                                        <span className="text-[11px] font-bold text-indigo-500 bg-indigo-500/10 px-2.5 py-1 rounded-md flex items-center gap-1.5 tracking-wide">
+                                                            <Building2 size={11} />
+                                                            {user.factoryName} {user.factoryLocation && `(${user.factoryLocation})`}
+                                                        </span>
+                                                    )}
                                                     {!user.isActive && (
-                                                        <Badge variant="secondary" className="text-[9px] uppercase tracking-wider">Inactive</Badge>
+                                                        <Badge variant="secondary" className="text-[11px] uppercase tracking-widest font-black">Inactive</Badge>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
-                                                    <span className="flex items-center gap-1">
-                                                        <Mail className="size-3" />
+                                                <div className="flex items-center gap-4 mt-1.5 text-[13px] text-muted-foreground flex-wrap tracking-wide">
+                                                    <span className="flex items-center gap-1.5">
+                                                        <Mail className="size-3.5" />
                                                         {user.email}
                                                     </span>
                                                     {user.phone && (
-                                                        <span className="flex items-center gap-1">
-                                                            <Phone className="size-3" />
+                                                        <span className="flex items-center gap-1.5">
+                                                            <Phone className="size-3.5" />
                                                             {user.phone}
                                                         </span>
                                                     )}
                                                     {user.department && (
-                                                        <span className="flex items-center gap-1">
-                                                            <Building2 className="size-3" />
+                                                        <span className="flex items-center gap-1.5">
+                                                            <Building2 className="size-3.5" />
                                                             <span className="capitalize">{user.department}</span>
                                                         </span>
                                                     )}
                                                     {user.lastLogin && (
-                                                        <span className="text-muted-foreground/60">
-                                                            Login: {timeAgo(user.lastLogin)}
+                                                        <span className="text-muted-foreground/50 text-[11px] font-bold uppercase tracking-wider ml-auto">
+                                                            Last Login: {timeAgo(user.lastLogin)}
                                                         </span>
                                                     )}
                                                 </div>
@@ -809,35 +914,45 @@ export default function UsersPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end" className="w-48 rounded-xl p-1.5">
-                                                        <DropdownMenuItem onClick={e => { e.stopPropagation(); navigate(`/users/${user._id}`) }} className="rounded-lg gap-2 cursor-pointer">
-                                                            <Shield className="size-3.5 text-primary" />
-                                                            <span>View Permissions</span>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={e => { e.stopPropagation(); openEdit(user) }} className="rounded-lg gap-2 cursor-pointer">
-                                                            <Edit2 className="size-3.5" />
-                                                            <span>Edit Details</span>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={e => { e.stopPropagation(); setResetTarget(user) }} className="rounded-lg gap-2 cursor-pointer">
-                                                            <KeyRound className="size-3.5 text-amber-500" />
-                                                            <span>Reset Password</span>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
+                                                        {canManagePrivs && (
+                                                            <DropdownMenuItem onClick={e => { e.stopPropagation(); navigate(`/users/${user._id}`) }} className="rounded-lg gap-2 cursor-pointer">
+                                                                <Shield className="size-3.5 text-primary" />
+                                                                <span>View Permissions</span>
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {canEdit && (
+                                                            <DropdownMenuItem onClick={e => { e.stopPropagation(); openEdit(user) }} className="rounded-lg gap-2 cursor-pointer">
+                                                                <Edit2 className="size-3.5" />
+                                                                <span>Edit Details</span>
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {canEdit && (
+                                                            <DropdownMenuItem onClick={e => { e.stopPropagation(); setResetTarget(user) }} className="rounded-lg gap-2 cursor-pointer">
+                                                                <KeyRound className="size-3.5 text-amber-500" />
+                                                                <span>Reset Password</span>
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {(canEdit || canDeactivate) && <DropdownMenuSeparator />}
                                                         {user.isActive ? (
-                                                            <DropdownMenuItem
-                                                                onClick={e => { e.stopPropagation(); deactivateMut.mutate(user._id) }}
-                                                                className="rounded-lg gap-2 cursor-pointer text-red-500 focus:text-red-500"
-                                                            >
-                                                                <UserX className="size-3.5" />
-                                                                <span>Deactivate User</span>
-                                                            </DropdownMenuItem>
+                                                            canDeactivate && (
+                                                                <DropdownMenuItem
+                                                                    onClick={e => { e.stopPropagation(); deactivateMut.mutate(user._id) }}
+                                                                    className="rounded-lg gap-2 cursor-pointer text-red-500 focus:text-red-500"
+                                                                >
+                                                                    <UserX className="size-3.5" />
+                                                                    <span>Deactivate User</span>
+                                                                </DropdownMenuItem>
+                                                            )
                                                         ) : (
-                                                            <DropdownMenuItem
-                                                                onClick={e => { e.stopPropagation(); activateMut.mutate({ id: user._id }) }}
-                                                                className="rounded-lg gap-2 cursor-pointer text-emerald-500 focus:text-emerald-500"
-                                                            >
-                                                                <UserCheck className="size-3.5" />
-                                                                <span>Activate User</span>
-                                                            </DropdownMenuItem>
+                                                            canDeactivate && (
+                                                                <DropdownMenuItem
+                                                                    onClick={e => { e.stopPropagation(); activateMut.mutate({ id: user._id }) }}
+                                                                    className="rounded-lg gap-2 cursor-pointer text-emerald-500 focus:text-emerald-500"
+                                                                >
+                                                                    <UserCheck className="size-3.5" />
+                                                                    <span>Activate User</span>
+                                                                </DropdownMenuItem>
+                                                            )
                                                         )}
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>

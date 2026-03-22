@@ -51,9 +51,10 @@ export const login = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
+    // Update last login — use updateOne to bypass full document validation.
+    // user.save() would trigger required-field checks for firstName/lastName
+    // which can fail for users created before those fields were added.
+    await User.updateOne({ _id: user._id }, { lastLogin: new Date() });
 
     const token = signToken(buildTokenPayload(user));
 
@@ -162,7 +163,17 @@ export const getMe = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      user: { ...user, effectivePermissions },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        companyId: user.companyId?._id || user.companyId,
+        isSuperAdmin: user.isSuperAdmin,
+        profilePhoto: user.profilePhoto,
+        effectivePermissions,
+      },
       allCompanies,
     });
   } catch (err) {
@@ -189,7 +200,8 @@ export const forgotPassword = async (req, res, next) => {
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
     await user.save();
 
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
     await sendEmail({
       to: user.email,
       subject: 'Password Reset — Maruti Furniture',

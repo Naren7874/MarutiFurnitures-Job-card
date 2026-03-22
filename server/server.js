@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import 'dotenv/config'; 
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
@@ -125,6 +125,16 @@ app.use('/api', (req, res) => {
 // ── Global Error Handler ──────────────────────────────────────────────────────
 app.use((err, req, res, _next) => {
   console.error('[ERROR]', err.message, err.stack);
+
+  // Always send CORS headers on error responses too.
+  // Without this, PDF generation failures appear as CORS errors in the browser
+  // because the error response doesn't include Access-Control-Allow-Origin.
+  const origin = req.headers.origin;
+  const allowedOrigins = ALLOWED_ORIGINS;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Access-Control-Allow-Credentials', 'true');
+  }
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {

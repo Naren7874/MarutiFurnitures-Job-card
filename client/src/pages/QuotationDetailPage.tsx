@@ -3,19 +3,20 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
     ArrowLeft, Download, Send, CheckCircle2, XCircle, RefreshCw,
     FileText, User2, MapPin, ReceiptText, AlertCircle, Loader2,
-    Building2, CalendarDays, Package, Phone
+    Building2, CalendarDays, Package, Phone, Trash2
 } from 'lucide-react';
 import {
     useQuotation, useSendQuotation, useApproveQuotation,
-    useRejectQuotation, useReviseQuotation, useJobCards
+    useRejectQuotation, useReviseQuotation, useJobCards, useDeleteQuotation
 } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ImagePreview } from '@/components/ui/image-preview';
 import ApproveQuotationModal from '../components/quotation/ApproveQuotationModal';
 import ManageTeamsModal from '../components/quotation/ManageTeamsModal';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Users } from 'lucide-react';
 
 // ── Status config ─────────────────────────────────────────────────────────────
@@ -42,29 +43,32 @@ export default function QuotationDetailPage() {
     const approveMutation = useApproveQuotation(id!);
     const rejectMutation  = useRejectQuotation(id!);
     const reviseMutation  = useReviseQuotation(id!);
-    const [confirmAction, setConfirmAction] = useState<null | 'send' | 'approve' | 'reject' | 'revise'>(null);
+    const deleteMutation  = useDeleteQuotation(id!);
+    const [confirmAction, setConfirmAction] = useState<null | 'send' | 'approve' | 'reject' | 'revise' | 'delete'>(null);
     const [pdfLoading, setPdfLoading] = useState(false);
     const [showApproveModal, setShowApproveModal] = useState(false);
     const [isManageTeamsOpen, setIsManageTeamsOpen] = useState(false);
 
     const { data: jobCardsRaw } = useJobCards({ quotationId: id });
     const jobCards = (jobCardsRaw as any)?.data || [];
-
-    const isBusy = sendMutation.isPending || approveMutation.isPending || rejectMutation.isPending || reviseMutation.isPending;
+    const isBusy = sendMutation.isPending || approveMutation.isPending || rejectMutation.isPending || reviseMutation.isPending || deleteMutation.isPending;
 
     // Permission flags
     const { hasPermission } = useAuthStore();
     const canEdit    = hasPermission('quotation.edit');
     const canSend    = hasPermission('quotation.send');
     const canApprove = hasPermission('quotation.edit');
+    const canDelete  = hasPermission('quotation.delete');
 
-    const handleAction = async (action: 'send' | 'approve' | 'reject' | 'revise') => {
+    const handleAction = async (action: 'send' | 'approve' | 'reject' | 'revise' | 'delete') => {
         setConfirmAction(null);
         if (action === 'send')    await sendMutation.mutateAsync(undefined as any);
         if (action === 'approve') setShowApproveModal(true);
         if (action === 'reject')  await rejectMutation.mutateAsync(undefined as any);
-        if (action === 'revise') {
-            await reviseMutation.mutateAsync({});
+        if (action === 'revise')  await reviseMutation.mutateAsync({});
+        if (action === 'delete') {
+            await deleteMutation.mutateAsync();
+            navigate('/quotations');
         }
     };
 
@@ -88,7 +92,7 @@ export default function QuotationDetailPage() {
         return (
             <div className="p-8 max-w-6xl mx-auto space-y-6">
                 {[...Array(4)].map((_, i) => (
-                    <div key={i} className="h-24 bg-muted/40 rounded-3xl animate-pulse border border-border/30" />
+                    <div key={i} className="h-24 bg-muted/40 rounded-3xl animate-pulse border border-border/30 max-w-[1600px] mx-auto" />
                 ))}
             </div>
         );
@@ -117,7 +121,7 @@ export default function QuotationDetailPage() {
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="p-6 md:p-8 max-w-6xl mx-auto space-y-8"
+            className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-8"
         >
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -128,7 +132,7 @@ export default function QuotationDetailPage() {
                     <div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-2xl font-black tracking-tight text-foreground">{q.quotationNumber || 'Quotation'}</h1>
-                            <span className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border', cfg.bg, cfg.color, cfg.border)}>
+                            <span className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] border', cfg.bg, cfg.color, cfg.border)}>
                                 <span className={cn('size-1.5 rounded-full bg-current')} />
                                 {cfg.label}
                             </span>
@@ -138,7 +142,7 @@ export default function QuotationDetailPage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
                     <Button
                         variant="outline"
                         onClick={handleDownloadPDF}
@@ -219,31 +223,51 @@ export default function QuotationDetailPage() {
                         </Button>
                     )}
 
+                    {/* Delete — visible for all if permitted */}
+                    {canDelete && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setConfirmAction('delete')}
+                            disabled={isBusy || deleteMutation.isPending}
+                            className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
+                        >
+                            {deleteMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                            Delete
+                        </Button>
+                    )}
+
                 </div>
             </div>
 
-            {/* Confirm Dialog */}
-            <AnimatePresence>
-                {confirmAction && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="bg-card border border-border rounded-2xl p-5 flex items-center justify-between gap-4"
-                    >
-                        <p className="text-sm font-bold text-foreground">
-                            {confirmAction === 'send'    && 'Send this quotation to the client via email & WhatsApp?'}
-                            {confirmAction === 'approve' && `Approve this quotation? A Project and Job Cards will be automatically created for ${q.items?.length || 0} item(s). You\'ll set the team assignment in the next step.`}
-                            {confirmAction === 'reject'  && 'Mark this quotation as Rejected?'}
-                            {confirmAction === 'revise'  && 'Create a new revision copy from this quotation?'}
-                        </p>
-                        <div className="flex gap-3 shrink-0">
-                            <Button variant="outline" size="sm" onClick={() => setConfirmAction(null)} className="rounded-xl font-bold text-xs">Cancel</Button>
-                            <Button size="sm" onClick={() => handleAction(confirmAction)} className="rounded-xl font-bold text-xs bg-primary">Confirm</Button>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Action Confirmation Dialog */}
+            <ConfirmationDialog
+                open={!!confirmAction}
+                onOpenChange={(open) => !open && setConfirmAction(null)}
+                title={
+                    confirmAction === 'delete' ? 'Delete Quotation?' :
+                    confirmAction === 'send'   ? 'Send to Client?' :
+                    confirmAction === 'reject' ? 'Reject Quotation?' :
+                    confirmAction === 'revise' ? 'Create Revision?' :
+                    'Approve Quotation?'
+                }
+                description={
+                    confirmAction === 'delete' ? 'PERMANENTLY delete this quotation and ALL associated projects, job cards, and invoices? This cannot be undone.' :
+                    confirmAction === 'send'   ? 'This will notify the client and change the status to "Sent".' :
+                    confirmAction === 'reject' ? 'This will mark the quotation as rejected.' :
+                    confirmAction === 'revise' ? 'This will create a new draft revision of this quotation.' :
+                    `Approve this quotation? A Project and Job Cards will be automatically created for ${q.items?.length || 0} item(s). You'll set the team assignment in the next step.`
+                }
+                confirmText={
+                    confirmAction === 'delete' ? 'Delete Permanently' :
+                    confirmAction === 'send'   ? 'Send Now' :
+                    confirmAction === 'reject' ? 'Reject' :
+                    confirmAction === 'revise' ? 'Create' :
+                    'Approve'
+                }
+                variant={confirmAction === 'delete' || confirmAction === 'reject' ? 'destructive' : 'default'}
+                isPending={isBusy}
+                onConfirm={async () => { if (confirmAction) await handleAction(confirmAction); }}
+            />
 
             {/* Approval success note */}
             {status === 'approved' && q.projectId && (
@@ -332,7 +356,7 @@ export default function QuotationDetailPage() {
                 <div className="lg:col-span-2 space-y-6">
 
                     {/* Items Table */}
-                    <div className="bg-white dark:bg-card/20 border border-border/30 rounded-3xl overflow-hidden">
+                    <div className="bg-card border border-border/60 rounded-3xl overflow-hidden shadow-sm">
                         <div className="px-6 py-4 border-b border-border/30 flex items-center gap-3">
                             <div className="p-2 rounded-xl bg-primary/10 text-primary"><Package size={14} /></div>
                             <p className="font-black text-sm uppercase tracking-wider text-foreground">Items ({q.items?.length || 0})</p>
@@ -379,17 +403,30 @@ export default function QuotationDetailPage() {
                                                                         ))}
                                                                     </div>
                                                                 )}
-                                                                <div className="flex-1">
-                                                                    <p className="text-sm font-bold text-foreground">{item.category}</p>
-                                                                    <p className="text-sm font-bold text-foreground">{item.description}</p>
-                                                                    {item.specifications?.size && <p className="text-[10px] text-muted-foreground/40 font-medium mt-0.5">{item.specifications.size}</p>}
-                                                                    {item.specifications?.material && <p className="text-[10px] text-muted-foreground/40 font-medium">{item.specifications.material}</p>}
+                                                                <div className="flex-1 space-y-1.5">
+                                                                    <p className="text-[16px] font-black text-foreground tracking-tight">{item.category}</p>
+                                                                    <p className="text-[15px] font-medium text-foreground/70 leading-relaxed mb-2">{item.description}</p>
+                                                                    <div className="flex flex-col gap-1">
+                                                                        {item.specifications?.size && <p className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-wider">Size: {item.specifications.size}</p>}
+                                                                        {item.specifications?.material && <p className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-wider">Material: {item.specifications.material}</p>}
+                                                                        {item.specifications?.polish && <p className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-wider">Polish: {item.specifications.polish}</p>}
+                                                                        {item.specifications?.fabrics?.length > 0 ? (
+                                                                            item.specifications.fabrics.map((fab: string, fi: number) => (
+                                                                                <p key={fi} className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-wider">
+                                                                                    Fabric{item.specifications.fabrics.length > 1 ? ` ${fi + 1}` : ''}: {fab}
+                                                                                </p>
+                                                                            ))
+                                                                        ) : item.specifications?.fabric ? (
+                                                                            <p className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-wider">Fabric: {item.specifications.fabric}</p>
+                                                                        ) : null}
+                                                                        {item.specifications?.notes && <p className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-wider">Note: {item.specifications.notes}</p>}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td className="px-5 py-4 text-sm font-bold text-foreground/70">{item.qty} {item.unit || 'pcs'}</td>
-                                                        <td className="px-5 py-4 text-sm font-bold text-foreground/70">{fmt(item.sellingPrice)}</td>
-                                                        <td className="px-5 py-4 text-sm font-black text-foreground">{fmt(item.totalPrice)}</td>
+                                                        <td className="px-5 py-4 text-[15px] font-bold text-foreground/70 tracking-tight">{item.qty} {item.unit || 'pcs'}</td>
+                                                        <td className="px-5 py-4 text-[15px] font-bold text-foreground/70 tracking-tight">{fmt(item.sellingPrice)}</td>
+                                                        <td className="px-5 py-4 text-[16px] font-black text-foreground tracking-tight">{fmt(item.totalPrice)}</td>
                                                     </tr>
                                                 </Fragment>
                                             );
@@ -401,7 +438,7 @@ export default function QuotationDetailPage() {
                     </div>
 
                     {/* Financial Summary */}
-                    <div className="bg-white dark:bg-card/20 border border-border/30 rounded-3xl p-6 space-y-4">
+                    <div className="bg-card border border-border/60 rounded-3xl p-6 space-y-4 shadow-sm">
                         <div className="flex items-center gap-3 pb-3 border-b border-border/30">
                             <div className="p-2 rounded-xl bg-primary/10 text-primary"><ReceiptText size={14} /></div>
                             <p className="font-black text-sm uppercase tracking-wider text-foreground">Financial Breakdown</p>
@@ -444,7 +481,7 @@ export default function QuotationDetailPage() {
 
 function InfoCard({ title, icon: Icon, children }: { title: string; icon: any; children: React.ReactNode }) {
     return (
-        <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-3">
+        <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-3 shadow-sm">
             <div className="flex items-center gap-2 pb-2 border-b border-border/20">
                 <Icon size={12} className="text-muted-foreground/40" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">{title}</p>

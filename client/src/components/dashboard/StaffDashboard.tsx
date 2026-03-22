@@ -429,7 +429,7 @@ export default function StaffDashboard({ role, name }: { role: string; name: str
     const meta = ROLE_META[role] || ROLE_META.design;
 
     return (
-        <div className="p-5 md:p-7 space-y-8 max-w-[1400px] mx-auto">
+        <div className="p-5 md:p-7 space-y-8 max-w-[1600px] mx-auto">
             <RoleBanner meta={meta} name={name} />
 
             {role === 'design'     && <DesignDashboard />}

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 
 const FIELD = ({ label, value, icon: Icon }: { label: string; value?: string | null; icon?: any }) =>
     !value ? null : (
-        <div className="group/field p-4 rounded-2xl bg-white dark:bg-muted/20 border border-border dark:border-border/40 hover:bg-card hover:shadow-lg hover:shadow-black/5 hover:-translate-y-1 transition-all duration-300 shadow-sm">
+        <div className="group/field p-4 rounded-2xl bg-card border border-border/60 hover:bg-card/80 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-1 transition-all duration-300 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
                 {Icon && <Icon size={12} className="text-primary/40 group-hover/field:text-primary transition-colors" />}
                 <p className="text-muted-foreground/40 text-[9px] font-black uppercase tracking-widest">{label}</p>
@@ -21,7 +21,7 @@ const FIELD = ({ label, value, icon: Icon }: { label: string; value?: string | n
 export default function ClientDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { user } = useAuthStore();
+    const { hasPermission } = useAuthStore();
     const { data: raw, isLoading } = useClient(id ?? '');
     const client: any = (raw as any)?.data ?? {};
     
@@ -42,7 +42,9 @@ export default function ClientDetailPage() {
     const deactivateMut = useDeactivateClient(id ?? '');
     const [confirmDeactivate, setConfirmDeactivate] = useState(false);
 
-    const isSales = user?.role === 'sales' && !user?.isSuperAdmin;
+    const canEditClient = hasPermission('client.edit');
+    const canCreateQuote = hasPermission('quotation.create');
+
 
     const handleDeactivate = async () => {
         await deactivateMut.mutateAsync();
@@ -51,7 +53,7 @@ export default function ClientDetailPage() {
 
     if (isLoading) {
         return (
-            <div className="p-8 space-y-6 max-w-4xl mx-auto">
+            <div className="p-8 space-y-6 max-w-[1600px] mx-auto">
                 <div className="h-6 w-32 bg-muted/40 rounded-lg animate-pulse" />
                 <div className="h-40 bg-card/40 rounded-[32px] animate-pulse border border-border/30" />
                 <div className="grid grid-cols-2 gap-6">
@@ -63,7 +65,7 @@ export default function ClientDetailPage() {
     }
 
     return (
-        <div className="p-8 space-y-10 max-w-5xl mx-auto">
+        <div className="p-8 space-y-10 max-w-[1600px] mx-auto">
             {/* Header / Navigation */}
             <motion.div
                 initial={{ opacity: 0, x: -20 }}
@@ -76,19 +78,23 @@ export default function ClientDetailPage() {
                     </div>
                     Back to Registry
                 </Link>
-                <div className="flex gap-2 flex-wrap">
-                    <Link to={`/clients/${id}/edit`}>
-                        <Button variant="outline" className="h-10 px-6 rounded-xl border-amber-500/40 text-amber-500 hover:bg-amber-500/10 font-black text-[10px] uppercase tracking-widest gap-2">
-                            <EditIcon size={16} />
-                            Edit Client
-                        </Button>
-                    </Link>
-                    <Link to={`/quotations/new?clientId=${id}`}>
-                        <Button className="h-10 px-6 rounded-xl bg-primary font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">
-                            Create Quotation
-                        </Button>
-                    </Link>
-                    {client.isActive !== false && !isSales && (
+                <div className="flex gap-2">
+                    {canEditClient && (
+                        <Link to={`/clients/${id}/edit`}>
+                            <Button variant="outline" className="h-10 px-6 rounded-xl border-amber-500/40 text-amber-500 hover:bg-amber-500/10 font-black text-[10px] uppercase tracking-widest gap-2">
+                                <EditIcon size={16} />
+                                Edit Client
+                            </Button>
+                        </Link>
+                    )}
+                    {canCreateQuote && (
+                        <Link to={`/quotations/new?clientId=${id}`}>
+                            <Button className="h-10 px-6 rounded-xl bg-primary font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">
+                                Create Quotation
+                            </Button>
+                        </Link>
+                    )}
+                    {client.isActive !== false && canEditClient && (
                         <Button
                             variant="outline"
                             onClick={() => setConfirmDeactivate(true)}
@@ -110,7 +116,7 @@ export default function ClientDetailPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="relative group bg-white dark:bg-card/40 border border-border dark:border-border/50 rounded-[40px] p-8 md:p-12 shadow-2xl backdrop-blur-xl overflow-hidden"
+                className="relative group bg-card border border-border focus-within:border-primary/50 rounded-[40px] p-8 md:p-12 shadow-2xl overflow-hidden"
             >
                 <div className="absolute top-0 right-0 w-80 h-80 bg-linear-to-bl from-primary/5 to-transparent rounded-bl-[160px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
@@ -169,7 +175,7 @@ export default function ClientDetailPage() {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.2 }}
-                            className="bg-white dark:bg-card/40 border border-border dark:border-border/50 rounded-[32px] p-6 space-y-6 backdrop-blur-md shadow-sm"
+                            className="bg-card border border-border focus-within:border-primary/50 rounded-[32px] p-6 space-y-6 shadow-sm"
                         >
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
@@ -188,7 +194,7 @@ export default function ClientDetailPage() {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.3 }}
-                            className="bg-white dark:bg-card/40 border border-border dark:border-border/50 rounded-[32px] p-6 space-y-6 backdrop-blur-md shadow-sm"
+                            className="bg-card border border-border focus-within:border-primary/50 rounded-[32px] p-6 space-y-6 shadow-sm"
                         >
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
@@ -234,7 +240,7 @@ export default function ClientDetailPage() {
                                     <fin.icon size={16} className={fin.color} />
                                 </div>
                                 <div>
-                                    <p className="text-muted-foreground/60 text-[9px] font-black uppercase tracking-widest">{fin.label}</p>
+                                    <p className="text-muted-foreground/50 text-[9px] font-black uppercase tracking-widest">{fin.label}</p>
                                     <p className="text-xl font-black tracking-tight text-foreground">₹{fin.value.toLocaleString('en-IN')}</p>
                                 </div>
                                 {fin.label === 'Total Invoiced' && totalInvoiced > 0 && (

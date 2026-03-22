@@ -14,7 +14,7 @@ import {
 
 router.use(authenticateJWT, injectCompanyScope);
 
-router.get('/dashboard-stats', getDashboardStats);
+router.get('/dashboard-stats', checkPermission(['reports.view_financial', 'reports.view_production', 'reports.view_delivery']), getDashboardStats);
 router.get('/financial',  checkPermission('reports.view_financial'),  getFinancialReport);
 router.get('/outstanding', checkPermission('reports.view_financial'), getOutstandingReport);
 router.get('/production', checkPermission('reports.view_production'), getProductionReport);

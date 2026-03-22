@@ -9,13 +9,21 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
-    name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, lowercase: true, trim: true },
+    firstName:  { type: String, required: true, trim: true },
+    middleName: { type: String, trim: true },
+    lastName:   { type: String, required: true, trim: true },
+    name:       { type: String, trim: true }, // Full name, auto-computed
+    email:      { type: String, required: true, lowercase: true, trim: true },
     password: { type: String, required: true },
 
     phone: { type: String },
     whatsappNumber: { type: String },
     profilePhoto: { type: String },                    // Cloudinary URL
+
+    // Professional fields (for Architects, Designers, Managers)
+    firmName:        { type: String, trim: true },
+    factoryName:     { type: String, trim: true },
+    factoryLocation: { type: String, trim: true },
 
     role: {
       type: String,
@@ -59,8 +67,10 @@ const userSchema = new mongoose.Schema(
 // Unique email per company
 userSchema.index({ companyId: 1, email: 1 }, { unique: true });
 
-// Hash password before save
+// Populate full name before save
 userSchema.pre("save", async function () {
+  this.name = [this.firstName, this.middleName, this.lastName].filter(Boolean).join(' ');
+  
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 12);
 });

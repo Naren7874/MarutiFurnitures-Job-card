@@ -16,6 +16,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import api from '@/lib/axios'
+import { useAuthStore } from '@/stores/authStore'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import {
     DropdownMenu,
@@ -56,7 +57,7 @@ const PERMISSION_GROUPS = [
         group: 'Quotations',
         prefix: 'quotation',
         icon: '📄',
-        perms: ['quotation.view', 'quotation.create', 'quotation.edit', 'quotation.send', 'quotation.approve', 'quotation.reject'],
+        perms: ['quotation.view', 'quotation.create', 'quotation.edit', 'quotation.send', 'quotation.approve', 'quotation.reject', 'quotation.delete'],
     },
     {
         group: 'Projects',
@@ -122,7 +123,7 @@ const PERMISSION_GROUPS = [
         group: 'Users & Roles',
         prefix: 'user',
         icon: '👥',
-        perms: ['user.view', 'user.create', 'user.edit', 'user.deactivate', 'privilege.view', 'privilege.grant', 'privilege.deny'],
+        perms: ['user.view', 'user.create', 'user.edit', 'user.deactivate', 'user.delete', 'privilege.view', 'privilege.create', 'privilege.edit', 'privilege.delete', 'privilege.grant', 'privilege.deny'],
     },
     {
         group: 'Settings & Audit',
@@ -431,7 +432,7 @@ function RoleDrawer({ open, onClose, editRole, onSuccess }: {
                                                                         'flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold capitalize transition-all text-left',
                                                                         isOn
                                                                             ? 'bg-primary/10 text-primary border border-primary/25'
-                                                                            : 'bg-muted/30 text-muted-foreground border border-transparent hover:border-border hover:text-foreground'
+                                                                            : 'bg-muted/30 text-muted-foreground border border-border/20 hover:border-border hover:text-foreground'
                                                                     )}
                                                                 >
                                                                     <div className={cn(
@@ -459,8 +460,8 @@ function RoleDrawer({ open, onClose, editRole, onSuccess }: {
 
                         {/* Footer — always visible */}
                         <div className="border-t border-border px-6 py-4 flex gap-3 shrink-0 bg-card">
-                            <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl h-11">Cancel</Button>
-                            <Button onClick={handleSave} disabled={isPending} className="flex-1 rounded-xl h-11 font-bold">
+                            <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl h-11 text-[13px] font-bold">Cancel</Button>
+                            <Button onClick={handleSave} disabled={isPending} className="flex-1 rounded-xl h-11 font-black text-[13px] uppercase tracking-widest">
                                 {isPending && <Loader2 className="size-4 mr-2 animate-spin" />}
                                 {editRole ? 'Save Changes' : 'Create Role'}
                             </Button>
@@ -483,6 +484,11 @@ export default function RolesPage() {
     const [deleteTarget, setDeleteTarget] = useState<AppRole | null>(null)
     const [search, setSearch] = useState('')
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+    const { hasPermission } = useAuthStore()
+
+    const canCreate = hasPermission('privilege.create')
+    const canEdit   = hasPermission('privilege.edit')
+    const canDelete = hasPermission('privilege.delete')
 
     const { data: roles = [], isLoading, error: loadError } = useQuery<AppRole[]>({
         queryKey: ['roles'],
@@ -507,7 +513,7 @@ export default function RolesPage() {
 
     return (
         <TooltipProvider>
-            <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-6">
+            <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-6">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
@@ -517,18 +523,20 @@ export default function RolesPage() {
                             </div>
                             Roles & Permissions
                         </h1>
-                        <p className="text-sm text-muted-foreground mt-1">
+                        <p className="text-[13px] text-muted-foreground mt-1 tracking-wide">
                             {roles.length} role{roles.length !== 1 ? 's' : ''} •{' '}
-                            <span className="text-blue-500 font-medium">{roles.filter(r => r.isSystem).length} system</span>
-                            {' '}• {roles.filter(r => !r.isSystem).length} custom
+                            <span className="text-blue-500 font-bold uppercase tracking-widest text-[11px]">{roles.filter(r => r.isSystem).length} system</span>
+                            {' '}• <span className="text-muted-foreground/60 font-bold uppercase tracking-widest text-[11px]">{roles.filter(r => !r.isSystem).length} custom</span>
                         </p>
                     </div>
-                    <Button
-                        onClick={() => { setEditTarget(null); setDrawerOpen(true) }}
-                        className="rounded-xl h-11 px-6 font-bold gap-2"
-                    >
-                        <Plus className="size-4" /> New Role
-                    </Button>
+                    {canCreate && (
+                        <Button
+                            onClick={() => { setEditTarget(null); setDrawerOpen(true) }}
+                            className="rounded-xl h-11 px-6 font-bold gap-2"
+                        >
+                            <Plus className="size-4" /> New Role
+                        </Button>
+                    )}
                 </div>
 
                 {/* Search */}
@@ -614,7 +622,7 @@ export default function RolesPage() {
                                                         )}
                                                     </div>
 
-                                                    {!role.isSystem && (
+                                                    {!role.isSystem && (canEdit || canDelete) && (
                                                         <div className="shrink-0 flex items-center">
                                                             <DropdownMenu>
                                                                 <DropdownMenuTrigger asChild>
@@ -623,18 +631,22 @@ export default function RolesPage() {
                                                                     </Button>
                                                                 </DropdownMenuTrigger>
                                                                 <DropdownMenuContent align="end" className="w-40 rounded-xl p-1.5">
-                                                                    <DropdownMenuItem onClick={() => { setEditTarget(role); setDrawerOpen(true) }} className="rounded-lg gap-2 cursor-pointer">
-                                                                        <Edit2 className="size-3.5" />
-                                                                        <span>Edit Role</span>
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuSeparator />
-                                                                    <DropdownMenuItem
-                                                                        onClick={() => setDeleteTarget(role)}
-                                                                        className="rounded-lg gap-2 cursor-pointer text-red-500 focus:text-red-500"
-                                                                    >
-                                                                        <Trash2 className="size-3.5" />
-                                                                        <span>Delete Role</span>
-                                                                    </DropdownMenuItem>
+                                                                    {canEdit && (
+                                                                        <DropdownMenuItem onClick={() => { setEditTarget(role); setDrawerOpen(true) }} className="rounded-lg gap-2 cursor-pointer">
+                                                                            <Edit2 className="size-3.5" />
+                                                                            <span>Edit Role</span>
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                    {canEdit && canDelete && <DropdownMenuSeparator />}
+                                                                    {canDelete && (
+                                                                        <DropdownMenuItem
+                                                                            onClick={() => setDeleteTarget(role)}
+                                                                            className="rounded-lg gap-2 cursor-pointer text-red-500 focus:text-red-500"
+                                                                        >
+                                                                            <Trash2 className="size-3.5" />
+                                                                            <span>Delete Role</span>
+                                                                        </DropdownMenuItem>
+                                                                    )}
                                                                 </DropdownMenuContent>
                                                             </DropdownMenu>
                                                         </div>
@@ -664,7 +676,7 @@ export default function RolesPage() {
                                                     ) : (
                                                         <div className="flex flex-wrap gap-1">
                                                             {role.permissions.slice(0, 8).map(p => (
-                                                                <span key={p} className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-muted text-muted-foreground border border-border">
+                                                                <span key={p} className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-muted text-foreground/70 border border-border/60">
                                                                     {p}
                                                                 </span>
                                                             ))}

@@ -11,6 +11,7 @@ import {
   getAccessMap, getAccessLogs, exportAuditLogs, exportPermissionLogs,
 } from '../controllers/privileges.js';
 import { authenticateJWT, requireRole } from '../middleware/auth.js';
+import { checkPermission } from '../middleware/permission.js';
 
 const router = express.Router();
 
@@ -22,32 +23,33 @@ router.use(authenticateJWT);
 router.get('/roles',      getRoles);
 router.get('/roles/:id',  getRoleById);
 
-// Mutations require super_admin
-router.post('/roles',         requireRole('super_admin'), createRole);
-router.put('/roles/:id',      requireRole('super_admin'), updateRole);
-router.delete('/roles/:id',   requireRole('super_admin'), deleteRole);
+// Mutations require specific permissions
+router.post('/roles',         checkPermission('privilege.create'), createRole);
+router.put('/roles/:id',      checkPermission('privilege.edit'),   updateRole);
+router.delete('/roles/:id',   checkPermission('privilege.delete'), deleteRole);
 
 // ── Permission Sets ───────────────────────────────────────────────────────────
-router.get('/permission-sets',          requireRole('super_admin'), getPermissionSets);
-router.post('/permission-sets',         requireRole('super_admin'), createPermissionSet);
-router.put('/permission-sets/:id',      requireRole('super_admin'), updatePermissionSet);
-router.delete('/permission-sets/:id',   requireRole('super_admin'), deletePermissionSet);
+router.get('/permission-sets',          checkPermission('privilege.view'),   getPermissionSets);
+router.post('/permission-sets',         checkPermission('privilege.create'), createPermissionSet);
+router.put('/permission-sets/:id',      checkPermission('privilege.edit'),   updatePermissionSet);
+router.delete('/permission-sets/:id',   checkPermission('privilege.delete'), deletePermissionSet);
 
 // ── Access Map & Logs ─────────────────────────────────────────────────────────
-router.get('/access-map',                     requireRole('super_admin'), getAccessMap);
-router.get('/access-logs',                    requireRole('super_admin'), getAccessLogs);
-router.get('/access-logs/export',             requireRole('super_admin'), exportAuditLogs);
-router.get('/permission-logs/export',         requireRole('super_admin'), exportPermissionLogs);
+router.get('/access-map',                     checkPermission('audit_log.view'), getAccessMap);
+router.get('/access-logs',                    checkPermission('audit_log.view'), getAccessLogs);
+router.get('/access-logs/export',             checkPermission('audit_log.export'), exportAuditLogs);
+router.get('/permission-logs/export',         checkPermission('audit_log.export'), exportPermissionLogs);
 
 // ── Per-User Permission Management ────────────────────────────────────────────
 // IMPORTANT: These routes must come AFTER the more specific routes above
 //            to avoid ':userId' matching 'access-map', 'access-logs', etc.
-router.get('/users/:userId',                            requireRole('super_admin'), getUserPermissions);
-router.post('/users/:userId/grant',                     requireRole('super_admin'), grantPermission);
-router.post('/users/:userId/deny',                      requireRole('super_admin'), denyPermission);
-router.delete('/users/:userId/override/:overrideId',    requireRole('super_admin'), removeOverride);
-router.post('/users/:userId/permission-set',            requireRole('super_admin'), assignPermissionSet);
-router.delete('/users/:userId/permission-set/:setId',   requireRole('super_admin'), removePermissionSet);
-router.get('/users/:userId/history',                    requireRole('super_admin'), getOverrideHistory);
+router.get('/users/:userId',                            checkPermission('privilege.view'), getUserPermissions);
+router.post('/users/:userId/grant',                     checkPermission('privilege.grant'), grantPermission);
+"privileges.js"
+router.post('/users/:userId/deny',                      checkPermission('privilege.deny'), denyPermission);
+router.delete('/users/:userId/override/:overrideId',    checkPermission(['privilege.grant', 'privilege.deny']), removeOverride);
+router.post('/users/:userId/permission-set',            checkPermission('privilege.grant'), assignPermissionSet);
+router.delete('/users/:userId/permission-set/:setId',   checkPermission(['privilege.grant', 'privilege.deny']), removePermissionSet);
+router.get('/users/:userId/history',                    checkPermission('privilege.view'), getOverrideHistory);
 
 export default router;

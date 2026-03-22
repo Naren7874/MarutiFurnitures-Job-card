@@ -60,7 +60,7 @@ export default function ProjectDetailPage() {
         return (
             <div className="p-8 max-w-6xl mx-auto space-y-6">
                 {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-32 bg-muted/20 rounded-3xl animate-pulse border border-border/20" />
+                    <div key={i} className="h-32 bg-muted/20 rounded-3xl animate-pulse border border-border/20 max-w-[1600px] mx-auto" />
                 ))}
             </div>
         );
@@ -95,7 +95,7 @@ export default function ProjectDetailPage() {
     const jobCards: any[] = project.jobCards || [];
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-6xl mx-auto space-y-8">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -133,12 +133,10 @@ export default function ProjectDetailPage() {
             {/* Info Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Client */}
-                <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-3">
-                    <div className="flex items-center justify-between pb-2 border-b border-border/20">
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">
+                <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-3 shadow-sm">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
                             <Building2 size={12} /> Client Details
                         </div>
-                    </div>
                     <div>
                         <h3 className="font-black text-[15px] text-foreground tracking-tight">{project.clientId?.name || '—'}</h3>
                         {project.clientId?.firmName && <p className="text-[11px] font-bold text-muted-foreground/60 tracking-wide mt-0.5">{project.clientId.firmName}</p>}
@@ -183,7 +181,7 @@ export default function ProjectDetailPage() {
                 </div>
 
                 {/* Site Address */}
-                <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-3">
+                <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-3 shadow-sm">
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 pb-2 border-b border-border/20">
                         <MapPin size={12} /> Site Address
                     </div>
@@ -199,7 +197,7 @@ export default function ProjectDetailPage() {
                 </div>
 
                 {/* Timeline */}
-                <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-3">
+                <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-3 shadow-sm">
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 pb-2 border-b border-border/20">
                         <Calendar size={12} /> Timeline
                     </div>
@@ -223,7 +221,7 @@ export default function ProjectDetailPage() {
             </div>
 
             {/* WhatsApp Group Linking */}
-            <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-6 space-y-4">
+            <div className="bg-card border border-border/60 rounded-2xl p-6 space-y-4 shadow-sm">
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#25D366] pb-2 border-b border-[#25D366]/20">
                     <Activity size={12} /> WhatsApp Project Group
                 </div>
@@ -264,7 +262,7 @@ export default function ProjectDetailPage() {
 
             {/* Assigned Staff */}
             {project.assignedStaff?.length > 0 && (
-                <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5">
+                <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-sm">
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-4 pb-3 border-b border-border/20">
                         <Users size={12} /> Assigned Staff ({project.assignedStaff.length})
                     </div>
@@ -311,7 +309,7 @@ export default function ProjectDetailPage() {
                                 >
                                     <Link
                                         to={`/jobcards/${jc._id}`}
-                                        className="group flex items-center justify-between p-4 bg-white dark:bg-card/20 border border-border/30 rounded-2xl hover:border-primary/30 hover:shadow-md hover:shadow-primary/5 transition-all"
+                                        className="group flex items-center justify-between p-4 bg-card border border-border/60 rounded-2xl hover:border-primary/30 hover:shadow-md hover:shadow-primary/5 transition-all shadow-xs"
                                     >
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
@@ -339,7 +337,7 @@ export default function ProjectDetailPage() {
 
             {/* Activity Log */}
             {project.activityLog?.length > 0 && (
-                <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-4">
+                <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-4 shadow-sm">
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 flex items-center gap-2 pb-3 border-b border-border/20">
                         <Clock size={12} /> Recent Activity
                     </p>

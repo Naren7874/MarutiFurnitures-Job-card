@@ -1,55 +1,105 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-const clientSchema = new mongoose.Schema(
-  {
+const clientSchema = new mongoose.Schema({
     companyId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Company",
-      required: true,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Company',
+        required: true,
     },
-
     clientType: {
-      type: String,
-      enum: ["architect", "project_designer", "direct_client", "factory_manager"],
-      required: true,
+        type: String,
+        enum: ['direct_client', 'architect', 'project_designer', 'factory_manager'],
+        default: 'direct_client',
     },
-
-    name:     { type: String, required: true, trim: true },
-    firmName: { type: String, trim: true },
-    phone:    { type: String, required: true },
-    whatsappNumber: { type: String },
-    email:    { type: String, lowercase: true },
-
+    firstName: { type: String, trim: true },
+    middleName: { type: String, trim: true },
+    lastName: { type: String, trim: true },
+    name: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    firmName: {
+        type: String,
+        trim: true,
+    },
+    phone: {
+        type: String,
+        required: true,
+        trim: true,
+        validate: {
+            validator: function(v) {
+                return /^[6-9]\d{9}$/.test(v);
+            },
+            message: props => `${props.value} is not a valid 10-digit Indian mobile number!`
+        }
+    },
+    whatsappNumber: {
+        type: String,
+        trim: true,
+        validate: {
+            validator: function(v) {
+                if (!v) return true;
+                return /^[6-9]\d{9}$/.test(v);
+            },
+            message: props => `${props.value} is not a valid 10-digit mobile number!`
+        }
+    },
+    email: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        validate: {
+            validator: function(v) {
+                if (!v) return true;
+                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+            },
+            message: props => `${props.value} is not a valid email address!`
+        }
+    },
+    gstin: {
+        type: String,
+        trim: true,
+        uppercase: true,
+    },
+    gstVerified: {
+        type: Boolean,
+        default: false,
+    },
     address: {
-      houseNumber: String,
-      line1:   String,
-      line2:   String,
-      city:    String,
-      state:   String,
-      pincode: String,
+        houseNumber: String,
+        line1: String,
+        line2: String,
+        city: String,
+        pincode: String,
     },
-
-    // GST — verified via GSTIN API
-    gstin:           { type: String, uppercase: true },
-    gstVerified:     { type: Boolean, default: false },
-    gstBusinessName: { type: String },                   // returned by API
-    gstState:        { type: String },
-    gstStatus:       { type: String },                   // Active / Cancelled / Suspended
-    taxType: {
-      type: String,
-      enum: ["regular", "composition", "urp"],           // urp = unregistered person
+    notes: String,
+    isActive: {
+        type: Boolean,
+        default: true,
     },
-    gstVerifiedAt: { type: Date },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+    },
+}, {
+    timestamps: true,
+});
 
-    notes:    { type: String },
-    isActive: { type: Boolean, default: true },
+// Auto-compute full name BEFORE validation so 'required' check passes
+clientSchema.pre('validate', function() {
+    if (this.firstName || this.lastName) {
+        this.name = [this.firstName, this.middleName, this.lastName]
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+    }
+});
 
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  },
-  { timestamps: true }
-);
+// Index for search
+clientSchema.index({ name: 'text', firmName: 'text', phone: 'text', email: 'text' });
 
-clientSchema.index({ companyId: 1 });
-clientSchema.index({ companyId: 1, phone: 1 });
+const Client = mongoose.model('Client', clientSchema);
 
-export default mongoose.model("Client", clientSchema);
+export default Client;

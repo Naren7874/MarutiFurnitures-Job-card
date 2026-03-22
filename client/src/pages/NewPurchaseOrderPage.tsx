@@ -53,7 +53,7 @@ export default function NewPurchaseOrderPage() {
     };
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-5xl mx-auto space-y-8">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
             <div className="flex items-center gap-4">
                 <button onClick={() => navigate('/purchase-orders')} className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border hover:bg-primary/10 hover:border-primary/30 transition text-muted-foreground hover:text-primary">
                     <ArrowLeft size={16} />
@@ -74,10 +74,10 @@ export default function NewPurchaseOrderPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left */}
                 <div className="space-y-5">
-                    <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 pb-2 border-b border-border/20">Vendor Details</p>
+                    <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-4 shadow-sm">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 pb-2 border-b border-border/20">Vendor Details</p>
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-muted-foreground/60">Vendor Name *</Label>
+                            <Label className="text-xs font-bold text-muted-foreground/80">Vendor Name *</Label>
                             <Input value={vendor.vendorName} onChange={e => setVendor(v => ({ ...v, vendorName: e.target.value }))} className="rounded-xl h-10" placeholder="e.g. Royal Timber Suppliers" autoFocus />
                         </div>
                         <div className="space-y-1.5">
@@ -120,9 +120,9 @@ export default function NewPurchaseOrderPage() {
 
                 {/* Right — Items */}
                 <div className="lg:col-span-2">
-                    <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl overflow-hidden">
+                    <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
                         <div className="flex items-center justify-between px-5 py-4 border-b border-border/20">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Items ({items.length})</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Items ({items.length})</p>
                             <Button onClick={addItem} variant="outline" size="sm" className="rounded-lg text-xs font-bold h-8 gap-1.5 border-border/60">
                                 <Plus size={12} /> Add Row
                             </Button>

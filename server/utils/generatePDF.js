@@ -43,6 +43,68 @@ const findChrome = () => {
   return undefined;
 };
 
+// ── Persistent Browser Instance ───────────────────────────────────────────────
+// Reusing a single browser across requests saves ~3-5s per PDF generation
+// by avoiding the cold start overhead of launching Chrome each time.
+
+let _browser = null;
+let _browserLaunchPromise = null;
+
+const BROWSER_ARGS = [
+  '--no-sandbox',
+  '--disable-setuid-sandbox',
+  '--disable-dev-shm-usage',
+  '--disable-gpu',
+  '--disable-crash-reporter',
+  '--disable-software-rasterizer',
+  '--disable-seccomp-filter-sandbox',
+  '--font-render-hinting=none',
+];
+
+const getBrowser = async () => {
+  // If a browser is alive, reuse it
+  if (_browser) {
+    try {
+      // Quick check: if the browser process is still running
+      await _browser.version();
+      return _browser;
+    } catch {
+      // Browser crashed or was killed — reset and relaunch
+      console.warn('[PDF] Browser died, relaunching...');
+      _browser = null;
+      _browserLaunchPromise = null;
+    }
+  }
+
+  // Prevent multiple simultaneous launches
+  if (_browserLaunchPromise) {
+    return _browserLaunchPromise;
+  }
+
+  _browserLaunchPromise = (async () => {
+    const execPath = findChrome();
+    console.log('[PDF] Launching browser at:', execPath);
+    _browser = await puppeteer.launch({
+      headless: true,
+      executablePath: execPath,
+      args: BROWSER_ARGS,
+    });
+
+    // Auto-reset if browser process exits
+    _browser.on('disconnected', () => {
+      console.warn('[PDF] Browser disconnected, will relaunch on next request.');
+      _browser = null;
+      _browserLaunchPromise = null;
+    });
+
+    _browserLaunchPromise = null;
+    return _browser;
+  })();
+
+  return _browserLaunchPromise;
+};
+
+
 /**
  * Render a PDF from an EJS HTML template.
  * 
@@ -83,27 +145,16 @@ export const renderPDF = async (templateName, data = {}, options = {}) => {
   // Render EJS template with data
   const html = ejs.render(template, data, { filename: templatePath });
 
-  const execPath = findChrome();
-  console.log('[PDF] Using Chrome at:', execPath);
-
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: execPath,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--disable-crash-reporter',
-      '--disable-software-rasterizer',
-      '--disable-seccomp-filter-sandbox',
-      '--font-render-hinting=none',
-    ],
-  });
-
+  // Get (or reuse) the persistent browser instance
+  const browser = await getBrowser();
+  const page = await browser.newPage();
   try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    // Use domcontentloaded (instant) + brief pause for fonts.
+    // networkidle2 hangs in Cloud Run because Google Fonts requests stay
+    // "pending" for a long time, causing the request to timeout.
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    // Give Google Fonts 2 seconds to load (renders ₹ and other glyphs correctly)
+    await new Promise(r => setTimeout(r, 2000));
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -114,7 +165,7 @@ export const renderPDF = async (templateName, data = {}, options = {}) => {
 
     return Buffer.from(pdfBuffer);
   } finally {
-    await browser.close();
+    await page.close();
   }
 };
 

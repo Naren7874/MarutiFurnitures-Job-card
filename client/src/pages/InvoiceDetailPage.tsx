@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
+import { useAuthStore } from '../stores/authStore';
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
     draft: { label: 'Draft', color: 'text-slate-500', bg: 'bg-slate-500/10', border: 'border-slate-500/20' },
@@ -51,6 +52,10 @@ export default function InvoiceDetailPage() {
     const [payError, setPayError] = useState('');
     const [confirm, setConfirm] = useState<'send' | null>(null);
     const [pdfLoading, setPdfLoading] = useState(false);
+    const { hasPermission } = useAuthStore();
+
+    const canEdit = hasPermission('invoice.edit');
+    const canPay  = hasPermission('invoice.payment');
 
     const handleDownloadPDF = async () => {
         setPdfLoading(true);
@@ -112,7 +117,7 @@ export default function InvoiceDetailPage() {
 
     if (isLoading) {
         return (
-            <div className="p-8 max-w-5xl mx-auto space-y-6">
+            <div className="p-8 max-w-[1600px] mx-auto space-y-6">
                 {[...Array(3)].map((_, i) => <div key={i} className="h-28 bg-muted/20 rounded-3xl animate-pulse border border-border/20" />)}
             </div>
         );
@@ -132,7 +137,7 @@ export default function InvoiceDetailPage() {
     const isPaid = inv.status === 'paid';
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-5xl mx-auto space-y-8">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -151,7 +156,7 @@ export default function InvoiceDetailPage() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
                     <Button variant="outline" onClick={handleDownloadPDF} disabled={pdfLoading} className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-border/60">
                         {pdfLoading ? (
                             <><div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" /> Generating...</>
@@ -160,16 +165,18 @@ export default function InvoiceDetailPage() {
                         )}
                     </Button>
 
-                    <Button variant="outline" onClick={() => navigate(`/invoices/${id}/edit`)} className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-border/60">
-                        <Plus size={13} className="rotate-45" /> Edit
-                    </Button>
-                    {inv.status === 'draft' && (
+                    {canEdit && (
+                        <Button variant="outline" onClick={() => navigate(`/invoices/${id}/edit`)} className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-border/60">
+                            <Plus size={13} className="rotate-45" /> Edit
+                        </Button>
+                    )}
+                    {inv.status === 'draft' && canEdit && (
                         <Button onClick={() => setConfirm('send')} disabled={sendMut.isPending} className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-blue-500 text-white hover:bg-blue-600">
                             {sendMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                             Send to Client
                         </Button>
                     )}
-                    {!isPaid && (
+                    {!isPaid && canPay && (
                         <Button onClick={() => { setEditingPayment(null); setPayForm({ amount: '', mode: 'upi', reference: '' }); setShowPayment(true); }} className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-emerald-500 text-white hover:bg-emerald-600">
                             <Plus size={13} /> Record Payment
                         </Button>
@@ -248,7 +255,7 @@ export default function InvoiceDetailPage() {
                 <div className="lg:col-span-2 space-y-6">
 
                     {/* Financial Summary */}
-                    <div className="bg-white dark:bg-card/20 border border-border/30 rounded-3xl p-6 space-y-4">
+                    <div className="bg-card border border-border/60 rounded-3xl p-6 space-y-4 shadow-sm">
                         <div className="flex items-center gap-3 pb-3 border-b border-border/30">
                             <div className="p-2 rounded-xl bg-primary/10 text-primary"><Wallet size={14} /></div>
                             <p className="font-black text-sm uppercase tracking-wider text-foreground">Financial Summary</p>
@@ -282,7 +289,7 @@ export default function InvoiceDetailPage() {
                     </div>
 
                     {/* Payments */}
-                    <div className="bg-white dark:bg-card/20 border border-border/30 rounded-3xl overflow-hidden">
+                    <div className="bg-card border border-border/60 rounded-3xl overflow-hidden shadow-sm">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border/30">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500"><CreditCard size={14} /></div>
@@ -337,7 +344,7 @@ export default function InvoiceDetailPage() {
 
                         {inv.payments?.length === 0 ? (
                             <div className="py-10 text-center">
-                                <p className="text-muted-foreground/30 font-bold text-sm">No payments recorded yet</p>
+                                <p className="text-muted-foreground/40 font-bold text-sm italic">No payments recorded yet</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-border/20">
@@ -353,12 +360,16 @@ export default function InvoiceDetailPage() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => startEditPayment(p)} className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors">
-                                                <Pencil size={14} />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeletePayment(p._id)} className="h-8 w-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-500 transition-colors">
-                                                <Trash2 size={14} />
-                                            </Button>
+                                            {canPay && (
+                                                <>
+                                                    <Button variant="ghost" size="icon" onClick={() => startEditPayment(p)} className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors">
+                                                        <Pencil size={14} />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDeletePayment(p._id)} className="h-8 w-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-500 transition-colors">
+                                                        <Trash2 size={14} />
+                                                    </Button>
+                                                </>
+                                            )}
                                             <p className="text-xs text-muted-foreground/50 font-bold">{fmtDate(p.paidAt)}</p>
                                         </div>
                                     </div>
@@ -376,7 +387,7 @@ export default function InvoiceDetailPage() {
 
 function InfoCard({ title, icon: Icon, children }: { title: string; icon: any; children: React.ReactNode }) {
     return (
-        <div className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-5 space-y-3">
+        <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-3 shadow-sm">
             <div className="flex items-center gap-2 pb-2 border-b border-border/20">
                 <Icon size={12} className="text-muted-foreground/40" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">{title}</p>

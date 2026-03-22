@@ -8,7 +8,7 @@ import {
     Link2, Package, Loader2, ChevronRight, Clock, CheckCheck,
     Truck, Shield, Wrench, FlaskConical, TriangleAlert, User,
     CalendarCheck, MapPin, Camera, FileText, Users, MessageSquare, Download, PlusCircle,
-    Layers
+    Layers, ShieldCheck, Zap, Maximize2, Fingerprint, Wind, EyeOff, History
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -58,7 +58,7 @@ const InfoRow = ({ label, value }: { label: string; value?: any }) =>
 
 function SectionCard({ title, icon: Icon, color, children }: any) {
     return (
-        <div className="mt-4 bg-white dark:bg-card/20 border border-border/30 rounded-2xl overflow-hidden shadow-sm">
+        <div className="mt-4 bg-card dark:bg-card/20 border border-border/30 rounded-2xl overflow-hidden shadow-sm">
             <div className={cn('flex items-center gap-3 px-6 py-4 border-b border-border/20', color)}>
                 <Icon size={16} />
                 <h3 className="font-black text-sm uppercase tracking-wider">{title}</h3>
@@ -164,15 +164,15 @@ export default function JobCardDetailPage() {
     }
 
     return (
-        <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
+        <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-6">
             <Link to="/jobcards" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-bold">
                 <ArrowLeft size={16} /> Back to Job Cards
             </Link>
 
             {/* Header Card */}
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-6 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+                className="bg-card dark:bg-card/20 border border-border/30 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
                         <p className="text-primary text-xs font-black tracking-widest uppercase">{jc.jobCardNumber}</p>
                         {jc.items?.[0]?.category && (
@@ -312,132 +312,285 @@ function AssignedStaffList({ users, roleLabel, color = 'bg-primary' }: { users: 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
 
 function OverviewTab({ jc }: any) {
+    const item = jc.items?.[0];
+
     return (
-        <div className="space-y-6">
-            <SectionCard title="Job Details & Items" icon={FileText} color="text-primary">
-                {jc.items?.length > 0 ? (
-                    <div className="rounded-xl border border-border/40 overflow-hidden">
-                        <table className="w-full text-xs text-left">
-                            <thead className="bg-muted/30">
-                                <tr>
-                                    <th className="px-4 py-3 font-black text-muted-foreground/60 uppercase tracking-widest w-12 text-center">#</th>
-                                    <th className="px-4 py-3 font-black text-muted-foreground/60 uppercase tracking-widest">Description</th>
-                                    <th className="px-4 py-3 font-black text-muted-foreground/60 uppercase tracking-widest text-center">Qty</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border/20">
-                                {jc.items.map((item: any) => (
-                                    <tr key={item._id} className="hover:bg-muted/10 transition-colors">
-                                        <td className="px-4 py-3 text-center font-bold text-muted-foreground/60">{item.srNo}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex gap-4">
-                                                {(item.photo || item.fabricPhoto) && (
-                                                    <div className="flex gap-2 shrink-0">
-                                                        {item.photo && (
-                                                            <div className="w-14 h-14">
-                                                                <ImagePreview src={item.photo} alt="Main" />
-                                                            </div>
-                                                        )}
-                                                        {item.fabricPhoto && (
-                                                            <div className="w-14 h-14">
-                                                                <ImagePreview src={item.fabricPhoto} alt="Fabric" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                                <div className="flex-1">
-                                                    {item.category && <p className="text-[10px] font-black uppercase tracking-wider text-primary mb-0.5">{item.category}</p>}
-                                                    <p className="font-bold text-foreground text-sm">{item.description}</p>
-                                                    {item.specifications && (
-                                                        <div className="mt-1 flex flex-wrap gap-2">
-                                                            {Object.entries(item.specifications).filter(([_, v]) => v).map(([k, v]) => (
-                                                                <span key={k} className="text-[10px] font-bold text-muted-foreground/70 bg-muted/40 px-2 py-0.5 rounded-md border border-border/40 capitalize">
-                                                                    {k}: {String(v)}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-center font-black text-sm">{item.qty} {item.unit || 'pcs'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    <div className="p-8 text-center text-muted-foreground/40 font-bold text-sm bg-muted/10 rounded-xl border border-dashed border-border/40">
-                        No items found in this Job Card.
-                    </div>
-                )}
-            </SectionCard>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <SectionCard title="Team Assignment" icon={Users} color="text-indigo-500">
-                    <div className="space-y-2">
-                        <InfoRow label="Salesperson" value={jc.salesperson?.name || '—'} />
-                        <InfoRow label="Contact Person" value={jc.contactPerson || '—'} />
-                        <InfoRow label="Created By" value={jc.createdBy?.name || '—'} />
-                        <div className="pt-2 grid grid-cols-2 gap-4">
-                            <AssignedStaffList users={jc.assignedTo?.design} roleLabel="Designers" color="bg-violet-500" />
-                            <AssignedStaffList users={jc.assignedTo?.store} roleLabel="Store Team" color="bg-amber-500" />
-                            <AssignedStaffList users={jc.assignedTo?.production} roleLabel="Production Team" color="bg-primary" />
-                            <AssignedStaffList users={jc.assignedTo?.qc} roleLabel="QC Team" color="bg-purple-500" />
-                            <AssignedStaffList users={jc.assignedTo?.dispatch} roleLabel="Dispatch Team" color="bg-cyan-500" />
-                            <AssignedStaffList users={jc.assignedTo?.accountant} roleLabel="Accountant" color="bg-emerald-500" />
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pb-10">
+            {/* ── Block 1: The REFINED HERO (12 Cols) ── */}
+            <div className="md:col-span-12">
+                <div className="bg-card dark:bg-card/20 backdrop-blur-xl border border-border/20 dark:border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col lg:flex-row shadow-xl group min-h-[450px]">
+                    {/* Visual Anchor (Left 35%) */}
+                    <div className="lg:w-[35%] relative min-h-[400px] lg:h-auto overflow-hidden bg-muted/20 border-r border-border/10 flex flex-col">
+                        <div className="flex-1 relative overflow-hidden group/main">
+                            {item?.photo ? (
+                                <div className="w-full h-full transition-transform duration-1000 group-hover/main:scale-110">
+                                    <ImagePreview src={item.photo} alt="Item Preview" />
+                                </div>
+                            ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/10">
+                                    <Package size={100} strokeWidth={0.5} />
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] mt-3">Visual Pending</p>
+                                </div>
+                            )}
                         </div>
-                        {jc.assignedTo?.qc?.length > 0 && <InfoRow label="QC Team" value={jc.assignedTo.qc.map((u: any) => u.name).join(', ')} />}
-                    </div>
-                </SectionCard>
 
-                <SectionCard title="Communications" icon={MessageSquare} color="text-emerald-500">
-                    <div className="space-y-4">
-                        {jc.whatsapp?.groupLink ? (
-                            <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">WhatsApp Group</p>
-                                <p className="font-bold text-sm text-foreground/80 mb-2">{jc.whatsapp.groupName}</p>
-                                <a href={jc.whatsapp.groupLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-black text-white bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 rounded-lg transition-colors">
-                                    <Link2 size={12} /> Join / Open Group
-                                </a>
+                    </div>
+
+                    {/* Content Section (Right 65%) */}
+                    <div className="lg:w-[65%] p-10 lg:p-12 flex flex-col relative">
+                        {/* Identity Pillar */}
+                        <div className="mb-8">
+
+                            <h1 className="text-3xl lg:text-4xl font-black text-foreground tracking-tight leading-tight mb-3 uppercase">
+                                {item?.category || 'No Category'}
+                            </h1>
+                            <h2 className="text-lg lg:text-xl font-bold text-foreground/60 tracking-tight leading-snug mb-6">
+                                {item?.description || jc.title}
+                            </h2>
+                            {item?.specifications?.notes && (
+                                <div className="p-5 rounded-2xl bg-muted/10 border border-border/10 max-w-xl">
+                                    <p className="text-muted-foreground/50 text-xs font-medium leading-relaxed italic">
+                                        "{item.specifications.notes}"
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Technical Grid (Integrated) */}
+                        <div className="mt-auto pt-8 border-t border-border/10 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Specs Column */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] pl-0.5">Dimensions</p>
+                                    <div className="flex items-center gap-2.5 p-3 rounded-xl bg-blue-500/5 border border-blue-500/10">
+                                        <Maximize2 size={14} className="text-blue-500/60" />
+                                        <p className="text-sm font-black text-foreground/90 tracking-tight italic">{item?.specifications?.size || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] pl-0.5">Quantity</p>
+                                    <div className="flex items-center gap-2.5 p-3 rounded-xl bg-primary/5 border border-primary/10">
+                                        <Package size={14} className="text-primary/60" />
+                                        <p className="text-sm font-black text-foreground/90 uppercase tracking-tight">{item?.qty} {item?.unit || 'PCS'}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] pl-0.5">Material</p>
+                                    <div className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10">
+                                        <Fingerprint size={14} className="text-amber-500/60" />
+                                        <p className="text-[11px] font-black text-foreground/70 uppercase tracking-tight leading-tight">{item?.specifications?.material || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] pl-0.5">Finish</p>
+                                    <div className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                                        <Wind size={14} className="text-emerald-500/60" />
+                                        <p className="text-[11px] font-black text-foreground/70 uppercase tracking-tight leading-tight">{item?.specifications?.polish || 'N/A'}</p>
+                                    </div>
+                                </div>
                             </div>
+
+                            {/* Fabric Column */}
+                            <div className="space-y-3">
+                                <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] pl-0.5">Fabrication</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {(item?.specifications?.fabrics?.length > 0) ? (
+                                        item.specifications.fabrics.map((f: string, fi: number) => (
+                                            <div key={fi} className="inline-flex items-center gap-2 bg-violet-500/5 border border-violet-500/10 px-3 py-1.5 rounded-lg text-[10px] font-black text-foreground/60 uppercase">
+                                                <span className="opacity-30">#{fi + 1}</span> {f}
+                                            </div>
+                                        ))
+                                    ) : item?.specifications?.fabric ? (
+                                        <div className="inline-flex items-center bg-violet-500/5 border border-violet-500/10 px-3 py-1.5 rounded-lg text-[10px] font-black text-foreground/60 uppercase">
+                                            {item.specifications.fabric}
+                                        </div>
+                                    ) : (
+                                        <p className="text-[9px] font-bold text-muted-foreground/20 italic uppercase">No fabrics</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Block 2: PERSONNEL (6 Cols) ── */}
+            <div className="md:col-span-12 lg:col-span-6">
+                <div className="h-full bg-card/20 backdrop-blur-xl border border-border/10 rounded-[2.5rem] p-10 shadow-sm transition-all duration-500 hover:border-indigo-500/30 group">
+                    <div className="flex items-center gap-4 mb-10">
+                        <div className="p-3.5 rounded-2xl bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500"><Users size={20} /></div>
+                        <div>
+                            <h4 className="font-black text-sm uppercase tracking-[0.15em] text-foreground">Personnel</h4>
+                            <p className="text-[9px] text-muted-foreground/40 font-medium uppercase tracking-widest">Team Assignment</p>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <div>
+                                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 mb-2">Sales Lead</p>
+                                <p className="text-sm font-black text-foreground/80 uppercase tracking-tight">{jc.salesperson?.name || 'Unassigned'}</p>
+                            </div>
+                            <MiniStaffBlock users={jc.assignedTo?.design} label="Design" icon={Layers} />
+                            <MiniStaffBlock users={jc.assignedTo?.qc} label="Quality" icon={ShieldCheck} />
+                        </div>
+                        <div className="space-y-6">
+                            <div>
+                                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 mb-2">Originator</p>
+                                <p className="text-sm font-black text-foreground/80 uppercase tracking-tight">{jc.createdBy?.name || 'System'}</p>
+                            </div>
+                            <MiniStaffBlock users={jc.assignedTo?.production} label="Factory" icon={Wrench} />
+                            <MiniStaffBlock users={jc.assignedTo?.dispatch} label="Logistics" icon={Truck} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Block 3: COMMUNICATION (6 Cols) ── */}
+            <div className="md:col-span-12 lg:col-span-6">
+                <div className="h-full bg-card/20 backdrop-blur-xl border border-emerald-500/10 rounded-[2.5rem] p-10 shadow-sm flex flex-col justify-center group">
+                    <div className="flex items-center gap-4 mb-10">
+                        <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500"><MessageSquare size={20} /></div>
+                        <div>
+                            <h4 className="font-black text-sm uppercase tracking-[0.15em] text-foreground">Communication</h4>
+                            <p className="text-[9px] text-muted-foreground/40 font-medium uppercase tracking-widest">Client Sync</p>
+                        </div>
+                    </div>
+                    
+                    {jc.whatsapp?.groupLink ? (
+                        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-8 text-center space-y-6">
+                            <p className="text-xl font-black text-foreground/80 tracking-tight uppercase leading-none">{jc.whatsapp.groupName}</p>
+                            <a href={jc.whatsapp.groupLink} target="_blank" rel="noreferrer" 
+                                className="inline-flex items-center justify-center w-full gap-3 text-[11px] font-black text-white bg-emerald-500 hover:bg-emerald-600 h-14 rounded-xl transition-all shadow-xl shadow-emerald-500/20 active:scale-95 uppercase tracking-widest">
+                                <Zap size={16} className="fill-current" /> Join Channel
+                            </a>
+                        </div>
+                    ) : (
+                        <div className="py-16 border border-dashed border-emerald-500/10 rounded-2xl flex flex-col items-center justify-center text-center px-8">
+                            <EyeOff size={32} className="text-emerald-500/10 mb-3" />
+                            <p className="text-[9px] font-black text-muted-foreground/20 uppercase tracking-[0.3em]">Channel Not Assigned</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* ── Block 4: VISUAL ARCHIVE (12 Cols) ── */}
+            {(item?.fabricPhoto || (item?.photos?.length > 0)) && (
+                <div className="md:col-span-12">
+                    <VisualArchiveBlock 
+                        photos={item.photos} 
+                        fabricPhoto={item.fabricPhoto} 
+                    />
+                </div>
+            )}
+
+            {/* ── Block 5: ACTIVITY LOG (Full) ── */}
+            <div className="md:col-span-12">
+                <div className="bg-card/20 backdrop-blur-md border border-border/10 rounded-[2.5rem] p-10 shadow-sm max-h-[400px] overflow-hidden flex flex-col">
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="p-3.5 rounded-2xl bg-slate-500/5 text-slate-500/50 border border-slate-500/10"><Clock size={18} /></div>
+                        <div>
+                            <h4 className="font-black text-sm uppercase tracking-[0.15em] text-foreground">Activity Log</h4>
+                            <p className="text-[9px] text-muted-foreground/40 font-medium uppercase tracking-widest">History</p>
+                        </div>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
+                        {jc.activityLog?.length > 0 ? (
+                            jc.activityLog.slice().reverse().map((log: any, i: number) => (
+                                <div key={log.timestamp || log._id || i} className="flex gap-4 p-4 bg-background/30 border border-border/5 rounded-2xl hover:border-primary/20 transition-all group/log">
+                                    <div className="w-2 h-2 rounded-full bg-primary/30 mt-1.5" />
+                                    <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                        <p className="text-xs font-black text-foreground/80 uppercase tracking-tight">{log.action?.replace(/_/g, ' ')}</p>
+                                        <div className="flex items-center gap-3 opacity-30">
+                                            <p className="text-[8px] font-black uppercase tracking-widest">{log.doneByName || 'System'}</p>
+                                            <p className="text-[8px] font-black uppercase tracking-widest">
+                                                {new Date(log.timestamp).toLocaleString('en-IN', {
+                                                    day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'Asia/Kolkata'
+                                                })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
                         ) : (
-                            <div className="p-4 rounded-xl border border-border/40 bg-muted/10 flex items-center justify-center">
-                                <p className="text-xs font-bold text-muted-foreground/50">No WhatsApp group linked.</p>
+                            <div className="py-16 flex flex-col items-center justify-center border border-dashed border-border/10 rounded-2xl">
+                                <History size={32} className="text-muted-foreground/10" />
                             </div>
                         )}
                     </div>
-                </SectionCard>
+                </div>
             </div>
+        </div>
+    );
+}
 
-            <SectionCard title="Activity Timeline" icon={Clock} color="text-slate-500">
-                {jc.activityLog?.length > 0 ? (
-                    <div className="space-y-4 pt-2">
-                        {jc.activityLog.slice().reverse().map((log: any, i: number) => (
-                            <div key={log.timestamp || log._id || i} className="flex gap-4">
-                                <div className="flex flex-col items-center">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-slate-300 mt-1" />
-                                    {i !== jc.activityLog.length - 1 && <div className="w-px h-full bg-border/40 my-1" />}
-                                </div>
-                                <div className="pb-4">
-                                    <p className="text-sm font-bold text-foreground">
-                                        <span className="capitalize">{log.action?.replace(/_/g, ' ')}</span>
-                                        {log.doneByName && <span className="text-muted-foreground/60 font-medium text-xs ml-1"> by {log.doneByName}</span>}
-                                    </p>
-                                    <p className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest mt-0.5">
-                                        {new Date(log.timestamp).toLocaleString('en-IN', {
-                                            day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'Asia/Kolkata'
-                                        })}
-                                    </p>
-                                    {log.note && <p className="text-xs font-bold text-slate-500 bg-slate-500/10 p-2.5 rounded-xl mt-2 border border-slate-500/20 relative w-fit"><span className="absolute -top-1.5 left-4 text-slate-500/20">"</span>{log.note}</p>}
-                                </div>
-                            </div>
+// ── Shared Bento Helpers ──────────────────────────────────────────────────────
+
+function MiniStaffBlock({ users, label, icon: Icon }: { users: any[]; label: string; icon: any }) {
+    const list = Array.isArray(users) ? users : users ? [users] : [];
+    
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center gap-2 opacity-30">
+                <Icon size={10} className="text-foreground" />
+                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-foreground text-left leading-none">{label}</p>
+            </div>
+            <div className="min-h-[20px]">
+                {list.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                        {list.map((u, i) => (
+                            <span key={i} className="px-2 py-0.5 rounded-lg bg-indigo-500/5 text-indigo-500/80 text-[9px] font-black tracking-tight uppercase border border-indigo-500/10">{u.name}</span>
                         ))}
                     </div>
                 ) : (
-                    <p className="text-xs font-bold text-muted-foreground/50 py-4 text-center">No activity recorded yet.</p>
+                    <p className="text-[8px] font-bold text-muted-foreground/20 italic pl-0.5 uppercase text-left leading-none">Unassigned</p>
                 )}
-            </SectionCard>
+            </div>
+        </div>
+    );
+}
+
+function VisualArchiveBlock({ photos, fabricPhoto }: { photos: string[], fabricPhoto?: string }) {
+    const allPhotos = [...(fabricPhoto ? [fabricPhoto] : []), ...(photos || [])];
+    
+    if (allPhotos.length === 0) return null;
+
+    return (
+        <div className="bg-card dark:bg-card/20 backdrop-blur-xl border border-border/10 rounded-[2.5rem] p-10 shadow-sm transition-all duration-500 hover:border-primary/30 group">
+            <div className="flex items-center justify-between mb-10">
+                <div className="flex items-center gap-4">
+                    <div className="p-3.5 rounded-2xl bg-primary/10 text-primary border border-primary/20 group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                        <Camera size={20} />
+                    </div>
+                    <div>
+                        <h4 className="font-black text-sm uppercase tracking-[0.15em] text-foreground">Visual Archive</h4>
+                        <p className="text-[9px] text-muted-foreground/40 font-medium uppercase tracking-widest">Reference Photos</p>
+                    </div>
+                </div>
+                <div className="px-4 py-1.5 rounded-xl bg-muted/40 border border-border/20 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                    {allPhotos.length} {allPhotos.length === 1 ? 'Reference' : 'References'}
+                </div>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-6">
+                {fabricPhoto && (
+                    <div className="space-y-3">
+                        <div className="aspect-square rounded-3xl overflow-hidden border border-border/20 bg-muted/20 hover:border-primary/50 transition-all cursor-zoom-in group/photo shadow-lg">
+                            <ImagePreview src={fabricPhoto} alt="Fabric Reference" />
+                        </div>
+                        <p className="text-center text-[8px] font-black uppercase tracking-widest text-muted-foreground/40">Fabric Ref</p>
+                    </div>
+                )}
+                {photos?.map((url: string, i: number) => (
+                    <div key={i} className="space-y-3">
+                        <div className="aspect-square rounded-3xl overflow-hidden border border-border/20 bg-muted/20 hover:border-primary/50 transition-all cursor-zoom-in group/photo shadow-lg">
+                            <ImagePreview src={url} alt={`Reference ${i+1}`} />
+                        </div>
+                        <p className="text-center text-[8px] font-black uppercase tracking-widest text-muted-foreground/40">Ref #{i+1}</p>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
@@ -1462,7 +1615,7 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
 
 function EmptyStage({ name }: { name: string }) {
     return (
-        <div className="mt-4 bg-white dark:bg-card/20 border border-border/30 rounded-2xl p-12 text-center">
+        <div className="mt-4 bg-card dark:bg-card/20 border border-border/30 rounded-2xl p-12 text-center">
             <div className="w-14 h-14 rounded-2xl bg-muted/20 flex items-center justify-center mx-auto mb-4">
                 <Clock size={24} className="text-muted-foreground/20" />
             </div>

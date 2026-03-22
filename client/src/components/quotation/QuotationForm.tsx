@@ -12,6 +12,7 @@ import {
     User2, ReceiptText, Search, X, ImagePlus, List, Check,
     Users,
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '../../lib/axios';
 import { StaffMultiSelect } from '../shared/StaffMultiSelect';
@@ -23,9 +24,11 @@ import CreateClientModal from '../clients/CreateClientModal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { PhotoUploadZone } from '@/components/ui/photo-upload-zone';
+import { DatePicker } from '@/components/ui/date-picker';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { apiUpload } from '../../lib/axios';
+import { toast } from 'sonner';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -41,6 +44,7 @@ interface Item {
     size: string;
     polish: string;
     material: string;
+    fabrics: string[];        // multi-fabric names
     qty: number;
     mrp: number;
     sellingPrice: number;
@@ -59,6 +63,7 @@ const blankItem = (srNo: number): Item => ({
     id: crypto.randomUUID(),
     srNo,
     category: '', description: '', size: '', polish: '', material: '',
+    fabrics: [''],
     qty: 1, mrp: 0, sellingPrice: 0, totalPrice: 0,
     photo: '', photoPublicId: '', uploading: false,
     fabricPhoto: '', fabricPhotoPublicId: '', uploadingFabric: false,
@@ -74,6 +79,12 @@ const dbItemToLocal = (dbItem: any): Item => ({
     size: dbItem.specifications?.size || '',
     polish: dbItem.specifications?.polish || '',
     material: dbItem.specifications?.material || '',
+    // Multi-fabric: prefer new array, fallback to legacy single fabric string
+    fabrics: dbItem.specifications?.fabrics?.length
+        ? dbItem.specifications.fabrics
+        : dbItem.specifications?.fabric
+            ? [dbItem.specifications.fabric]
+            : [''],
     qty: dbItem.qty ?? 1,
     mrp: dbItem.mrp ?? 0,
     sellingPrice: dbItem.sellingPrice ?? 0,
@@ -177,7 +188,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     }, [isEditMode, preClient, selectedClient]);
 
     // ── Calculations ──────────────────────────────────────────────────────────
-    const subtotal = useMemo(() => items.reduce((s, i) => s + i.qty * i.sellingPrice, 0), [items]);
+    const subtotal = useMemo(() => items.reduce((s, i) => s + i.qty * (i.sellingPrice || 0), 0), [items]);
     const finalAmt = subtotal - discount;
 
     // ── Item helpers ──────────────────────────────────────────────────────────
@@ -185,7 +196,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         setItems(prev => prev.map(item => {
             if (item.id !== id) return item;
             const updated = { ...item, [field]: value };
-            updated.totalPrice = updated.qty * updated.sellingPrice;
+            updated.totalPrice = updated.qty * (updated.sellingPrice || 0);
             return updated;
         }));
     }, []);
@@ -242,10 +253,15 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         clientId: selectedClient?._id,
         ...project,
         validUntil: project.validUntil || null,
-        items: items.map(({ id, totalPrice, uploading, uploadingFabric, uploadingExtra, size, polish, material, ...rest }) => ({
+        items: items.map(({ id, totalPrice, uploading, uploadingFabric, uploadingExtra, size, polish, material, fabrics, ...rest }) => ({
             ...rest,
-            specifications: { size, polish, material },
-            totalPrice: rest.qty * rest.sellingPrice,
+            specifications: {
+                size,
+                polish,
+                material,
+                fabrics: fabrics.filter(f => f.trim() !== ''),
+            },
+            totalPrice: rest.qty * (rest.sellingPrice || 0),
         })),
         discount,
         gstType,
@@ -260,11 +276,11 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
     const handleSaveItem = async (itemId: string) => {
         if (!selectedClient) {
-            alert('Please select or create a client before saving items.');
+            toast.error('Please select or create a client before saving items.');
             return;
         }
         if (!project.projectName) {
-            alert('Please enter a Project Name before saving items.');
+            toast.error('Please enter a Project Name before saving items.');
             return;
         }
 
@@ -283,7 +299,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
             setTimeout(() => setSavedItemId(null), 2000);
         } catch (e) {
             console.error('Failed to save item', e);
-            alert('Failed to save item. Please check the network.');
+            toast.error('Failed to save item. Please check the network.');
         } finally {
             setSavingItemId(null);
         }
@@ -292,7 +308,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     // ── Submit ────────────────────────────────────────────────────────────────
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedClient) { alert('Please select or create a client.'); return; }
+        if (!selectedClient) { toast.error('Please select or create a client.'); return; }
         if (isEditMode) {
             await updateQuotation.mutateAsync(buildPayload());
             navigate(`/quotations/${quotationId}`);
@@ -307,7 +323,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     // ── Loading skeleton in edit mode ─────────────────────────────────────────
     if (isEditMode && loadingQuotation) {
         return (
-            <div className="p-8 max-w-6xl mx-auto space-y-6">
+            <div className="p-8 max-w-[1600px] mx-auto space-y-6">
                 {[...Array(4)].map((_, i) => (
                     <div key={i} className="h-32 bg-muted/30 rounded-3xl animate-pulse border border-border/20" />
                 ))}
@@ -320,23 +336,23 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="p-6 md:p-8 max-w-6xl mx-auto space-y-8"
+            className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-8"
         >
             {/* Header */}
             <div className="flex items-center justify-between gap-6">
                 <button
                     type="button"
                     onClick={() => navigate(isEditMode ? `/quotations/${quotationId}` : '/quotations')}
-                    className="group flex items-center gap-3 text-muted-foreground hover:text-primary transition-all text-xs font-black uppercase tracking-widest"
+                    className="group flex items-center gap-3.5 text-muted-foreground hover:text-primary transition-all text-[11px] font-black uppercase tracking-[0.2em]"
                 >
-                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border group-hover:bg-primary/10 transition-colors">
+                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border group-hover:bg-primary/10 transition-colors shadow-sm">
                         <ArrowLeft size={16} />
                     </div>
                     Back
                 </button>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary/40" />
-                    <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest opacity-70">
+                    <p className="text-muted-foreground text-[11px] font-black uppercase tracking-[0.2em] opacity-70">
                         {isEditMode ? 'Edit Quotation' : 'New Quotation'}
                     </p>
                 </div>
@@ -443,11 +459,6 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                         )}
                                     </AnimatePresence>
 
-                                    <CreateClientModal 
-                                        open={showCreateModal}
-                                        onOpenChange={setShowCreateModal}
-                                        onSuccess={handleClientCreated}
-                                    />
                                 </div>
                             )}
                         </div>
@@ -479,7 +490,12 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                         </div>
                         <div>
                             <label className={labelCls}>Valid Until</label>
-                            <Input type="date" value={project.validUntil} onChange={e => setProject(p => ({ ...p, validUntil: e.target.value }))} className={inputCls} />
+                            <DatePicker 
+                                date={project.validUntil ? new Date(project.validUntil) : undefined}
+                                setDate={(d) => setProject(p => ({ ...p, validUntil: d ? format(d, 'yyyy-MM-dd') : '' }))}
+                                placeholder="DD-MM-YYYY"
+                                className={cn(inputCls, "h-12")}
+                            />
                         </div>
                         <div className="md:col-span-2">
                             <Input value={project.siteAddress.location} onChange={e => setProject(p => ({ ...p, siteAddress: { ...p.siteAddress, location: e.target.value } }))} placeholder="e.g. Ahmedabad, Gujarat" className={inputCls} />
@@ -497,7 +513,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                 allUsers={allUsers}
                                 placeholder="Assign staff who will handle this quotation (Design, Production, etc.)..."
                             />
-                            <p className="text-[10px] text-muted-foreground italic mt-2">
+                             <p className="text-[11px] font-black uppercase tracking-[0.15em] text-muted-foreground/50 italic mt-3">
                                 * These staff members will be automatically assigned to all Job Cards created from this quotation.
                             </p>
                         </div>
@@ -518,7 +534,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                     className="p-5 bg-card border border-border/60 rounded-2xl space-y-4 relative group"
                                 >
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest bg-primary/10 px-2.5 py-1 rounded-lg">Item {item.srNo}</span>
+                                        <span className="text-[11px] font-black text-primary/70 uppercase tracking-[0.15em] bg-primary/10 px-3 py-1.5 rounded-xl">Item {item.srNo}</span>
                                         <div className="flex items-center gap-2">
                                             <Button
                                                 type="button"
@@ -633,6 +649,48 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                                 <label className={labelCls}>Polish / Finish</label>
                                                 <Input value={item.polish} onChange={e => updateItem(item.id, 'polish', e.target.value)} placeholder="e.g. Natural Teak" className={smallInputCls} />
                                             </div>
+
+                                            {/* ── Fabric Names (multi) ── */}
+                                            <div className="col-span-2">
+                                                <div className="flex items-center justify-between mb-2.5">
+                                                    <label className={labelCls} style={{ marginBottom: 0 }}>Fabric Names</label>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => updateItem(item.id, 'fabrics', [...item.fabrics, ''])}
+                                                        className="flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.15em] text-primary/70 hover:text-primary bg-primary/5 hover:bg-primary/10 px-2.5 py-1 rounded-lg transition-all"
+                                                    >
+                                                        <Plus size={10} /> Add Fabric
+                                                    </button>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {item.fabrics.map((fabric, fi) => (
+                                                        <div key={fi} className="flex items-center gap-2">
+                                                            <div className="flex-1 relative">
+                                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-primary/40 uppercase tracking-wider w-4 text-center">{fi + 1}</span>
+                                                                <Input
+                                                                    value={fabric}
+                                                                    onChange={e => {
+                                                                        const newFabrics = [...item.fabrics];
+                                                                        newFabrics[fi] = e.target.value;
+                                                                        updateItem(item.id, 'fabrics', newFabrics);
+                                                                    }}
+                                                                    placeholder={`e.g. Velvet Grey — Code VG-02`}
+                                                                    className={cn(smallInputCls, 'pl-7')}
+                                                                />
+                                                            </div>
+                                                            {item.fabrics.length > 1 && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => updateItem(item.id, 'fabrics', item.fabrics.filter((_, i) => i !== fi))}
+                                                                    className="text-muted-foreground/30 hover:text-rose-400 transition-colors p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 shrink-0"
+                                                                >
+                                                                    <X size={13} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -647,13 +705,13 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                             <Input type="number" min="0" value={item.mrp || ''} onChange={e => updateItem(item.id, 'mrp', Number(e.target.value))} placeholder="0" className={smallInputCls} />
                                         </div>
                                         <div>
-                                            <label className={labelCls}>Selling Price (₹) *</label>
-                                            <Input type="number" min="0" required value={item.sellingPrice || ''} onChange={e => updateItem(item.id, 'sellingPrice', Number(e.target.value))} placeholder="0" className={smallInputCls} />
+                                            <label className={labelCls}>Selling Price (₹)</label>
+                                            <Input type="number" min="0" value={item.sellingPrice || ''} onChange={e => updateItem(item.id, 'sellingPrice', Number(e.target.value))} placeholder="0" className={smallInputCls} />
                                         </div>
                                         <div className="col-span-2 flex items-end gap-2">
                                             <div className="flex-1 bg-primary/5 border border-primary/20 rounded-xl px-4 py-2.5">
-                                                <p className="text-[9px] font-black uppercase tracking-wider text-primary/60 mb-0.5">Total</p>
-                                                <p className="font-black text-foreground text-sm">₹{(item.qty * item.sellingPrice).toLocaleString('en-IN')}</p>
+                                                <p className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/70 mb-0.5">Total</p>
+                                                <p className="font-black text-foreground text-[15px] tracking-tight">₹{(item.qty * item.sellingPrice).toLocaleString('en-IN')}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -720,22 +778,22 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                             type="button" 
                             variant="outline" 
                             onClick={() => setAdditionalTerms(prev => [...prev, ''])}
-                            className="text-xs font-bold gap-2 py-2 h-auto"
+                            className="text-[11px] font-black uppercase tracking-[0.15em] gap-2 py-2.5 h-auto rounded-xl"
                         >
                             <Plus size={12} /> Add Extra Term
                         </Button>
-                        <p className="text-[10px] text-muted-foreground italic mt-2">
+                        <p className="text-[11px] font-black uppercase tracking-[0.15em] text-muted-foreground/50 italic mt-3">
                             * These terms will appear below the default Maruti Furniture terms on the PDF.
                         </p>
                     </div>
                 </FormSection>
 
                 {/* Submit */}
-                <div className="flex items-center gap-4 pt-4">
+                <div className="flex items-center gap-6 pt-6">
                     <Button
                         type="submit"
                         disabled={isBusy}
-                        className="h-12 px-8 rounded-2xl font-black text-sm gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
+                        className="h-12 px-8 rounded-2xl font-black text-[13px] uppercase tracking-[0.2em] gap-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xl shadow-primary/20"
                     >
                         {isBusy ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                         {isBusy
@@ -746,28 +804,34 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                         type="button"
                         variant="ghost"
                         onClick={() => navigate(isEditMode ? `/quotations/${quotationId}` : '/quotations')}
-                        className="h-12 px-6 rounded-2xl font-bold text-sm text-muted-foreground"
+                        className="h-12 px-6 rounded-2xl font-black text-[13px] uppercase tracking-[0.2em] text-muted-foreground/60 hover:text-foreground"
                     >
                         Cancel
                     </Button>
                 </div>
             </form>
+
+            <CreateClientModal 
+                open={showCreateModal}
+                onOpenChange={setShowCreateModal}
+                onSuccess={handleClientCreated}
+            />
         </motion.div>
     );
 }
 
 // ── Shared UI helpers ─────────────────────────────────────────────────────────
 
-const inputCls      = 'bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-medium px-4 focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/40';
-const smallInputCls = 'bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-10 rounded-xl font-medium px-3 text-xs focus:ring-1 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/30 w-full';
-const labelCls      = 'text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest block mb-2';
+const inputCls      = 'bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-bold text-[15px] px-5 focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/30 shadow-xs';
+const smallInputCls = 'bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-10 rounded-xl font-bold px-4 text-[13px] focus:ring-1 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/30 w-full shadow-xs';
+const labelCls      = 'text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.2em] block mb-2.5 ml-1';
 
 function FormSection({ title, icon: Icon, children }: { title: string; icon: any; children: React.ReactNode }) {
     return (
-        <div className="bg-white dark:bg-card/20 border border-border dark:border-border/30 rounded-3xl p-6 space-y-5">
-            <div className="flex items-center gap-3 pb-3 border-b border-border/30">
-                <div className="p-2 rounded-xl bg-primary/10 text-primary"><Icon size={14} /></div>
-                <p className="text-foreground text-sm font-black uppercase tracking-wider">{title}</p>
+        <div className="bg-white dark:bg-card/20 border border-border dark:border-border/30 rounded-[32px] p-8 space-y-7 shadow-sm">
+            <div className="flex items-center gap-4 pb-4 border-b border-border/30">
+                <div className="p-2.5 rounded-xl bg-primary/10 text-primary shadow-inner"><Icon size={16} /></div>
+                <p className="text-foreground text-[15px] font-black uppercase tracking-[0.15em]">{title}</p>
             </div>
             {children}
         </div>

@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Building2, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Loader2, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence, type Variants } from 'motion/react';
 import { apiPost } from '../lib/axios';
 import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
@@ -24,23 +24,28 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 // ── Components ────────────────────────────────────────────────────────────────
 
-const FloatingShape = ({ className, delay = 0 }: { className: string; delay?: number }) => (
-    <motion.div
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={{
-            opacity: [0.1, 0.2, 0.1],
-            scale: [1, 1.1, 1],
-            y: [0, -20, 0]
-        }}
-        transition={{
-            duration: 8,
-            repeat: Infinity,
-            delay,
-            ease: "linear"
-        }}
-        className={className}
-    />
-);
+import { FullPageBackground } from '../components/shared/FullPageBackground';
+
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1,
+            delayChildren: 0.2
+        }
+    }
+};
+
+const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 20, filter: "blur(10px)" },
+    visible: { 
+        opacity: 1, 
+        y: 0, 
+        filter: "blur(0px)",
+        transition: { duration: 0.8, ease: "easeOut" }
+    }
+};
 
 export default function LoginPage() {
     const navigate = useNavigate();
@@ -66,161 +71,142 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden selection:bg-primary/30">
-            {/* ── Background Elements ──────────────────────────────── */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
-                <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="min-h-screen flex items-center justify-center relative overflow-hidden selection:bg-primary/30 font-sans transition-colors duration-500">
+            <FullPageBackground />
 
-                <FloatingShape className="absolute top-[20%] right-[15%] size-32 bg-primary/10 rounded-full blur-3xl" delay={0} />
-                <FloatingShape className="absolute bottom-[25%] left-[10%] size-48 bg-primary/5 rounded-full blur-3xl" delay={2} />
-            </div>
-
-            <div className="relative w-full max-w-lg mx-4 z-10 flex flex-col items-center">
-                {/* ── Brand Header ────────────────────────────────────── */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="flex flex-col items-center mb-10 text-center"
-                >
-                    <div className="relative group">
-                        <motion.div
-                            whileHover={{ scale: 1.05, rotate: 5 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="w-16 h-16 rounded-[22px] bg-linear-to-br from-primary via-primary to-blue-700 flex items-center justify-center shadow-2xl shadow-primary/40 mb-4 cursor-pointer"
-                        >
-                            <Building2 className="text-white" size={32} />
-                        </motion.div>
-                        <div className="absolute -inset-1 bg-primary/20 rounded-[24px] blur-lg group-hover:bg-primary/30 transition-all -z-10" />
-                    </div>
-
-                    <h1 className="text-foreground font-black text-4xl tracking-tighter mb-1">Maruti Furniture</h1>
-                    <div className="flex items-center gap-2">
-                        <div className="h-px w-8 bg-border" />
-                        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.3em]">Management Suite v2</p>
-                        <div className="h-px w-8 bg-border" />
+            <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="relative w-full max-w-lg mx-4 z-10 flex flex-col items-center"
+            >
+                {/* ── Brand Header (Adaptive) ────────────────────────── */}
+                <motion.div variants={itemVariants} className="flex flex-col items-center mb-8 text-center">
+                    <h1 className="text-neutral-900 dark:text-white font-black text-6xl tracking-tight mb-3 drop-shadow-[0_2px_10px_rgba(255,255,255,0.8)] dark:drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)] transition-colors duration-500">Maruti Furniture</h1>
+                    <div className="flex items-center gap-4">
+                        <div className="h-px w-12 bg-neutral-900/10 dark:bg-white/20 transition-colors duration-500" />
+                        <p className="text-primary font-black text-xs uppercase tracking-[0.5em] drop-shadow-sm">Elite Management Suite</p>
+                        <div className="h-px w-12 bg-neutral-900/10 dark:bg-white/20 transition-colors duration-500" />
                     </div>
                 </motion.div>
 
-                {/* ── Login Card ──────────────────────────────────────── */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                    className="w-full"
-                >
-                    <Card className="bg-card/80 dark:bg-card/40 border border-border/50 rounded-[32px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] backdrop-blur-2xl relative overflow-hidden p-0">
-                        {/* Top glass reflection */}
-                        <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent z-20" />
-                        <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-primary/0 via-primary to-primary/0 opacity-50 z-20" />
-
-                        <CardHeader className="p-8 md:p-12 pb-0">
-                            <CardTitle className="text-foreground text-3xl font-black tracking-tight mb-2">Welcome Back</CardTitle>
-                            <CardDescription className="text-muted-foreground text-sm font-medium">Please enter your credentials to access the internal platform.</CardDescription>
+                {/* ── Login Card (Adaptive Glass) ────────────────────── */}
+                <motion.div variants={itemVariants} className="w-full">
+                    <Card className="glass dark:glass-dark border border-neutral-200 dark:border-white/10 rounded-[40px] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] dark:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] backdrop-blur-3xl relative overflow-hidden p-0 ring-1 ring-neutral-200 dark:ring-white/10 group/card transition-all duration-500">
+                        {/* Animated Border Shimmer */}
+                        <div className="absolute inset-0 rounded-[40px] border border-neutral-900/5 dark:border-white/5 pointer-events-none z-20 group-hover/card:border-neutral-900/10 dark:group-hover/card:border-white/20 transition-colors duration-500" />
+                        
+                        {/* Interactive Glare / Shine */}
+                        <div className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-linear-to-br from-neutral-400/5 via-transparent to-transparent dark:from-white/10 pointer-events-none rotate-12 transition-transform duration-1000 group-hover/card:scale-110" />
+                        
+                        <CardHeader className="p-10 md:p-12 pb-0 text-center relative z-20">
+                            <CardTitle className="text-neutral-900 dark:text-white text-3xl font-black tracking-tight mb-2 drop-shadow-sm transition-colors duration-500">Login Access</CardTitle>
+                            <CardDescription className="text-neutral-500 dark:text-white/40 text-sm font-medium leading-relaxed max-w-[280px] mx-auto transition-colors duration-500">Enter credentials to proceed to your workstation.</CardDescription>
                         </CardHeader>
 
-                        <CardContent className="p-8 md:p-12 pt-8">
+                        <CardContent className="p-10 md:p-12 pt-8 relative z-20">
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                                <div className="space-y-4">
+                                <div className="space-y-5">
                                     {/* Email */}
-                                    <div className="space-y-2">
-                                        <Label className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.15em] px-1 flex justify-between">
-                                            <span>Corporate Email</span>
-                                            {errors.email && <span className="text-destructive lowercase tracking-normal">! {errors.email.message}</span>}
+                                    <motion.div variants={itemVariants} className="space-y-2.5">
+                                        <Label className="text-neutral-500 dark:text-white/40 text-[9px] font-black uppercase tracking-[.2em] px-3 flex justify-between items-center bg-neutral-900/5 dark:bg-white/5 py-1 rounded-full w-fit border border-neutral-900/5 dark:border-white/5 transition-colors duration-500">
+                                            <span className="px-1 text-primary">Identity Email</span>
                                         </Label>
                                         <div className="group relative">
-                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/30 group-focus-within:text-primary transition-colors z-10">
-                                                <Mail size={18} />
+                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-white/20 group-focus-within:text-primary transition-all z-10">
+                                                <Mail size={20} />
                                             </div>
                                             <Input
                                                 {...register('email')}
                                                 type="email"
-                                                placeholder="admin@maruti.com"
-                                                className="bg-muted/30 border-border/60 text-foreground h-13 rounded-2xl focus:ring-2 focus:ring-primary/20 transition-all font-semibold pl-12 pr-4 placeholder:text-muted-foreground/30"
+                                                placeholder="executive@maruti.com"
+                                                className="bg-neutral-900/5 dark:bg-white/5 border-neutral-200 dark:border-white/10 text-neutral-950 dark:text-white h-14 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all font-semibold pl-14 pr-4 placeholder:text-neutral-400 dark:placeholder:text-white/10 text-base group-focus-within:bg-neutral-900/8 dark:group-focus-within:bg-white/10"
                                             />
-                                            <div className="absolute inset-0 rounded-2xl border border-primary/20 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity" />
                                         </div>
-                                    </div>
+                                        {errors.email && <p className="text-primary text-[10px] font-bold px-2 uppercase tracking-wider">! {errors.email.message}</p>}
+                                    </motion.div>
 
                                     {/* Password */}
-                                    <div className="space-y-2">
-                                        <Label className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.15em] px-1 flex justify-between">
-                                            <span>Member Password</span>
-                                            {errors.password && <span className="text-destructive lowercase tracking-normal">! {errors.password.message}</span>}
+                                    <motion.div variants={itemVariants} className="space-y-2.5">
+                                        <Label className="text-neutral-500 dark:text-white/40 text-[9px] font-black uppercase tracking-[.2em] px-3 flex justify-between items-center bg-neutral-900/5 dark:bg-white/5 py-1 rounded-full w-fit border border-neutral-900/5 dark:border-white/5 transition-colors duration-500">
+                                            <span className="px-1 text-primary">Vault Key</span>
                                         </Label>
                                         <div className="relative group">
-                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/30 group-focus-within:text-primary transition-colors z-10">
-                                                <Lock size={18} />
+                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-white/20 group-focus-within:text-primary transition-all z-10">
+                                                <Lock size={20} />
                                             </div>
                                             <Input
                                                 {...register('password')}
                                                 type={showPass ? 'text' : 'password'}
                                                 placeholder="••••••••"
-                                                className="bg-muted/30 border-border/60 text-foreground h-13 rounded-2xl focus:ring-2 focus:ring-primary/20 transition-all font-semibold pl-12 pr-12 placeholder:text-muted-foreground/30"
+                                                className="bg-neutral-900/5 dark:bg-white/5 border-neutral-200 dark:border-white/10 text-neutral-950 dark:text-white h-14 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all font-semibold pl-14 pr-14 placeholder:text-neutral-400 dark:placeholder:text-white/10 text-base group-focus-within:bg-neutral-900/8 dark:group-focus-within:bg-white/10"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPass(!showPass)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-primary transition-colors cursor-pointer z-10"
+                                                className="absolute right-6 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-white/20 hover:text-primary transition-colors cursor-pointer z-10 p-1"
                                             >
                                                 {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
                                             </button>
-                                            <div className="absolute inset-0 rounded-2xl border border-primary/20 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity" />
                                         </div>
-                                    </div>
+                                        {errors.password && <p className="text-primary text-[10px] font-bold px-2 uppercase tracking-wider">! {errors.password.message}</p>}
+                                    </motion.div>
                                 </div>
 
                                 <AnimatePresence mode="wait">
                                     {apiError && (
                                         <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="bg-destructive/10 border border-destructive/20 rounded-2xl px-4 py-3 text-destructive text-sm font-bold flex items-center gap-2"
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            className="bg-primary/10 border border-primary/20 rounded-xl px-4 py-3 text-primary text-[11px] font-black flex items-center gap-3 shadow-lg"
                                         >
-                                            <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse shrink-0" />
-                                            <p>{apiError}</p>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-ping shrink-0" />
+                                            <p className="uppercase tracking-wider">{apiError}</p>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
 
-                                <Button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className="w-full bg-primary text-primary-foreground h-14 rounded-2xl font-black text-lg shadow-[0_20px_40px_-10px_rgba(19,21,229,0.3)] hover:shadow-[0_25px_50px_-12px_rgba(19,21,229,0.4)] hover:scale-[1.01] active:scale-95 transition-all group overflow-hidden relative"
-                                >
-                                    <span className="relative z-10 flex items-center justify-center gap-2">
-                                        {isSubmitting ? (
-                                            <><Loader2 className="animate-spin" size={20} /> Verifying...</>
-                                        ) : (
-                                            <>Sign In to Vault <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" /></>
-                                        )}
-                                    </span>
-                                    <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                                </Button>
+                                <motion.div variants={itemVariants}>
+                                    <Button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="w-full bg-primary text-primary-foreground h-16 rounded-2xl font-black text-xl shadow-[0_20px_50px_-10px_rgba(143,251,3,0.4)] hover:shadow-[0_25px_60px_-12px_rgba(143,251,3,0.6)] hover:scale-[1.01] active:scale-95 transition-all group overflow-hidden relative border-none"
+                                    >
+                                        <span className="relative z-10 flex items-center justify-center gap-3">
+                                            {isSubmitting ? (
+                                                <><Loader2 className="animate-spin" size={24} /> Processing...</>
+                                            ) : (
+                                                <>Authorize Entry <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform duration-500" /></>
+                                            )}
+                                        </span>
+                                        <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                                    </Button>
+                                </motion.div>
                             </form>
                         </CardContent>
 
-                        <CardFooter className="p-8 md:p-12 pt-0 flex flex-col items-center gap-4">
-                            <div className="w-full h-px bg-border/40 mb-6" />
-                            <Link to="/forgot-password" title="Recover account" className="text-muted-foreground/60 hover:text-primary text-[10px] font-black uppercase tracking-[0.2em] transition-colors flex items-center gap-2">
-                                <ShieldCheck size={14} className="opacity-50" /> Forgot credentials?
+                        <CardFooter className="p-10 md:p-12 pt-0 flex flex-col items-center relative z-20">
+                            <div className="w-full h-px bg-neutral-900/5 dark:bg-white/10 mb-8 transition-colors duration-500" />
+                            <Link to="/forgot-password" title="Recover account" className="text-neutral-400 dark:text-white/30 hover:text-primary dark:hover:text-primary text-[10px] font-black uppercase tracking-[0.4em] transition-all flex items-center gap-4 hover:gap-6 px-5 py-2.5 rounded-full hover:bg-neutral-900/5 dark:hover:bg-white/10 border border-neutral-200 dark:border-white/5 hover:border-neutral-900/10 dark:hover:border-white/20 shadow-sm">
+                                <ShieldCheck size={16} className="opacity-50" /> System Recovery
                             </Link>
                         </CardFooter>
                     </Card>
                 </motion.div>
 
-                {/* ── Footer ──────────────────────────────────────────── */}
-                <motion.p
+                {/* ── Security Badge ─────────────────────────────────── */}
+                <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 0.5 }}
-                    transition={{ delay: 1 }}
-                    className="mt-8 text-[10px] font-bold text-muted-foreground uppercase tracking-widest"
+                    transition={{ delay: 1.5 }}
+                    className="mt-12 flex items-center gap-5 text-[10px] font-black text-neutral-400 dark:text-white/40 uppercase tracking-[0.6em] transition-colors duration-500"
                 >
-                    Authorized Personnel Only — © 2024 MF Systems
-                </motion.p>
-            </div>
+                    <div className="h-px w-10 bg-linear-to-r from-transparent to-neutral-900/10 dark:to-white/20" />
+                    <span className="flex items-center gap-2 drop-shadow-lg transition-all"><Lock size={10} /> Secure Portal</span>
+                    <div className="h-px w-10 bg-linear-to-l from-transparent to-neutral-900/10 dark:to-white/20" />
+                </motion.div>
+            </motion.div>
 
             <style dangerouslySetInnerHTML={{
                 __html: `
@@ -228,9 +214,10 @@ export default function LoginPage() {
                     100% { transform: translateX(100%); }
                 }
                 .animate-shimmer {
-                    animation: shimmer 1.5s infinite;
+                    animation: shimmer 1.5s infinite linear;
                 }
-                .h-13 { height: 3.25rem; }
+                .h-18 { height: 4.5rem; }
+                .font-sans { font-family: 'NeueHaasDisplay', system-ui, sans-serif; }
             ` }} />
         </div>
     );

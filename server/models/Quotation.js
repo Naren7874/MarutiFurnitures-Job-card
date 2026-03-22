@@ -20,7 +20,8 @@ const quotationItemSchema = new mongoose.Schema(
     specifications: {
       size:     String,                                  // "L-59\" x D-30\""
       polish:   String,                                  // "Natural Teak"
-      fabric:   String,
+      fabric:   String,                                  // legacy single fabric (kept for backward compat)
+      fabrics:  [{ type: String }],                      // NEW — multiple fabric names
       material: String,                                  // "BWR Ply 19mm"
       finish:   String,
       hardware: String,
@@ -30,7 +31,7 @@ const quotationItemSchema = new mongoose.Schema(
     qty:          { type: Number, required: true },
     unit:         { type: String, default: "pcs" },
     mrp:          { type: Number },                      // MRP per unit (optional display)
-    sellingPrice: { type: Number, required: true },      // actual selling price per unit
+    sellingPrice: { type: Number },                      // actual selling price per unit
     totalPrice:   { type: Number },                      // qty × sellingPrice — computed on save
   },
   { _id: true }

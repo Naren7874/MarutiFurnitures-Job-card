@@ -8,13 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '../../lib/utils';
+import { toast } from 'sonner';
 
-const CLIENT_TYPES = [
-    { value: 'direct_client', label: 'Direct Client', desc: 'Homeowner or individual buyer' },
-    { value: 'architect', label: 'Architect Firm Name', desc: 'Design professional / Studio' },
-    { value: 'project_designer', label: 'Project Designer', desc: 'Individual project designer' },
-    { value: 'factory_manager', label: 'Factory Manager', desc: 'Production or operations lead' },
-];
+const PHONE_REGEX = /^[6-9]\d{9}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface ClientFormProps {
     initialData?: any;
@@ -37,7 +34,9 @@ export default function ClientForm({
 
     const [form, setForm] = useState({
         clientType: 'direct_client',
-        name: '',
+        firstName: '',
+        middleName: '',
+        lastName: '',
         firmName: '',
         phone: '',
         whatsappNumber: '',
@@ -49,9 +48,17 @@ export default function ClientForm({
 
     useEffect(() => {
         if (initialData) {
+            // Smart name splitting for existing clients
+            const nameParts = (initialData.name || '').split(' ').filter(Boolean);
+            const derivedFirst = nameParts[0] || '';
+            const derivedLast = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+            const derivedMiddle = nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '';
+
             setForm({
                 clientType: initialData.clientType || 'direct_client',
-                name: initialData.name || '',
+                firstName: initialData.firstName || derivedFirst,
+                middleName: initialData.middleName || derivedMiddle,
+                lastName: initialData.lastName || derivedLast,
                 firmName: initialData.firmName || '',
                 phone: initialData.phone || '',
                 whatsappNumber: initialData.whatsappNumber || '',
@@ -83,9 +90,6 @@ export default function ClientForm({
                 setForm(f => ({
                     ...f,
                     firmName: res.data.legalName || f.firmName,
-                    address: {
-                        ...f.address,
-                    },
                 }));
                 setGstStatus('verified');
             } else {
@@ -98,6 +102,29 @@ export default function ClientForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // ── Validation ────────────────────────────────────────────────────────
+        if (!PHONE_REGEX.test(form.phone)) {
+            toast.error('Invalid Phone Number', {
+                description: 'Please enter a valid 10-digit Indian mobile number starting with 6-9.'
+            });
+            return;
+        }
+
+        if (form.email && !EMAIL_REGEX.test(form.email)) {
+            toast.error('Invalid Email Format', {
+                description: 'Please enter a valid email address (e.g. client@example.com).'
+            });
+            return;
+        }
+
+        if (!isSameAsWhatsapp && form.whatsappNumber && !PHONE_REGEX.test(form.whatsappNumber)) {
+            toast.error('Invalid WhatsApp Number', {
+                description: 'The WhatsApp number must also be a valid 10-digit mobile number.'
+            });
+            return;
+        }
+
         const payload = {
             ...form,
             whatsappNumber: isSameAsWhatsapp ? form.phone : form.whatsappNumber
@@ -105,62 +132,53 @@ export default function ClientForm({
         onSuccess(payload);
     };
 
-    const selectedType = CLIENT_TYPES.find(t => t.value === form.clientType);
+    const inputCls = 'h-12 rounded-2xl border-2 border-primary/10 transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/5 font-semibold text-sm px-6';
 
     return (
         <form onSubmit={handleSubmit} className="space-y-10">
-            {/* === Client Type === */}
-            <div className="space-y-4">
-                <label className="text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest block ml-1">Select Client Type</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {CLIENT_TYPES.map(t => (
-                        <button
-                            key={t.value}
-                            type="button"
-                            onClick={() => set('clientType', t.value)}
-                            className={cn(
-                                'flex flex-col items-start gap-1.5 p-5 rounded-2xl border-2 text-left transition-all duration-300',
-                                form.clientType === t.value
-                                    ? 'border-primary bg-primary/5 ring-4 ring-primary/5'
-                                    : 'border-border bg-card/40 hover:border-border/80 hover:bg-accent/5'
-                            )}
-                        >
-                            <p className={cn('text-[11px] font-black uppercase tracking-wider', form.clientType === t.value ? 'text-primary' : 'text-foreground/70')}>{t.label}</p>
-                            <p className="text-[10px] text-muted-foreground/50 font-medium leading-relaxed">{t.desc}</p>
-                        </button>
-                    ))}
-                </div>
-            </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-                {/* === Left column === */}
                 <div className="lg:col-span-7 space-y-10">
-
-                    {/* Identity */}
                     <Section title="Contact Identity" icon={User2}>
                         <div className="grid gap-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <FormField label="Contact Name *">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <FormField label="First Name *">
                                     <Input
                                         required
-                                        value={form.name}
-                                        onChange={(e) => set('name', e.target.value)}
-                                        placeholder="e.g. Rohan Gupta"
+                                        value={form.firstName}
+                                        onChange={(e) => set('firstName', e.target.value)}
+                                        placeholder="e.g. Rohan"
                                         className={inputCls}
                                     />
                                 </FormField>
-                                <FormField label="Firm / Company Name">
+                                <FormField label="Middle Name (Optional)">
                                     <Input
-                                        value={form.firmName}
-                                        onChange={(e) => set('firmName', e.target.value)}
-                                        placeholder={selectedType?.value === 'direct_client' ? 'Optional' : 'e.g. Dreamscape Studio'}
+                                        value={form.middleName}
+                                        onChange={(e) => set('middleName', e.target.value)}
+                                        placeholder="e.g. Kumar"
+                                        className={inputCls}
+                                    />
+                                </FormField>
+                                <FormField label="Last Name *">
+                                    <Input
+                                        required
+                                        value={form.lastName}
+                                        onChange={(e) => set('lastName', e.target.value)}
+                                        placeholder="e.g. Gupta"
                                         className={inputCls}
                                     />
                                 </FormField>
                             </div>
 
-                            {/* GSTIN with verify */}
-                            <FormField label="GSTIN (Optional — required for GST invoicing)">
+                            <FormField label="Firm / Company Name">
+                                <Input
+                                    value={form.firmName}
+                                    onChange={(e) => set('firmName', e.target.value)}
+                                    placeholder="Optional"
+                                    className={inputCls}
+                                />
+                            </FormField>
+
+                            <FormField label="GSTIN (Optional)">
                                 <div className="flex gap-3">
                                     <div className="relative flex-1">
                                         <Input
@@ -168,10 +186,10 @@ export default function ClientForm({
                                             onChange={(e) => { set('gstin', e.target.value.toUpperCase()); setGstStatus('idle'); }}
                                             placeholder="22AAAAA0000A1Z5"
                                             maxLength={15}
-                                            className={cn(inputCls, 'uppercase tracking-[0.15em] font-mono pr-10')}
+                                            className={cn(inputCls, 'uppercase tracking-[0.15em] font-mono pr-12')}
                                         />
                                         {gstStatus === 'verified' && (
-                                            <BadgeCheck className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" size={18} />
+                                            <BadgeCheck className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500" size={20} />
                                         )}
                                     </div>
                                     <Button
@@ -179,152 +197,155 @@ export default function ClientForm({
                                         variant="outline"
                                         onClick={handleVerifyGST}
                                         disabled={form.gstin.length !== 15 || gstStatus === 'verifying'}
-                                        className="shrink-0 cursor-pointer h-12 px-6 rounded-2xl font-black text-xs gap-2 transition-all border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                                        className="h-12 px-6 rounded-2xl font-black text-xs gap-2 border-2 border-primary/20 hover:border-primary/40"
                                     >
                                         {gstStatus === 'verifying' ? <Loader2 className="animate-spin" size={14} /> : <BadgeCheck size={14} />}
                                         {gstStatus === 'verifying' ? 'Verifying...' : 'Verify'}
                                     </Button>
                                 </div>
                                 {gstStatus === 'verified' && (
-                                    <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 mt-2 ml-1">
-                                        <BadgeCheck size={12} /> GSTIN verified — firm name auto-filled
-                                    </p>
-                                )}
-                                {gstStatus === 'failed' && (
-                                    <p className="text-rose-500 text-[10px] font-black uppercase tracking-widest mt-2 ml-1">⚠ GSTIN verification failed. Check the number.</p>
+                                    <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest mt-2 ml-1">GSTIN verified</p>
                                 )}
                             </FormField>
                         </div>
                     </Section>
 
-                    {/* Communication */}
                     <Section title="Communication" icon={Phone}>
                         <div className="grid gap-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end">
                                 <FormField label="Phone Number *">
-                                    <Input
-                                        required
-                                        type="tel"
-                                        value={form.phone}
-                                        onChange={(e) => set('phone', e.target.value)}
-                                        placeholder="+91 98765 43210"
-                                        className={inputCls}
-                                    />
+                                    <div className="relative">
+                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/30" size={16} />
+                                        <Input
+                                            required
+                                            type="tel"
+                                            maxLength={10}
+                                            value={form.phone}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                                set('phone', val);
+                                            }}
+                                            placeholder="10-digit Mobile Number"
+                                            className={cn(inputCls, 'pl-12')}
+                                        />
+                                    </div>
                                 </FormField>
-                                <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-2xl border border-border/10 transition-colors">
+                                <div className="flex items-center gap-2 pb-4">
                                     <Checkbox 
-                                        id="whatsapp-toggle" 
-                                        checked={isSameAsWhatsapp}
+                                        id="whatsapp" 
+                                        checked={isSameAsWhatsapp} 
                                         onCheckedChange={(checked) => setIsSameAsWhatsapp(checked === true)}
                                     />
-                                    <label htmlFor="whatsapp-toggle" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 cursor-pointer flex-1">
-                                        Use same number for WhatsApp
-                                    </label>
+                                    <label htmlFor="whatsapp" className="text-xs font-bold text-muted-foreground/80 cursor-pointer">Same as WhatsApp</label>
                                 </div>
                             </div>
-                            
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                {!isSameAsWhatsapp && (
-                                    <FormField label="WhatsApp Number">
-                                        <Input
-                                            type="tel"
-                                            value={form.whatsappNumber}
-                                            onChange={(e) => set('whatsappNumber', e.target.value)}
-                                            placeholder="+91 98765 43210"
-                                            className={inputCls}
-                                        />
-                                    </FormField>
-                                )}
-                                <FormField label="Email" className={cn(!isSameAsWhatsapp ? "" : "sm:col-span-2")}>
+
+                            {!isSameAsWhatsapp && (
+                                <FormField label="WhatsApp Number">
                                     <Input
-                                        type="email"
-                                        value={form.email}
-                                        onChange={(e) => set('email', e.target.value)}
-                                        placeholder="client@example.com"
+                                        type="tel"
+                                        maxLength={10}
+                                        value={form.whatsappNumber}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                            set('whatsappNumber', val);
+                                        }}
+                                        placeholder="WhatsApp Number"
                                         className={inputCls}
                                     />
                                 </FormField>
-                            </div>
+                            )}
+
+                            <FormField label="Email Address">
+                                <Input
+                                    type="email"
+                                    value={form.email}
+                                    onChange={(e) => set('email', e.target.value)}
+                                    placeholder="e.g. client@example.com"
+                                    className={inputCls}
+                                />
+                            </FormField>
                         </div>
                     </Section>
                 </div>
 
-                {/* === Right column === */}
                 <div className="lg:col-span-5 space-y-10">
-                    <Section title="Address" icon={MapPin}>
+                    <Section title="Address Details" icon={MapPin}>
                         <div className="grid gap-5">
-                            <FormField label="House / Flat / Unit Number">
-                                <Input value={form.address.houseNumber} onChange={(e) => setAddr('houseNumber', e.target.value)} placeholder="e.g. #402, 4th Floor" className={inputCls} />
+                            <FormField label="House / Plot Number">
+                                <Input value={form.address.houseNumber} onChange={(e) => setAddr('houseNumber', e.target.value)} placeholder="e.g. 102 / Plot-7" className={inputCls} />
                             </FormField>
-                            <FormField label="Building / Area">
-                                <Input value={form.address.line1} onChange={(e) => setAddr('line1', e.target.value)} placeholder="e.g. MG Road, Maruti Towers" className={inputCls} />
+                            <FormField label="Address Line 1">
+                                <Input value={form.address.line1} onChange={(e) => setAddr('line1', e.target.value)} placeholder="Building name, Street" className={inputCls} />
                             </FormField>
-                            <FormField label="Landmark / Locality">
-                                <Input value={form.address.line2} onChange={(e) => setAddr('line2', e.target.value)} placeholder="e.g. Near Indiranagar Metro" className={inputCls} />
+                            <FormField label="Address Line 2">
+                                <Input value={form.address.line2} onChange={(e) => setAddr('line2', e.target.value)} placeholder="Area, Landmark" className={inputCls} />
                             </FormField>
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField label="City">
                                     <Input value={form.address.city} onChange={(e) => setAddr('city', e.target.value)} placeholder="Ahmedabad" className={inputCls} />
                                 </FormField>
                                 <FormField label="Pincode">
-                                    <Input value={form.address.pincode} onChange={(e) => setAddr('pincode', e.target.value)} placeholder="380001" className={inputCls} />
+                                    <Input value={form.address.pincode} onChange={(e) => setAddr('pincode', e.target.value)} placeholder="380001" maxLength={6} className={inputCls} />
                                 </FormField>
                             </div>
                         </div>
                     </Section>
 
-                    <Section title="Internal Notes" icon={Sparkles}>
+                    <Section title="Project Notes" icon={Sparkles}>
                         <textarea
                             value={form.notes}
                             onChange={(e) => set('notes', e.target.value)}
-                            rows={4}
-                            placeholder="Any specific client requirements or special notes..."
-                            className="w-full bg-white dark:bg-card/40 border border-border dark:border-border/40 rounded-2xl px-5 py-4 text-foreground text-sm font-medium placeholder:text-muted-foreground/30 resize-none focus:outline-none focus:border-primary/50 transition-all shadow-none"
+                            placeholder="Add specific client preferences, budget notes, or follow-up details..."
+                            className="w-full h-32 bg-card/10 border-2 border-primary/10 rounded-[24px] p-6 text-sm font-semibold focus:border-primary/40 focus:ring-4 focus:ring-primary/5 transition-all outline-none resize-none"
                         />
                     </Section>
-                </div>
-            </div>
 
-            {/* Submit */}
-            <div className="flex items-center justify-end gap-4 pt-8 border-t border-border/10">
-                <Button type="button" variant="ghost" onClick={onCancel} className="h-14 px-8 rounded-[20px] font-black text-xs uppercase tracking-widest text-muted-foreground hover:bg-muted transition-all">
-                    Cancel
-                </Button>
-                <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="h-14 px-10 rounded-[20px] font-black text-xs uppercase tracking-widest gap-3 shadow-xl shadow-primary/20 hover:shadow-primary/30 active:scale-[0.98] transition-all"
-                >
-                    {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                    {isSubmitting ? 'Registering...' : submitLabel}
-                </Button>
+                    <div className="flex gap-4 pt-4">
+                        <Button 
+                            type="submit" 
+                            disabled={isSubmitting}
+                            className="flex-1 h-16 bg-primary text-primary-foreground hover:bg-primary/90 rounded-[24px] font-black text-sm uppercase tracking-widest shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:grayscale"
+                        >
+                            {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" size={20} />}
+                            {submitLabel}
+                        </Button>
+                        <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={onCancel}
+                            className="h-16 px-8 rounded-[24px] border-2 border-border font-black text-xs uppercase tracking-widest hover:bg-muted transition-all"
+                        >
+                            Cancel
+                        </Button>
+                    </div>
+                </div>
             </div>
         </form>
     );
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-const inputCls = 'bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-medium px-4 focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/40 shadow-none';
-
 function Section({ title, icon: Icon, children }: { title: string; icon: any; children: React.ReactNode }) {
     return (
-        <div className="bg-white dark:bg-card/20 border border-border dark:border-border/30 rounded-3xl p-6 space-y-5">
-            <div className="flex items-center gap-3 pb-1 border-b border-border/30">
-                <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                    <Icon size={14} />
+        <div className="bg-card border border-border/60 rounded-[40px] p-8 shadow-sm backdrop-blur-md">
+            <div className="flex items-center gap-4 mb-8">
+                <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
+                    <Icon size={24} strokeWidth={2.5} />
                 </div>
-                <p className="text-foreground text-sm font-black uppercase tracking-wider">{title}</p>
+                <div>
+                    <h3 className="text-foreground text-lg font-black tracking-tight leading-none mb-1">{title}</h3>
+                    <div className="h-1 w-8 bg-primary/20 rounded-full" />
+                </div>
             </div>
             {children}
         </div>
     );
 }
 
-function FormField({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+function FormField({ label, children }: { label: string; children: React.ReactNode }) {
     return (
-        <div className={cn('space-y-2', className)}>
-            <label className="text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest block">{label}</label>
+        <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">{label}</label>
             {children}
         </div>
     );

@@ -4,6 +4,7 @@ import { Role } from '../models/Role.js';
 import { UserPermission } from '../models/UserPermission.js';
 import { resolvePermissions } from '../utils/resolvePermissions.js';
 import { auditLog } from '../utils/auditLogger.js';
+import { sendWelcomeEmail } from '../utils/emailService.js';
 
 // ── GET /api/users ────────────────────────────────────────────────────────────
 // List all users in the same company (company-scoped)
@@ -69,14 +70,23 @@ export const getUserById = async (req, res, next) => {
 // Create a new user — admin only
 export const createUser = async (req, res, next) => {
   try {
-    const { name, email, password, role, department, phone, whatsappNumber } = req.body;
+    const { 
+      firstName, middleName, lastName, 
+      email, password, role, department, phone, whatsappNumber,
+      firmName, factoryName, factoryLocation 
+    } = req.body;
 
-    if (!name || !email || !password || !role) {
+    if (!firstName || !lastName || !email || !role) {
       return res.status(400).json({
         success: false,
-        message: 'name, email, password, and role are required',
+        message: 'firstName, lastName, email, and role are required',
       });
     }
+
+    // ── Generate password automatically ──
+    // Formula: First Name + Last 4 digits of Phone (fallback to '1234')
+    const phoneSuffix = phone ? phone.trim().replace(/\s+/g, '').slice(-4) : '1234';
+    const generatedPassword = password || `${firstName.trim()}${phoneSuffix}`;
 
     // Check for duplicate email within the company
     const existing = await User.findOne({
@@ -92,13 +102,18 @@ export const createUser = async (req, res, next) => {
 
     const newUser = await User.create({
       companyId: req.user.companyId,
-      name: name.trim(),
+      firstName: firstName.trim(),
+      middleName: middleName?.trim(),
+      lastName: lastName.trim(),
       email: email.toLowerCase().trim(),
-      password,                               // pre-save hook hashes it
+      password: generatedPassword,                        // pre-save hook hashes it
       role,
       department: department || undefined,
       phone: phone || undefined,
       whatsappNumber: whatsappNumber || undefined,
+      firmName: firmName || undefined,
+      factoryName: factoryName || undefined,
+      factoryLocation: factoryLocation || undefined,
       createdBy: req.user.userId,
     });
 
@@ -138,7 +153,15 @@ export const createUser = async (req, res, next) => {
       changes: { email: { from: null, to: newUser.email }, role: { from: null, to: newUser.role } },
     });
 
-    res.status(201).json({ success: true, data: userObj, message: 'User created successfully' });
+    res.status(201).json({ success: true, data: userObj, message: 'User created successfully. Login credentials sent to email.' });
+
+    // ── Send Welcome Email (Async, don't block response) ──
+    sendWelcomeEmail({
+      email: newUser.email,
+      firstName: newUser.firstName,
+      password: generatedPassword,
+      role: newUser.role,
+    }).catch(err => console.error('[createUser] Async email send failed:', err));
   } catch (err) {
     next(err);
   }
@@ -148,7 +171,11 @@ export const createUser = async (req, res, next) => {
 // Update user details — admin can update any company user; user can update self
 export const updateUser = async (req, res, next) => {
   try {
-    const { name, role, department, phone, whatsappNumber, isActive } = req.body;
+    const { 
+      firstName, middleName, lastName, 
+      role, department, phone, whatsappNumber, isActive,
+      firmName, factoryName, factoryLocation
+    } = req.body;
 
     const user = await User.findOne({
       _id: req.params.id,
@@ -162,12 +189,17 @@ export const updateUser = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Only admins can change role or status' });
     }
 
-    if (name !== undefined) user.name = name.trim();
+    if (firstName !== undefined) user.firstName = firstName.trim();
+    if (middleName !== undefined) user.middleName = middleName.trim();
+    if (lastName !== undefined) user.lastName = lastName.trim();
     if (role !== undefined) user.role = role;
     if (department !== undefined) user.department = department;
     if (phone !== undefined) user.phone = phone;
     if (whatsappNumber !== undefined) user.whatsappNumber = whatsappNumber;
     if (isActive !== undefined) user.isActive = isActive;
+    if (firmName !== undefined) user.firmName = firmName;
+    if (factoryName !== undefined) user.factoryName = factoryName;
+    if (factoryLocation !== undefined) user.factoryLocation = factoryLocation;
 
     await user.save();
 
@@ -195,30 +227,36 @@ export const updateUser = async (req, res, next) => {
   }
 };
 
-// ── DELETE /api/users/:id (soft-delete → deactivate) ─────────────────────────
+// ── DELETE /api/users/:id (hard-delete) ──────────────────────────────────────
 export const deleteUser = async (req, res, next) => {
   try {
+    const targetUserId = req.params.id;
+
     // Prevent self-deletion
-    if (req.params.id === req.user.userId.toString()) {
-      return res.status(400).json({ success: false, message: 'You cannot deactivate yourself' });
+    if (targetUserId === req.user.userId.toString()) {
+      return res.status(400).json({ success: false, message: 'You cannot delete yourself' });
     }
 
-    const user = await User.findOneAndUpdate(
-      { _id: req.params.id, companyId: req.user.companyId },
-      { isActive: false },
-      { new: true }
-    ).select('-password');
-
+    // 1. Find user to ensure they belong to the same company
+    const user = await User.findOne({ _id: targetUserId, companyId: req.user.companyId });
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
+    const userName = user.name;
+
+    // 2. Delete User document
+    await User.deleteOne({ _id: targetUserId });
+
+    // 3. Delete associated UserPermission records
+    await UserPermission.deleteMany({ userId: targetUserId });
+
     auditLog(req, {
-      action: 'deactivate',
+      action: 'delete',
       resourceType: 'User',
-      resourceId: user._id,
-      resourceLabel: user.name,
+      resourceId: targetUserId,
+      resourceLabel: userName,
     });
 
-    res.status(200).json({ success: true, message: 'User deactivated successfully' });
+    res.status(200).json({ success: true, message: 'User permanently deleted' });
   } catch (err) {
     next(err);
   }

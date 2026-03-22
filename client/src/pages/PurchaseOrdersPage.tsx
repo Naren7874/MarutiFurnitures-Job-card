@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, ShoppingCart, Clock, Package, FilterX, ChevronRight, MoreHorizontal, ShieldCheck, Truck, AlertCircle } from 'lucide-react';
+import { useAuthStore } from '../stores/authStore';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '../lib/axios';
 import { Input } from '@/components/ui/input';
@@ -26,7 +27,7 @@ const StatCard = ({ icon: Icon, label, value, sub, colorClass, delay = 0 }: any)
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay }}
         whileHover={{ y: -4, scale: 1.02 }}
-        className="bg-white dark:bg-card border border-border dark:border-transparent rounded-[24px] p-6 flex flex-col gap-4 hover:shadow-2xl hover:shadow-primary/5 transition-all group relative overflow-hidden shadow-sm"
+        className="bg-card border border-border/60 rounded-[24px] p-6 flex flex-col gap-4 hover:shadow-2xl hover:shadow-primary/5 transition-all group relative overflow-hidden shadow-sm"
     >
         <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-bl from-primary/5 to-transparent rounded-bl-[100px] opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-6", colorClass)}>
@@ -46,6 +47,8 @@ export default function PurchaseOrdersPage() {
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('');
     const [page, setPage] = useState(1);
+    const { hasPermission } = useAuthStore();
+    const canCreate = hasPermission('purchaseOrder.create');
 
     const { data: raw, isLoading } = useQuery({
         queryKey: ['purchaseOrders', { search, status, page }],
@@ -63,7 +66,7 @@ export default function PurchaseOrdersPage() {
     };
 
     return (
-        <div className="p-8 space-y-10 max-w-[1700px] mx-auto">
+        <div className="p-8 space-y-10 max-w-[1600px] mx-auto">
             {/* Header Area */}
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
@@ -79,11 +82,13 @@ export default function PurchaseOrdersPage() {
                         </p>
                     </div>
                 </div>
-                <Link to="/purchase-orders/new">
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                        <Plus size={18} strokeWidth={3} /> Create Purchase Order
-                    </Button>
-                </Link>
+                {canCreate && (
+                    <Link to="/purchase-orders/new">
+                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                            <Plus size={18} strokeWidth={3} /> Create Purchase Order
+                        </Button>
+                    </Link>
+                )}
             </motion.div>
 
             {/* Quick Stats Summary */}
@@ -127,7 +132,7 @@ export default function PurchaseOrdersPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="flex flex-wrap items-center gap-3"
+                className="flex items-center gap-3"
             >
                 <div className="relative flex-1 min-w-[300px] group">
                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
@@ -135,11 +140,11 @@ export default function PurchaseOrdersPage() {
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         placeholder="Search PO ID or Vendor Name..."
-                        className="pl-12 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground h-12 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/30 shadow-sm backdrop-blur-md"
+                        className="pl-12 bg-card border-border/80 text-foreground h-12 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/40 shadow-sm backdrop-blur-md"
                     />
                 </div>
                 <Select value={status || 'all'} onValueChange={(v: string) => { setStatus(v === 'all' ? '' : v); setPage(1); }}>
-                    <SelectTrigger className="h-12 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground rounded-2xl font-bold text-xs uppercase tracking-widest px-6 shadow-sm min-w-[200px]">
+                    <SelectTrigger className="h-12 bg-card border-border/80 text-foreground rounded-2xl font-bold text-xs uppercase tracking-widest px-6 shadow-sm min-w-[200px]">
                         <SelectValue placeholder="Status Filter" />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl">
@@ -165,7 +170,7 @@ export default function PurchaseOrdersPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="bg-white/80 dark:bg-card/30 border border-border dark:border-border/50 rounded-[32px] overflow-hidden shadow-2xl backdrop-blur-xl"
+                className="bg-card border border-border focus-within:border-primary/50 rounded-[32px] overflow-hidden shadow-2xl"
             >
                 {isLoading ? (
                     <div className="p-8 space-y-6">

@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { cn } from '@/lib/utils'
 import api from '@/lib/axios'
+import { useAuthStore } from '@/stores/authStore'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -58,7 +59,7 @@ interface AppRole {
 // SRS §5.3 — full permission list grouped by module
 const ALL_PERMISSIONS = [
     'client.create', 'client.view', 'client.edit', 'client.delete', 'client.verify_gst',
-    'quotation.create', 'quotation.view', 'quotation.edit', 'quotation.send', 'quotation.approve', 'quotation.reject',
+    'quotation.create', 'quotation.view', 'quotation.edit', 'quotation.send', 'quotation.approve', 'quotation.reject', 'quotation.delete',
     'project.create', 'project.view', 'project.edit',
     'jobcard.create', 'jobcard.view', 'jobcard.edit', 'jobcard.export', 'jobcard.close', 'jobcard.assign', 'jobcard.override_status',
     'designrequest.create', 'designrequest.view', 'designrequest.edit', 'designrequest.upload', 'designrequest.signoff', 'designrequest.ready',
@@ -70,7 +71,7 @@ const ALL_PERMISSIONS = [
     'inventory.create', 'inventory.view', 'inventory.edit',
     'purchaseOrder.create', 'purchaseOrder.view', 'purchaseOrder.edit', 'purchaseOrder.approve',
     'reports.view_financial', 'reports.view_production', 'reports.view_delivery', 'reports.export',
-    'user.create', 'user.view', 'user.edit', 'user.deactivate',
+    'user.create', 'user.view', 'user.edit', 'user.deactivate', 'user.delete',
     'privilege.view', 'privilege.grant', 'privilege.deny',
     'whatsapp.send_manual', 'gst.verify',
     'settings.view', 'settings.edit', 'settings.company_edit',
@@ -140,14 +141,15 @@ function PermissionsGrid({ perms }: { perms: UserPermData['permissions'] | undef
                     <div className="flex flex-wrap gap-1.5">
                         {ps.map(p => {
                             const action = p.split('.')[1]
-                            const has = effective.has(p)
+                            const hasWildcard = effective.has('*.*') || effective.has('*')
+                            const has = hasWildcard || effective.has(p)
                             const denied = denies.has(p)
-                            const source = has ? getSource(p) : 'none'
+                            const source = has ? (hasWildcard ? 'role' : getSource(p)) : 'none'
                             const sourceColor = source === 'grant' ? '#10B981' : source === 'role' ? '#64748B' : 'transparent'
                             return (
                                 <span key={p} title={`source: ${source}`}
                                     className={cn('inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold border transition-all',
-                                        has ? 'bg-card text-foreground border-border' : 'bg-muted/30 text-muted-foreground/40 border-transparent',
+                                        has ? 'bg-card text-foreground border-border' : 'bg-muted/30 text-muted-foreground/40 border-border/10',
                                         denied && 'line-through decoration-red-500/50 opacity-40')}>
                                     <div className="size-1.5 rounded-full" style={{ backgroundColor: has ? sourceColor : 'transparent' }} />
                                     {action.replace(/_/g, ' ')}
@@ -162,7 +164,7 @@ function PermissionsGrid({ perms }: { perms: UserPermData['permissions'] | undef
 }
 
 // ── Overrides Tab ─────────────────────────────────────────────────────────────
-function OverridesTab({ userId, overrides }: { userId: string, overrides: Override[] }) {
+function OverridesTab({ userId, overrides, canGrant, canDeny }: { userId: string; overrides: Override[]; canGrant: boolean; canDeny: boolean }) {
     const qc = useQueryClient()
     const [perm, setPerm] = useState('')
     const [type, setType] = useState<'grant' | 'deny'>('grant')
@@ -202,20 +204,22 @@ function OverridesTab({ userId, overrides }: { userId: string, overrides: Overri
                     </div>
                     <Input placeholder="Reason (optional)..." value={reason} onChange={e => setReason(e.target.value)} className="bg-card border-border h-10 rounded-xl" />
                 </div>
-                <div className="w-full md:w-32 flex items-end">
-                    <Button
-                        onClick={() => {
-                            if (!perm) return
-                            if (type === 'grant') grantMut.mutate({ permission: perm, reason })
-                            else denyMut.mutate({ permission: perm, reason })
-                        }}
-                        disabled={!perm || grantMut.isPending || denyMut.isPending}
-                        className="w-full h-10 rounded-xl font-bold"
-                    >
-                        {(grantMut.isPending || denyMut.isPending) ? <Loader2 className="size-4 animate-spin" /> : type === 'grant' ? <Plus className="size-4 mr-2" /> : <ShieldX className="size-4 mr-2" />}
-                        Add
-                    </Button>
-                </div>
+                {((type === 'grant' && canGrant) || (type === 'deny' && canDeny)) && (
+                    <div className="w-full md:w-32 flex items-end">
+                        <Button
+                            onClick={() => {
+                                if (!perm) return
+                                if (type === 'grant') grantMut.mutate({ permission: perm, reason })
+                                else denyMut.mutate({ permission: perm, reason })
+                            }}
+                            disabled={!perm || grantMut.isPending || denyMut.isPending}
+                            className="w-full h-10 rounded-xl font-bold"
+                        >
+                            {(grantMut.isPending || denyMut.isPending) ? <Loader2 className="size-4 animate-spin" /> : type === 'grant' ? <Plus className="size-4 mr-2" /> : <ShieldX className="size-4 mr-2" />}
+                            Add
+                        </Button>
+                    </div>
+                )}
             </div>
 
             <div className="space-y-3">
@@ -230,9 +234,11 @@ function OverridesTab({ userId, overrides }: { userId: string, overrides: Overri
                                 <p className="text-[10px] text-muted-foreground italic">By {o.grantedBy?.name || 'Admin'} · {new Date(o.grantedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })} {o.reason && `· "${o.reason}"`}</p>
                             </div>
                         </div>
-                        <Button onClick={() => delMut.mutate(o._id)} variant="ghost" size="icon" className="size-8 rounded-lg opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500">
-                            <Trash2 className="size-3.5" />
-                        </Button>
+                        {(o.type === 'grant' ? canGrant : canDeny) && (
+                            <Button onClick={() => delMut.mutate(o._id)} variant="ghost" size="icon" className="size-8 rounded-lg opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500">
+                                <Trash2 className="size-3.5" />
+                            </Button>
+                        )}
                     </div>
                 ))}
             </div>
@@ -250,7 +256,15 @@ export default function UserDetailPage() {
     const [toast, setToast] = useState<string | null>(null)
     const [newRole, setNewRole] = useState<UserRole | ''>('')
     const [activeTab, setActiveTab] = useState<'perms' | 'overrides' | 'sets' | 'history'>('perms')
-    const [confirmAction, setConfirmAction] = useState<{ type: 'deactivate' | 'change_role' | null }>({ type: null })
+    const [confirmAction, setConfirmAction] = useState<{ type: 'deactivate' | 'delete' | 'change_role' | null }>({ type: null })
+    const { hasPermission } = useAuthStore()
+
+    const canEditUser = hasPermission('user.edit')
+    const canDeactivate = hasPermission('user.deactivate')
+    const canManagePrivs = hasPermission('privilege.view')
+    const canGrant = hasPermission('privilege.grant')
+    const canDeny = hasPermission('privilege.deny')
+    const canDelete = hasPermission('user.delete')
 
     const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3500) }
 
@@ -284,13 +298,28 @@ export default function UserDetailPage() {
         onSuccess: () => { qc.invalidateQueries({ queryKey: ['user', id], }); qc.invalidateQueries({ queryKey: ['user-perms', id] }); showToast('Role updated') }
     })
 
+    const deleteMut = useMutation({
+        mutationFn: () => api.delete(`/users/${id}`),
+        onSuccess: () => { 
+            showToast('User deleted permanently')
+            // Remove from cache immediately to avoid background refetches (404s)
+            qc.removeQueries({ queryKey: ['user', id] })
+            qc.removeQueries({ queryKey: ['user-perms', id] })
+            qc.invalidateQueries({ queryKey: ['users'] })
+            
+            // Navigate away quickly
+            setTimeout(() => navigate('/users'), 500)
+        },
+        onError: (err: any) => showToast(err?.response?.data?.message || 'Delete failed')
+    })
+
 
     if (loadingUser || loadingPerms) return <div className="flex flex-col items-center justify-center min-h-[400px] gap-3 text-muted-foreground"><Loader2 className="size-8 animate-spin" /><p className="text-sm font-bold uppercase tracking-widest">Loading permissions...</p></div>
 
     if (!user) return <div className="flex flex-col items-center justify-center min-h-[400px] gap-3 text-red-500"><AlertCircle className="size-8" /><p className="text-sm font-bold">User not found</p><Button onClick={() => navigate('/users')}>Go Back</Button></div>
 
     return (
-        <div className="max-w-6xl mx-auto p-6 space-y-6">
+        <div className="max-w-[1600px] mx-auto p-6 space-y-6">
             <button onClick={() => navigate('/users')} className="flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors group">
                 <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-1" /> BACK TO USERS
             </button>
@@ -326,23 +355,35 @@ export default function UserDetailPage() {
                         </div>
 
                         {/* Deactivate / Activate button */}
-                        {!user.isSuperAdmin && (
-                            <div className="shrink-0">
-                                {user.isActive ? (
+                        {!user.isSuperAdmin && (canDeactivate || canDelete) && (
+                            <div className="shrink-0 flex gap-2">
+                                {canDeactivate && (
+                                    user.isActive ? (
+                                        <Button variant="outline" size="sm"
+                                            onClick={() => setConfirmAction({ type: 'deactivate' })}
+                                            disabled={deactivateMut.isPending}
+                                            className="rounded-xl border-red-500/30 text-red-500 hover:bg-red-500/10">
+                                            {deactivateMut.isPending ? <Loader2 className="size-3.5 mr-1.5 animate-spin" /> : <UserX className="size-3.5 mr-1.5" />}
+                                            Deactivate
+                                        </Button>
+                                    ) : (
+                                        <Button variant="outline" size="sm"
+                                            onClick={() => activateMut.mutate()}
+                                            disabled={activateMut.isPending}
+                                            className="rounded-xl border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10">
+                                            {activateMut.isPending ? <Loader2 className="size-3.5 mr-1.5 animate-spin" /> : <UserCheck className="size-3.5 mr-1.5" />}
+                                            Activate
+                                        </Button>
+                                    )
+                                )}
+
+                                {canDelete && (
                                     <Button variant="outline" size="sm"
-                                        onClick={() => setConfirmAction({ type: 'deactivate' })}
-                                        disabled={deactivateMut.isPending}
-                                        className="rounded-xl border-red-500/30 text-red-500 hover:bg-red-500/10">
-                                        {deactivateMut.isPending ? <Loader2 className="size-3.5 mr-1.5 animate-spin" /> : <UserX className="size-3.5 mr-1.5" />}
-                                        Deactivate
-                                    </Button>
-                                ) : (
-                                    <Button variant="outline" size="sm"
-                                        onClick={() => activateMut.mutate()}
-                                        disabled={activateMut.isPending}
-                                        className="rounded-xl border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10">
-                                        {activateMut.isPending ? <Loader2 className="size-3.5 mr-1.5 animate-spin" /> : <UserCheck className="size-3.5 mr-1.5" />}
-                                        Activate
+                                        onClick={() => setConfirmAction({ type: 'delete' })}
+                                        disabled={deleteMut.isPending}
+                                        className="rounded-xl border-red-500/50 text-red-600 hover:bg-red-500/10">
+                                        {deleteMut.isPending ? <Loader2 className="size-3.5 mr-1.5 animate-spin" /> : <Trash2 className="size-3.5 mr-1.5" />}
+                                        Delete User
                                     </Button>
                                 )}
                             </div>
@@ -350,7 +391,7 @@ export default function UserDetailPage() {
                     </div>
 
                     {/* ── Role Change section ─────────────────────────────────────────── */}
-                    {!user.isSuperAdmin && (
+                    {!user.isSuperAdmin && canEditUser && (
                         <div className="mt-5 pt-5 border-t border-border">
                             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
                                 <Key className="size-3.5" /> Change Role
@@ -393,10 +434,10 @@ export default function UserDetailPage() {
             {/* ── Tabs ──────────────────────────────────────────────────────────────── */}
             <div className="flex gap-4 border-b border-border overflow-x-auto no-scrollbar">
                 {[
-                    { key: 'perms', label: 'Permissions', icon: Shield },
-                    { key: 'overrides', label: 'Manual Overrides', icon: ShieldAlert },
-                    { key: 'history', label: 'Audit Log', icon: History }
-                ].map(tab => (
+                    { key: 'perms', label: 'Permissions', icon: Shield, show: true },
+                    { key: 'overrides', label: 'Manual Overrides', icon: ShieldAlert, show: canManagePrivs },
+                    { key: 'history', label: 'Audit Log', icon: History, show: canManagePrivs }
+                ].filter(t => t.show).map(tab => (
                     <button key={tab.key} onClick={() => setActiveTab(tab.key as any)}
                         className={cn('flex items-center gap-2 px-1 py-3 text-xs font-bold transition-all border-b-2 -mb-px whitespace-nowrap',
                             activeTab === tab.key
@@ -432,7 +473,7 @@ export default function UserDetailPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-6">
-                                <OverridesTab userId={id!} overrides={permsData?.permissions?.overrides || []} />
+                                <OverridesTab userId={id!} overrides={permsData?.permissions?.overrides || []} canGrant={canGrant} canDeny={canDeny} />
                             </CardContent>
                         </Card>
                     </motion.div>
@@ -450,7 +491,7 @@ export default function UserDetailPage() {
                             <CardContent className="p-6">
                                 <div className="space-y-4">
                                     {history?.length === 0 ? <p className="text-center py-8 text-xs text-muted-foreground">No recent security events.</p> : history?.map(entry => (
-                                        <div key={entry._id} className="flex gap-4 p-4 rounded-xl border border-white/5 bg-muted/10">
+                                        <div key={entry._id} className="flex gap-4 p-4 rounded-xl border border-border/30 bg-muted/10">
                                             <div className="size-8 rounded-lg bg-card border border-border flex items-center justify-center shrink-0" style={{ borderLeft: `3px solid ${ACTION_COLORS[entry.action] || '#64748B'}` }}>
                                                 <Shield className="size-3.5 text-muted-foreground" />
                                             </div>
@@ -483,6 +524,20 @@ export default function UserDetailPage() {
                 confirmText="Deactivate"
                 variant="destructive"
                 isPending={deactivateMut.isPending}
+            />
+
+            <ConfirmationDialog
+                open={confirmAction.type === 'delete'}
+                onOpenChange={(open) => !open && setConfirmAction({ type: null })}
+                title="Delete User"
+                description={`Are you sure you want to permanently delete ${user.name}? This action cannot be undone and will remove all associated permissions.`}
+                onConfirm={async () => {
+                    await deleteMut.mutateAsync()
+                    setConfirmAction({ type: null })
+                }}
+                confirmText="Delete Permanently"
+                variant="destructive"
+                isPending={deleteMut.isPending}
             />
 
             <ConfirmationDialog

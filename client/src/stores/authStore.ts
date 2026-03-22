@@ -49,7 +49,8 @@ interface AuthState {
     switchCompany: (company: CompanyInfo) => void;
     setToken: (token: string) => void;
     logout: () => void;
-    hasPermission: (permission: string) => boolean;
+    hasPermission: (permission: string | string[]) => boolean;
+    updateUser: (user: AuthUser) => void;
     updateCompanies: (companies: CompanyInfo[]) => void;
 }
 
@@ -89,22 +90,25 @@ export const useAuthStore = create<AuthState>()(
                 set({ token: null, user: null, company: null, allCompanies: [], isLoggedIn: false });
             },
 
-            /**
-             * Check if current user has a specific permission.
-             * Super admins always have all permissions ('*.*').
-             * Supports wildcards: 'inventory.*' matches 'inventory.view', etc.
-             */
-            hasPermission: (required: string) => {
+            hasPermission: (required: string | string[]) => {
                 const { user } = get();
                 if (!user) return false;
                 if (user.isSuperAdmin) return true;
 
-                const [resource, action] = required.split('.');
-                return user.effectivePermissions.some((p) => {
-                    if (p === '*.*') return true;
-                    const [r, a] = p.split('.');
-                    return r === resource && (a === '*' || a === action);
-                });
+                const check = (req: string) => {
+                    const [resource, action] = req.split('.');
+                    return user.effectivePermissions.some((p) => {
+                        if (p === '*.*') return true;
+                        const [r, a] = p.split('.');
+                        return r === resource && (a === '*' || a === action);
+                    });
+                };
+
+                return Array.isArray(required) ? required.some(check) : check(required);
+            },
+
+            updateUser: (user) => {
+                set({ user });
             },
 
             updateCompanies: (companies) => {

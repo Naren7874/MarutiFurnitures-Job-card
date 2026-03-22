@@ -18,7 +18,7 @@ export default function EditClientPage() {
 
     if (isLoading) {
         return (
-            <div className="p-8 space-y-6 max-w-5xl mx-auto">
+            <div className="p-8 space-y-6 max-w-[1600px] mx-auto">
                 {[...Array(4)].map((_, i) => (
                     <div key={i} className="h-32 bg-muted/40 rounded-3xl animate-pulse border border-border/30" />
                 ))}
@@ -27,7 +27,7 @@ export default function EditClientPage() {
     }
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-5xl mx-auto space-y-10">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-10">
             {/* Header */}
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center justify-between gap-6">
                 <button type="button" onClick={() => navigate(`/clients/${id}`)}

@@ -57,9 +57,7 @@ export const getPOs = async (req, res, next) => {
 
 export const approvePO = async (req, res, next) => {
   try {
-    if (!req.user.isSuperAdmin) {
-      return res.status(403).json({ success: false, message: 'Only super_admin can approve POs' });
-    }
+    // High-value or regular PO approval handle in middleware, controller just updates
     const po = await PurchaseOrder.findOneAndUpdate(
       { _id: req.params.id, ...req.companyFilter },
       { approvedBy: req.user.userId, approvedAt: new Date(), status: 'ordered' },

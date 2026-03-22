@@ -103,6 +103,17 @@ export const updateClient = async (req, res, next) => {
     const PROTECTED = ['companyId', 'createdBy', 'gstVerified'];
     PROTECTED.forEach((f) => delete req.body[f]);
 
+    // Recompute full name if any name part is being updated
+    const { firstName, middleName, lastName } = req.body;
+    if (firstName || lastName) {
+      // Get existing client to fill in missing name parts
+      const existing = await Client.findOne({ _id: req.params.id, ...req.companyFilter }).lean();
+      const fName = firstName?.trim() || existing?.firstName || '';
+      const mName = middleName !== undefined ? middleName?.trim() : existing?.middleName || '';
+      const lName = lastName?.trim() || existing?.lastName || '';
+      req.body.name = [fName, mName, lName].filter(Boolean).join(' ');
+    }
+
     // Snapshot previous for tracking changes
     const prev = await Client.findOne({ _id: req.params.id, ...req.companyFilter }).lean();
 
@@ -115,7 +126,7 @@ export const updateClient = async (req, res, next) => {
 
     // Compute changed fields
     const changes = {};
-    const tracked = ['name', 'firmName', 'phone', 'email', 'clientType', 'gstin', 'isActive'];
+    const tracked = ['name', 'firstName', 'lastName', 'firmName', 'phone', 'email', 'clientType', 'gstin', 'isActive'];
     tracked.forEach(f => {
       if (prev && String(prev[f]) !== String(client[f])) {
         changes[f] = { from: prev[f], to: client[f] };
@@ -141,7 +152,6 @@ export const updateClient = async (req, res, next) => {
 export const deactivateClient = async (req, res, next) => {
   try {
     // Only super_admin or users with client.delete permission can deactivate
-    // (Note: route already checks client.edit, but specification says sales cannot deactivate)
     if (req.user.role === 'sales' && !req.user.isSuperAdmin) {
       return res.status(403).json({ 
         success: false, 
@@ -169,6 +179,7 @@ export const deactivateClient = async (req, res, next) => {
     next(err);
   }
 };
+
 // ── DELETE /api/clients/:id/permanent ────────────────────────────────────────
 
 export const deleteClient = async (req, res, next) => {
@@ -181,7 +192,7 @@ export const deleteClient = async (req, res, next) => {
       });
     }
 
-    // Check for existing dependencies (Job Cards or Quotations)
+    // Check for existing dependencies
     const [quotations, jobCards] = await Promise.all([
       Quotation.findOne({ clientId: req.params.id, companyId: req.user.companyId }),
       JobCard.findOne({ clientId: req.params.id, companyId: req.user.companyId })

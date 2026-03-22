@@ -61,8 +61,9 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        const isLoginRequest = originalRequest.url?.includes('/auth/login');
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
@@ -79,6 +80,7 @@ api.interceptors.response.use(
 
             try {
                 const token = getAuthToken();
+                if (!token) throw new Error('No token to refresh');
                 // POST to refresh endpoint — bypass interceptors for this one call
                 const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { token });
                 const newToken = data.token;

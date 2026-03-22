@@ -5,6 +5,10 @@ import Project from '../models/Project.js';
 import JobCard from '../models/JobCard.js';
 import DesignRequest from '../models/DesignRequest.js';
 import { Invoice } from '../models/Invoice.js';
+import { StoreStage } from '../models/StoreStage.js';
+import { ProductionStage } from '../models/ProductionStage.js';
+import { QcStage } from '../models/QcStage.js';
+import { DispatchStage } from '../models/DispatchStage.js';
 import { generateQuotationNumber, generateProjectNumber, generateJobCardNumber, generateInvoiceNumber } from '../utils/autoNumber.js';
 import { generateAndUploadPDF } from '../utils/generatePDF.js';
 import { sendEmail, quotationEmailHTML } from '../utils/sendEmail.js';
@@ -283,7 +287,7 @@ export const updateQuotation = async (req, res, next) => {
         qty:         item.qty || 1,
         unit:        item.unit || 'pcs',
         rate:        item.sellingPrice || 0,
-        amount:      item.totalPrice || (item.qty * item.sellingPrice) || 0,
+        amount:      item.totalPrice || (item.qty * (item.sellingPrice || 0)) || 0,
       }));
 
       // Recalculate invoice totals
@@ -524,7 +528,7 @@ export const approveQuotation = async (req, res, next) => {
       qty:         item.qty || 1,
       unit:        item.unit || 'pcs',
       rate:        item.sellingPrice || 0,
-      amount:      item.totalPrice || (item.qty * item.sellingPrice) || 0,
+      amount:      item.totalPrice || (item.qty * (item.sellingPrice || 0)) || 0,
     }));
 
     const invoiceSubtotal = invoiceItems.reduce((s, i) => s + (i.qty * i.rate), 0);
@@ -686,9 +690,15 @@ export const getQuotationPDF = async (req, res, next) => {
     });
 
     const safeFilename = quotation.quotationNumber.replace(/[^\x00-\x7F]/g, '-').replace(/\s+/g, '_');
+    
+    // Explicitly set CORS headers on binary response — Cloud Run can drop CORS
+    // headers on large non-JSON responses without this explicit override.
+    const origin = req.headers.origin;
+    if (origin) res.set('Access-Control-Allow-Origin', origin);
+    res.set('Access-Control-Allow-Credentials', 'true');
     res.set({ 
       'Content-Type': 'application/pdf', 
-      'Content-Disposition': `inline; filename="${safeFilename}.pdf"` 
+      'Content-Disposition': `inline; filename="${safeFilename}.pdf"`,
     });
     res.send(pdfBuffer);
   } catch (err) {
@@ -825,6 +835,69 @@ const flattenForTemplate = (quotation, company) => ({
   GST_AMOUNT:        quotation.gstAmount?.toLocaleString('en-IN') || '0',
   GRAND_TOTAL:       quotation.grandTotal?.toLocaleString('en-IN') || '0',
   ADVANCE_AMOUNT:    quotation.advanceAmount?.toLocaleString('en-IN') || '0',
-  DELIVERY_DAYS:     quotation.deliveryDays || '',
   VALID_UNTIL:       quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : '',
 });
+
+// ── DELETE /api/quotations/:id ──────────────────────────────────────────────
+// PERMANENTLY deletes quotation and ALL associated data (cascade)
+export const deleteQuotation = async (req, res, next) => {
+  try {
+    const quotationId = req.params.id;
+    const filter = { _id: quotationId, ...req.companyFilter };
+
+    // 1. Find the quotation to get linked projectId
+    const quotation = await Quotation.findOne(filter).lean();
+    if (!quotation) {
+      return res.status(404).json({ success: false, message: 'Quotation not found' });
+    }
+
+    const { projectId } = quotation;
+
+    // 2. Identify all Job Cards linked to this quotation
+    const jobCards = await JobCard.find({ quotationId, companyId: req.user.companyId }).select('_id').lean();
+    const jobCardIds = jobCards.map(jc => jc._id);
+
+    // 3. Delete all related records in stages/design requests
+    // We use deleteMany for efficiency
+    await Promise.all([
+      DesignRequest.deleteMany({ jobCardId: { $in: jobCardIds } }),
+      StoreStage.deleteMany({ jobCardId: { $in: jobCardIds } }),
+      ProductionStage.deleteMany({ jobCardId: { $in: jobCardIds } }),
+      QcStage.deleteMany({ jobCardId: { $in: jobCardIds } }),
+      DispatchStage.deleteMany({ jobCardId: { $in: jobCardIds } })
+    ]);
+
+    // 4. Delete Job Cards
+    await JobCard.deleteMany({ quotationId, companyId: req.user.companyId });
+
+    // 5. Delete Invoices
+    await Invoice.deleteMany({ quotationId, companyId: req.user.companyId });
+
+    // 6. Delete Project
+    if (projectId) {
+      await Project.deleteOne({ _id: projectId, companyId: req.user.companyId });
+    }
+
+    // 7. Delete the Quotation itself
+    await Quotation.deleteOne(filter);
+
+    auditLog(req, {
+      action: 'delete',
+      resourceType: 'Quotation',
+      resourceId: quotationId,
+      resourceLabel: quotation.quotationNumber,
+      metadata: { 
+        projectId, 
+        jobCardsDeletedCount: jobCardIds.length,
+        projectName: quotation.projectName 
+      },
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Quotation and all associated records deleted successfully' 
+    });
+  } catch (err) {
+    next(err);
+  }
+};

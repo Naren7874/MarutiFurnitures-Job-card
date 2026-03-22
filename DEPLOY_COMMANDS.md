@@ -35,10 +35,17 @@ cd /home/narendra/Desktop/MarutiFurniture/client
 # 2. Build the optimized production files
 npm run build
 
-# 3. Sync the new files to the Google Cloud Storage bucket (the CDN)
+# 3. Sync the new files to the Google Cloud Storage bucket
 gsutil -m rsync -r -d dist gs://maruti-furniture-frontend-prod/
+
+# 4. Set Cache-Control metadata (Crucial for preventing 404 errors)
+gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" gs://maruti-furniture-frontend-prod/assets/*
+gsutil setmeta -h "Cache-Control:no-cache, no-store, must-revalidate" gs://maruti-furniture-frontend-prod/index.html
+
+# 5. Invalidate the Global CDN cache (Forces immediate update for all users)
+gcloud compute url-maps invalidate-cdn-cache maruti-furniture-lb --path "/*" --async
 ```
-*(The frontend deployment requires no downtime. Because the Load Balancer uses a global CDN, it might take a few minutes for users around the world to see the absolute newest changes.)*
+*(The frontend deployment requires no downtime. Because the Load Balancer uses a global CDN, it requires Step 5 to force a refresh of the cached files. The `Cache-Control` settings ensure that browsers always check for a new `index.html` while caching images/scripts for performance.)*
 
 ---
 

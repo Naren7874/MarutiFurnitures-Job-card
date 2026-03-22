@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Search, Package, AlertTriangle, RotateCcw, Boxes, TrendingDown, Layers, MoreHorizontal, Loader2 } from 'lucide-react';
+import { useAuthStore } from '../stores/authStore';
 import { useInventory, useRestockItem, useCreateItem } from '../hooks/useApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,17 +16,17 @@ const StatCard = ({ icon: Icon, label, value, sub, colorClass, delay = 0 }: any)
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay }}
         whileHover={{ y: -4, scale: 1.02 }}
-        className="bg-white dark:bg-card border border-border dark:border-transparent rounded-[24px] p-6 flex flex-col gap-4 hover:shadow-2xl hover:shadow-primary/5 transition-all group relative overflow-hidden"
+        className="bg-card border border-border/60 rounded-[24px] p-6 flex flex-col gap-4 hover:shadow-2xl hover:shadow-primary/5 transition-all group relative overflow-hidden"
     >
         <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-bl from-primary/5 to-transparent rounded-bl-[100px] opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-6", colorClass)}>
             <Icon size={22} strokeWidth={2.5} />
         </div>
         <div>
-            <p className="text-muted-foreground/50 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{label}</p>
+            <p className="text-muted-foreground/50 text-[11px] font-black uppercase tracking-[0.15em] mb-1">{label}</p>
             <div className="flex items-baseline gap-2">
-                <p className="text-foreground text-3xl font-black tracking-tight">{value ?? '0'}</p>
-                {sub && <span className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-widest">{sub}</span>}
+                <p className="text-foreground text-4xl font-black tracking-tighter leading-none">{value ?? '0'}</p>
+                {sub && <span className="text-muted-foreground/40 text-[11px] font-black uppercase tracking-widest">{sub}</span>}
             </div>
         </div>
     </motion.div>
@@ -38,6 +39,9 @@ export default function InventoryPage() {
     const [qty, setQty] = useState('');
     const [showAddItem, setShowAddItem] = useState(false);
     const [newItem, setNewItem] = useState({ itemName: '', sku: '', category: '', unit: 'pcs', currentStock: '', minStockLevel: '', unitRate: '' });
+    const { hasPermission } = useAuthStore();
+    const canCreate = hasPermission('inventory.create');
+    const canEdit   = hasPermission('inventory.edit');
 
     const { data: raw, isLoading, refetch } = useInventory({ search, page, limit: 30 });
     const resp: any = raw;
@@ -78,20 +82,22 @@ export default function InventoryPage() {
                 className="flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
                 <div>
-                    <h1 className="text-foreground text-3xl font-black tracking-tight mb-2">Inventory Management</h1>
-                    <div className="flex items-center gap-3">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary/40" />
-                        <p className="text-muted-foreground text-sm font-semibold tracking-wide uppercase opacity-70">
+                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">Inventory Management</h1>
+                    <div className="flex items-center gap-3.5">
+                        <div className="h-2 w-2 rounded-full bg-primary animate-pulse shadow-[0_0_12px_rgba(var(--primary),0.4)]" />
+                        <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
                             Central Warehouse & Stock Control
                         </p>
                     </div>
                 </div>
-                <Button
-                    onClick={() => setShowAddItem(true)}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95"
-                >
-                    <Plus size={18} strokeWidth={3} /> Add Stock Item
-                </Button>
+                {canCreate && (
+                    <Button
+                        onClick={() => setShowAddItem(true)}
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 gap-3 font-black text-[13px] uppercase tracking-[0.2em] h-12 px-8 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 group"
+                    >
+                        <Plus size={18} strokeWidth={3} className="group-hover:rotate-90 transition-transform" /> Add Stock Item
+                    </Button>
+                )}
             </motion.div>
 
             {/* Quick Stats Summary */}
@@ -134,7 +140,7 @@ export default function InventoryPage() {
                     value={search}
                     onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                     placeholder="Search by SKU, item name or Category..."
-                    className="pl-12 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground h-14 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/30 shadow-sm backdrop-blur-md"
+                    className="pl-12 bg-card border-border/80 text-foreground h-14 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/40 shadow-sm backdrop-blur-md"
                 />
             </motion.div>
 
@@ -143,7 +149,7 @@ export default function InventoryPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="bg-white/80 dark:bg-card/30 border border-border dark:border-border/50 rounded-[32px] overflow-hidden shadow-2xl shadow-black/5 backdrop-blur-xl"
+                className="bg-card border border-border focus-within:border-primary/50 rounded-[32px] overflow-hidden shadow-2xl shadow-black/5"
             >
                 {isLoading ? (
                     <div className="p-8 space-y-6">
@@ -156,11 +162,11 @@ export default function InventoryPage() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-border/40 bg-muted/20">
-                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Asset Detail</th>
-                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden sm:table-cell">Inventory Category</th>
-                                    <th className="text-center px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Available Stock</th>
-                                    <th className="text-center px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden md:table-cell">Buffer (Min)</th>
-                                    <th className="text-right px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Unit Price</th>
+                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Asset Detail</th>
+                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em] hidden sm:table-cell">Inventory Category</th>
+                                    <th className="text-center px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Available Stock</th>
+                                    <th className="text-center px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em] hidden md:table-cell">Buffer (Min)</th>
+                                    <th className="text-right px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Unit Price</th>
                                     <th className="w-16"></th>
                                 </tr>
                             </thead>
@@ -214,13 +220,15 @@ export default function InventoryPage() {
                                                 </td>
                                                 <td className="px-8 py-5 text-right">
                                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={(e) => { e.preventDefault(); setRestockItem(item); setQty(''); }}
-                                                            className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20 hover:scale-110 active:scale-95 transition-all"
-                                                            title="Restock Item"
-                                                        >
-                                                            <RotateCcw size={16} />
-                                                        </button>
+                                                        {canEdit && (
+                                                            <button
+                                                                onClick={(e) => { e.preventDefault(); setRestockItem(item); setQty(''); }}
+                                                                className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20 hover:scale-110 active:scale-95 transition-all"
+                                                                title="Restock Item"
+                                                            >
+                                                                <RotateCcw size={16} />
+                                                            </button>
+                                                        )}
                                                         <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border text-muted-foreground hover:text-primary transition-all">
                                                             <MoreHorizontal size={18} />
                                                         </button>
@@ -248,16 +256,16 @@ export default function InventoryPage() {
                 {/* Pagination Controls */}
                 {pagination.pages > 1 && (
                     <div className="flex items-center justify-between px-8 py-6 border-t border-border/20 bg-muted/10">
-                        <span className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em]">
+                        <span className="text-muted-foreground/40 text-[11px] font-black uppercase tracking-[0.2em]">
                             Vault Page {page} of {pagination.pages}
                         </span>
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                             <Button
                                 variant="outline"
                                 size="sm"
                                 disabled={page <= 1}
                                 onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                className="h-10 px-6 rounded-xl border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30 transition-all font-bold text-[10px] uppercase tracking-widest"
+                                className="h-10 px-8 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-black text-[11px] uppercase tracking-widest"
                             >
                                 Previous
                             </Button>
@@ -266,7 +274,7 @@ export default function InventoryPage() {
                                 size="sm"
                                 disabled={page >= pagination.pages}
                                 onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                className="h-10 px-6 rounded-xl border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30 transition-all font-bold text-[10px] uppercase tracking-widest"
+                                className="h-10 px-8 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-black text-[11px] uppercase tracking-widest"
                             >
                                 Next
                             </Button>

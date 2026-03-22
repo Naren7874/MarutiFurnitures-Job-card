@@ -409,7 +409,11 @@
               <span class="spec-divider">Quantity : <%= item.qty %> <%= item.unit %></span>
               <% if(item.specifications && item.specifications.polish) { %><span class="spec-divider">Polish : <%= item.specifications.polish %></span><% } %>
               <% if(item.specifications && item.specifications.size) { %><span class="spec-divider">Size : <%= item.specifications.size %></span><% } %>
-              <% if(item.specifications && item.specifications.fabric) { %><span class="spec-divider">Fabric : <%= item.specifications.fabric %></span><% } %>
+              <% if(item.specifications && item.specifications.fabrics && item.specifications.fabrics.length > 0) { %>
+                <% item.specifications.fabrics.forEach(function(fab, fi) { %>
+                  <span class="spec-divider">Fabric<%= item.specifications.fabrics.length > 1 ? ' ' + (fi + 1) : '' %> : <%= fab %></span>
+                <% }); %>
+              <% } else if(item.specifications && item.specifications.fabric) { %><span class="spec-divider">Fabric : <%= item.specifications.fabric %></span><% } %>
               <% if(item.specifications && item.specifications.material) { %><span class="spec-divider">Material : <%= item.specifications.material %></span><% } %>
               <% if(item.specifications && item.specifications.notes) { %><span class="spec-divider">Note : <%= item.specifications.notes %></span><% } %>
             </div>

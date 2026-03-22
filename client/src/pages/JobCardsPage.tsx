@@ -88,7 +88,7 @@ export default function JobCardsPage() {
     };
 
     return (
-        <div className="p-8 space-y-8 max-w-[1800px] mx-auto">
+        <div className="p-8 space-y-8 max-w-[1600px] mx-auto">
             {/* Header Area */}
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
@@ -96,20 +96,20 @@ export default function JobCardsPage() {
                 className="flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
                 <div>
-                    <h1 className="text-foreground text-3xl font-black tracking-tight mb-2">Operations Pipeline</h1>
-                    <div className="flex items-center gap-3">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary/40 shadow-[0_0_8px_rgba(var(--primary),0.4)]" />
-                        <p className="text-muted-foreground text-sm font-semibold tracking-wide uppercase opacity-70">
+                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">Operations Pipeline</h1>
+                    <div className="flex items-center gap-3.5">
+                        <div className="h-2 w-2 rounded-full bg-primary animate-pulse shadow-[0_0_12px_rgba(var(--primary),0.4)]" />
+                        <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
                             {pagination.total ?? 0} Lifecycle Units Tracking
                         </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className="flex bg-white dark:bg-card/50 border border-border dark:border-border/60 rounded-2xl p-1 gap-1 shadow-sm backdrop-blur-md">
+                    <div className="bg-card border border-border/60 rounded-2xl p-1 gap-1 shadow-sm backdrop-blur-md flex">
                         <button
                             onClick={() => setViewMode('list')}
                             className={cn(
-                                'flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all',
+                                'flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all',
                                 viewMode === 'list' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:bg-muted'
                             )}
                         >
@@ -118,7 +118,7 @@ export default function JobCardsPage() {
                         <button
                             onClick={() => setViewMode('kanban')}
                             className={cn(
-                                'flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all',
+                                'flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all',
                                 viewMode === 'kanban' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:bg-muted'
                             )}
                         >
@@ -126,8 +126,8 @@ export default function JobCardsPage() {
                         </button>
                     </div>
                     <Link to="/jobcards/new">
-                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                            <Plus size={18} strokeWidth={3} /> New Job Card
+                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-3 font-black text-[13px] uppercase tracking-[0.2em] h-12 px-8 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 group">
+                            <Plus size={18} strokeWidth={3} className="group-hover:rotate-90 transition-transform" /> New Job Card
                         </Button>
                     </Link>
                 </div>
@@ -138,19 +138,19 @@ export default function JobCardsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="flex flex-wrap items-center gap-3"
+                className="flex items-center gap-3"
             >
                 <div className="relative flex-1 min-w-[300px] group">
-                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/50 group-focus-within:text-primary transition-colors" />
                     <Input
                         value={filters.search}
                         onChange={(e) => setFilter('search', e.target.value)}
                         placeholder="Search Job ID, Title, or Project..."
-                        className="pl-12 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground h-12 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/30 shadow-sm"
+                        className="pl-12 bg-card border border-border/60 text-foreground h-12 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/40 shadow-sm"
                     />
                 </div>
                 <Select value={filters.status || 'all'} onValueChange={(v: string) => setFilter('status', v === 'all' ? '' : v)}>
-                    <SelectTrigger className="h-12 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground rounded-2xl font-bold text-xs uppercase tracking-widest px-6 shadow-sm min-w-[180px]">
+                    <SelectTrigger className="h-12 bg-card border border-border/60 text-foreground rounded-2xl font-bold text-xs uppercase tracking-widest px-6 shadow-sm min-w-[180px]">
                         <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl">
@@ -163,7 +163,7 @@ export default function JobCardsPage() {
                     </SelectContent>
                 </Select>
                 <Select value={filters.priority || 'all'} onValueChange={(v: string) => setFilter('priority', v === 'all' ? '' : v)}>
-                    <SelectTrigger className="h-12 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground rounded-2xl font-bold text-xs uppercase tracking-widest px-6 shadow-sm min-w-[140px]">
+                    <SelectTrigger className="h-12 bg-card border border-border/60 text-foreground rounded-2xl font-bold text-xs uppercase tracking-widest px-6 shadow-sm min-w-[140px]">
                         <SelectValue placeholder="Priority" />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl">
@@ -177,9 +177,9 @@ export default function JobCardsPage() {
                 <Button
                     variant="ghost"
                     onClick={resetFilters}
-                    className="h-12 rounded-2xl text-muted-foreground hover:text-rose-500 font-bold text-[10px] uppercase tracking-widest px-6"
+                    className="h-12 rounded-2xl text-muted-foreground hover:text-rose-500 font-black text-[11px] uppercase tracking-widest px-8 transition-colors"
                 >
-                    <FilterX size={14} className="mr-2" /> Reset
+                    <FilterX size={16} className="mr-2.5" /> Reset
                 </Button>
                 {urlClientId && (
                     <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-xl">
@@ -212,15 +212,15 @@ export default function JobCardsPage() {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20 }}
                     >
-                        <div className="bg-white/90 dark:bg-card/90 border border-border rounded-[32px] overflow-hidden shadow-2xl backdrop-blur-xl">
+                        <div className="bg-card/90 border border-border/60 rounded-[32px] overflow-hidden shadow-2xl backdrop-blur-xl">
                             <ScrollArea className="w-full">
                                 <Table>
                                     <TableHeader className="bg-muted/30">
                                         <TableRow className="border-border/40 hover:bg-transparent">
-                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Job Identity</TableHead>
-                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Client Name</TableHead>
-                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest text-center">Timeline</TableHead>
-                                            <TableHead className="px-6 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest text-right">Progress Stage</TableHead>
+                                            <TableHead className="px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Job Identity</TableHead>
+                                            <TableHead className="px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Client Name</TableHead>
+                                            <TableHead className="px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em] text-center">Timeline</TableHead>
+                                            <TableHead className="px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em] text-right">Progress Stage</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -311,13 +311,13 @@ export default function JobCardsPage() {
                                 </Table>
                             </ScrollArea>
                             {pagination.pages > 1 && (
-                                <div className="flex items-center justify-between px-8 py-5 border-t border-border/20 bg-muted/10">
-                                    <span className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em]">
-                                        Page {filters.page} of {pagination.pages}
+                                <div className="flex items-center justify-between px-8 py-6 border-t border-border/20 bg-muted/10">
+                                    <span className="text-muted-foreground/40 text-[11px] font-black uppercase tracking-[0.2em]">
+                                        Operations Page {filters.page} of {pagination.pages}
                                     </span>
-                                    <div className="flex gap-2">
-                                        <Button variant="outline" size="sm" disabled={filters.page <= 1} onClick={() => setFilter('page', filters.page - 1)} className="h-9 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-bold text-[10px] uppercase tracking-widest">Previous</Button>
-                                        <Button variant="outline" size="sm" disabled={filters.page >= pagination.pages} onClick={() => setFilter('page', filters.page + 1)} className="h-9 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-bold text-[10px] uppercase tracking-widest">Next</Button>
+                                    <div className="flex gap-3">
+                                        <Button variant="outline" size="sm" disabled={filters.page <= 1} onClick={() => setFilter('page', filters.page - 1)} className="h-10 px-8 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-black text-[11px] uppercase tracking-widest">Previous</Button>
+                                        <Button variant="outline" size="sm" disabled={filters.page >= pagination.pages} onClick={() => setFilter('page', filters.page + 1)} className="h-10 px-8 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-black text-[11px] uppercase tracking-widest">Next</Button>
                                     </div>
                                 </div>
                             )}
@@ -341,11 +341,11 @@ export default function JobCardsPage() {
                                             <div className={cn("size-3 rounded-full shadow-lg transition-transform hover:scale-125", col.color.replace('text-', 'bg-'))} />
                                             <span className="text-foreground font-black text-xs uppercase tracking-widest">{col.label}</span>
                                         </div>
-                                        <span className="bg-white dark:bg-card border border-border dark:border-border/60 text-muted-foreground text-[10px] font-black px-2 py-1 rounded-lg shadow-sm">
+                                        <span className="bg-card border border-border/60 text-muted-foreground text-[10px] font-black px-2 py-1 rounded-lg shadow-sm">
                                             {colCards.length}
                                         </span>
                                     </div>
-                                    <div className="flex-1 space-y-4 p-4 rounded-[32px] bg-white/50 dark:bg-card/20 border border-border dark:border-border/40 min-h-[600px] backdrop-blur-sm shadow-inner group/col">
+                                    <div className="flex-1 space-y-4 p-4 rounded-[32px] bg-card/20 border border-border/60 min-h-[600px] backdrop-blur-sm shadow-inner group/col">
                                         <ScrollArea className="h-full pr-4 pb-4">
                                             <div className="space-y-4">
                                                 {colCards.map((jc, jidx) => {
@@ -359,7 +359,7 @@ export default function JobCardsPage() {
                                                             transition={{ delay: jidx * 0.05 }}
                                                         >
                                                             <Link to={`/jobcards/${jc._id}`}>
-                                                                <Card className="bg-white/80 dark:bg-card/40 border-border/50 dark:border-white/5 rounded-2xl p-5 hover:shadow-xl hover:shadow-black/5 hover:-translate-y-1 transition-all group relative overflow-hidden">
+                                                                <Card className="bg-card/40 border border-border/60 rounded-2xl p-5 hover:shadow-xl hover:shadow-black/5 hover:-translate-y-1 transition-all group relative overflow-hidden">
                                                                     <div className={cn("absolute top-0 right-0 w-16 h-16 bg-linear-to-bl opacity-0 group-hover:opacity-10 rounded-bl-[40px] transition-opacity", cfg.bg)} />
 
                                                                     <div className="flex justify-between items-start mb-4">

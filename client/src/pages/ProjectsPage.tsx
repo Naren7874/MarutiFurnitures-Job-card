@@ -26,14 +26,14 @@ const StatCard = ({ icon: Icon, label, value, colorClass, delay = 0 }: any) => (
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, delay }}
         whileHover={{ y: -4 }}
-        className="bg-white dark:bg-card/40 border border-border dark:border-border/50 rounded-2xl p-4 flex items-center gap-4 backdrop-blur-md shadow-sm transition-all"
+        className="bg-card border border-border/60 rounded-2xl p-4 flex items-center gap-4 shadow-sm transition-all"
     >
         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-inner", colorClass)}>
             <Icon size={18} strokeWidth={2.5} />
         </div>
         <div>
-            <p className="text-muted-foreground/50 text-[9px] font-black uppercase tracking-widest">{label}</p>
-            <p className="text-foreground text-xl font-black tracking-tighter leading-tight">{value}</p>
+            <p className="text-muted-foreground/50 text-[11px] font-black uppercase tracking-[0.15em] mb-1">{label}</p>
+            <p className="text-foreground text-2xl font-black tracking-tighter leading-tight">{value}</p>
         </div>
     </motion.div>
 );
@@ -103,7 +103,7 @@ export default function ProjectsPage() {
     };
 
     return (
-        <div className="p-8 space-y-10 max-w-[1700px] mx-auto">
+        <div className="p-8 space-y-10 max-w-[1600px] mx-auto">
             {/* Header Area */}
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
@@ -111,10 +111,10 @@ export default function ProjectsPage() {
                 className="flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
                 <div>
-                    <h1 className="text-foreground text-3xl font-black tracking-tight mb-2">Project Portfolio</h1>
-                    <div className="flex items-center gap-3">
-                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                        <p className="text-muted-foreground text-sm font-semibold tracking-wide uppercase opacity-70">
+                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">Project Portfolio</h1>
+                    <div className="flex items-center gap-3.5">
+                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.5)]" />
+                        <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
                             Enterprise Asset Management
                         </p>
                     </div>
@@ -163,7 +163,7 @@ export default function ProjectsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="flex flex-wrap items-center gap-3"
+                className="flex items-center gap-3"
             >
                 <div className="relative flex-1 min-w-[300px] group">
                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
@@ -171,11 +171,11 @@ export default function ProjectsPage() {
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         placeholder="Filter by Project Name, ID or External Reference..."
-                        className="pl-12 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground h-12 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/30 shadow-sm backdrop-blur-md"
+                        className="pl-12 bg-card border-border/80 text-foreground h-12 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/40 shadow-sm backdrop-blur-md"
                     />
                 </div>
                 <Select value={status || 'all'} onValueChange={(v: string) => { setStatus(v === 'all' ? '' : v); setPage(1); }}>
-                    <SelectTrigger className="h-12 bg-white dark:bg-card/50 border-border dark:border-border/60 text-foreground rounded-2xl font-bold text-xs uppercase tracking-widest px-6 shadow-sm min-w-[200px] transition-all focus:ring-primary/10">
+                    <SelectTrigger className="h-12 bg-card border-border/80 text-foreground rounded-2xl font-bold text-xs uppercase tracking-widest px-6 shadow-sm min-w-[200px] transition-all focus:ring-primary/10">
                         <SelectValue placeholder="Project Status" />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl border-border shadow-2xl backdrop-blur-xl">
@@ -189,9 +189,9 @@ export default function ProjectsPage() {
                 <Button
                     variant="ghost"
                     onClick={() => { setStatus(''); setSearch(''); setPage(1); }}
-                    className="h-12 rounded-2xl text-muted-foreground hover:text-rose-500 font-bold text-[10px] uppercase tracking-widest px-6"
+                    className="h-12 rounded-2xl text-muted-foreground hover:text-rose-500 font-black text-[11px] uppercase tracking-widest px-8 transition-colors"
                 >
-                    <FilterX size={14} className="mr-2" /> Reset
+                    <FilterX size={16} className="mr-2.5" /> Reset
                 </Button>
             </motion.div>
 
@@ -220,7 +220,7 @@ export default function ProjectsPage() {
                                     >
                                         <Link
                                             to={`/projects/${p._id}`}
-                                            className="group relative bg-white dark:bg-card/40 border border-border dark:border-border/50 rounded-[32px] p-6 h-full flex flex-col transition-all hover:bg-card/80 hover:shadow-2xl hover:shadow-primary/5 hover:border-primary/20 hover:-translate-y-1 backdrop-blur-xl shadow-sm"
+                                            className="group relative bg-card border border-border/60 rounded-[32px] p-6 h-full flex flex-col transition-all hover:bg-card/80 hover:shadow-2xl hover:shadow-primary/5 hover:border-primary/20 hover:-translate-y-1 shadow-sm"
                                         >
                                             <div className="flex items-start justify-between mb-6">
                                                 <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 shadow-inner group-hover:scale-110 transition-transform">
@@ -307,18 +307,18 @@ export default function ProjectsPage() {
                 <motion.div
                     initial={{ opacity: 0 }}
                     whileInView={{ opacity: 1 }}
-                    className="flex items-center justify-between px-8 py-6 bg-white/80 dark:bg-card/30 border border-border dark:border-border/50 rounded-[32px] backdrop-blur-md shadow-sm"
+                    className="flex items-center justify-between px-8 py-6 bg-card border border-border focus-within:border-primary/50 rounded-[32px] shadow-sm"
                 >
-                    <span className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em]">
+                    <span className="text-muted-foreground/40 text-[11px] font-black uppercase tracking-[0.2em]">
                         Project Manifest Page {page} of {pagination.pages}
                     </span>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                         <Button
                             variant="outline"
                             size="sm"
                             disabled={page <= 1}
                             onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            className="h-11 px-8 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-bold text-[10px] uppercase tracking-widest"
+                            className="h-11 px-8 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-black text-[11px] uppercase tracking-widest"
                         >
                             Back
                         </Button>
@@ -327,7 +327,7 @@ export default function ProjectsPage() {
                             size="sm"
                             disabled={page >= pagination.pages}
                             onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            className="h-11 px-8 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-bold text-[10px] uppercase tracking-widest"
+                            className="h-11 px-8 rounded-xl border-border/60 text-muted-foreground hover:text-primary transition-all font-black text-[11px] uppercase tracking-widest"
                         >
                             Ahead
                         </Button>

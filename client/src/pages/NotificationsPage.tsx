@@ -30,7 +30,7 @@ function NotifCard({ n, onRead }: { n: AppNotification; onRead: () => void }) {
     return (
         <motion.div layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, height: 0 }}
             onClick={onRead}
-            className={cn('flex items-start gap-4 p-4 rounded-2xl border transition-all cursor-pointer group', n.read ? 'bg-transparent border-border/20 hover:bg-muted/20' : 'bg-primary/3 border-primary/20 hover:bg-primary/5')}>
+            className={cn('flex items-start gap-4 p-4 rounded-2xl border transition-all cursor-pointer group', n.read ? 'bg-transparent border-border/60 hover:bg-muted/10' : 'bg-primary/5 border-primary/30 hover:bg-primary/10 shadow-sm')}>
             <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110', cfg.bg)}>
                 <Icon size={18} className={cfg.color} />
             </div>
@@ -38,11 +38,11 @@ function NotifCard({ n, onRead }: { n: AppNotification; onRead: () => void }) {
                 <div className="flex items-start justify-between gap-2">
                     <p className={cn('text-sm font-bold leading-snug', n.read ? 'text-foreground/70' : 'text-foreground')}>{n.title}</p>
                     <div className="flex items-center gap-2 shrink-0">
-                        {!n.read && <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />}
-                        <p className="text-[10px] text-muted-foreground/50 font-bold whitespace-nowrap">{fmtTime(n.createdAt)}</p>
+                        {!n.read && <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary),0.5)]" />}
+                        <p className="text-[10px] text-muted-foreground/60 font-bold whitespace-nowrap">{fmtTime(n.createdAt)}</p>
                     </div>
                 </div>
-                <p className="text-xs text-muted-foreground/60 font-medium mt-0.5 leading-relaxed">{n.message}</p>
+                <p className="text-xs text-muted-foreground/80 font-medium mt-0.5 leading-relaxed">{n.message}</p>
             </div>
         </motion.div>
     );
@@ -54,14 +54,14 @@ export default function NotificationsPage() {
     const read = notifications.filter(n => n.read);
 
     return (
-        <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-8">
+        <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
                         <span className="p-2 rounded-xl bg-primary/10 text-primary"><Bell size={22} /></span>
                         Notifications
                     </h1>
-                    <p className="text-muted-foreground/50 text-sm font-bold mt-1">{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}</p>
+                    <p className="text-muted-foreground/60 text-sm font-bold mt-1">{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}</p>
                 </div>
                 {unreadCount > 0 && (
                     <Button onClick={markAllRead} variant="outline" size="sm" className="rounded-xl font-bold text-xs gap-2 border-border/60 h-10">
@@ -72,11 +72,11 @@ export default function NotificationsPage() {
 
             <div className="space-y-2">
                 {notifications.length === 0 ? (
-                    <div className="py-24 text-center">
-                        <div className="w-20 h-20 rounded-[28px] bg-muted/20 flex items-center justify-center mx-auto mb-4">
+                    <div className="py-24 text-center bg-card/40 rounded-3xl border border-dashed border-border/60">
+                        <div className="w-20 h-20 rounded-[28px] bg-muted/20 flex items-center justify-center mx-auto mb-4 border border-border/40">
                             <Bell size={32} className="text-muted-foreground/20" />
                         </div>
-                        <p className="text-muted-foreground/30 font-black text-sm uppercase tracking-widest">No notifications yet</p>
+                        <p className="text-muted-foreground/60 font-black text-sm uppercase tracking-widest italic">No notifications yet</p>
                     </div>
                 ) : (
                     <AnimatePresence mode="popLayout">

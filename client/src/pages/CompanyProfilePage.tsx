@@ -13,7 +13,8 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function CompanyProfilePage() {
-    const { user, company, setCompany } = useAuthStore();
+    const { user, company, setCompany, hasPermission } = useAuthStore();
+    const canEditSettings = hasPermission('settings.edit');
     const qc = useQueryClient();
     const companyId = company?.id || user?.companyId;
 
@@ -95,7 +96,7 @@ export default function CompanyProfilePage() {
     }
 
     return (
-        <div className="p-8 max-w-[1200px] mx-auto space-y-10">
+        <div className="p-8 max-w-[1600px] mx-auto space-y-10">
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -129,13 +130,13 @@ export default function CompanyProfilePage() {
                     <CardContent className="p-8 space-y-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-4">
-                                <label className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] block">Company Name</label>
+                                <label className="text-muted-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] block">Company Name</label>
                                 <input name="name" defaultValue={fullCompany?.name} required className="w-full bg-muted/20 border border-border/40 p-4 rounded-2xl text-foreground font-black tracking-tight focus:outline-none focus:ring-2 ring-primary/20" />
                             </div>
                             <div className="space-y-4 text-center md:text-left">
-                                <label className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] block">Brand Logo</label>
+                                <label className="text-muted-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] block">Brand Logo</label>
                                 <div className="flex items-center gap-6">
-                                    <div className="size-20 rounded-2xl bg-white border border-border/60 flex items-center justify-center overflow-hidden p-2 shadow-inner">
+                                    <div className="size-20 rounded-2xl bg-card border border-border/60 flex items-center justify-center overflow-hidden p-2 shadow-inner">
                                         {fullCompany?.logo ? (
                                             <img src={fullCompany.logo} className="size-full object-contain" />
                                         ) : (
@@ -164,23 +165,23 @@ export default function CompanyProfilePage() {
                         </CardHeader>
                         <CardContent className="p-8 space-y-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">Official Email</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Official Email</label>
                                 <div className="relative">
-                                    <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+                                    <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
                                     <input name="email" type="email" defaultValue={fullCompany?.email} className="w-full bg-muted/20 border border-border/40 p-4 pl-12 rounded-2xl text-foreground font-bold focus:outline-none focus:ring-2 ring-primary/20" />
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">Contact Number</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Contact Number</label>
                                 <div className="relative">
-                                    <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+                                    <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
                                     <input name="phone" defaultValue={fullCompany?.phone} className="w-full bg-muted/20 border border-border/40 p-4 pl-12 rounded-2xl text-foreground font-bold focus:outline-none focus:ring-2 ring-primary/20" />
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">Website URL</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Website URL</label>
                                 <div className="relative">
-                                    <Globe size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+                                    <Globe size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
                                     <input name="website" defaultValue={fullCompany?.website} placeholder="https://..." className="w-full bg-muted/20 border border-border/40 p-4 pl-12 rounded-2xl text-foreground font-bold focus:outline-none focus:ring-2 ring-primary/20" />
                                 </div>
                             </div>
@@ -326,8 +327,8 @@ export default function CompanyProfilePage() {
                                     resetSequencesMut.mutate();
                                 }
                             }}
-                            disabled={resetSequencesMut.isPending}
-                            className="relative z-10 border-amber-500/20 text-amber-600 hover:bg-amber-500 hover:text-white font-black text-[10px] uppercase tracking-widest px-8 rounded-xl h-11 transition-all shadow-lg shadow-amber-500/5"
+                            disabled={resetSequencesMut.isPending || !canEditSettings}
+                            className="relative z-10 border-amber-500/20 text-amber-600 hover:bg-amber-500 hover:text-white font-black text-[10px] uppercase tracking-widest px-8 rounded-xl h-11 transition-all shadow-lg shadow-amber-500/5 disabled:opacity-50"
                         >
                             {resetSequencesMut.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : <RefreshCcw size={14} className="mr-2" />}
                             Reset All Sequences
@@ -335,16 +336,18 @@ export default function CompanyProfilePage() {
                     </div>
                 </div>
 
-                <div className="flex justify-end pt-6">
-                    <Button
-                        type="submit"
-                        disabled={updateCompanyMut.isPending}
-                        className="rounded-2xl h-14 px-12 font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                        {updateCompanyMut.isPending ? <Loader2 className="size-5 animate-spin mr-3" /> : <CheckCircle2 className="size-5 mr-3" />}
-                        Update Company Profile
-                    </Button>
-                </div>
+                {canEditSettings && (
+                    <div className="flex justify-end pt-6">
+                        <Button
+                            type="submit"
+                            disabled={updateCompanyMut.isPending}
+                            className="rounded-2xl h-14 px-12 font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            {updateCompanyMut.isPending ? <Loader2 className="size-5 animate-spin mr-3" /> : <CheckCircle2 className="size-5 mr-3" />}
+                            Update Company Profile
+                        </Button>
+                    </div>
+                )}
             </form>
         </div>
     );

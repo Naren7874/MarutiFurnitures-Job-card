@@ -31,14 +31,14 @@ type Tab = 'profile' | 'notifications' | 'security' | 'auditlog';
 
 export default function SettingsPage() {
     const [tab, setTab] = useState<Tab>('profile');
-    const { user, logout } = useAuthStore();
+    const { user, logout, hasPermission } = useAuthStore();
 
 
     const TABS: { key: Tab; icon: React.ElementType; label: string; desc: string }[] = [
         { key: 'profile', icon: User, label: 'Identity', desc: 'Personal preferences' },
         { key: 'notifications', icon: Bell, label: 'Alerts', desc: 'Activity streams' },
         { key: 'security', icon: Shield, label: 'Security', desc: 'Protection status' },
-        ...(user?.isSuperAdmin ? [{ key: 'auditlog' as Tab, icon: ScrollText, label: 'Audit Log', desc: 'System event trail' }] : []),
+        ...(hasPermission('audit_log.view') ? [{ key: 'auditlog' as Tab, icon: ScrollText, label: 'Audit Log', desc: 'System event trail' }] : []),
     ];
 
     return (
@@ -50,10 +50,10 @@ export default function SettingsPage() {
                 className="flex items-center justify-between"
             >
                 <div>
-                    <h1 className="text-foreground text-3xl font-black tracking-tight mb-2">System Config</h1>
-                    <div className="flex items-center gap-3">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary/40 shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
-                        <p className="text-muted-foreground text-sm font-semibold tracking-wide uppercase opacity-70">
+                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">System Config</h1>
+                    <div className="flex items-center gap-3.5">
+                        <div className="h-2 w-2 rounded-full bg-primary animate-pulse shadow-[0_0_12px_rgba(var(--primary),0.5)]" />
+                        <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
                             Environment & Account Orchestration
                         </p>
                     </div>
@@ -61,9 +61,9 @@ export default function SettingsPage() {
                 <Button
                     variant="ghost"
                     onClick={logout}
-                    className="text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 font-black text-[10px] uppercase tracking-[0.2em] px-6 h-11 rounded-xl"
+                    className="text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 font-black text-[11px] uppercase tracking-[0.2em] px-8 h-12 rounded-xl"
                 >
-                    <LogOut size={16} className="mr-2" /> Deauthorize
+                    <LogOut size={16} className="mr-2.5" /> Deauthorize
                 </Button>
             </motion.div>
 
@@ -92,10 +92,10 @@ export default function SettingsPage() {
                                     </div>
                                     <div className="text-left flex-1">
                                         <p className={cn(
-                                            "text-sm font-black tracking-tight leading-none mb-1",
+                                            "text-[15px] font-black tracking-tight leading-none mb-1",
                                             tab === key ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
                                         )}>{label}</p>
-                                        <p className="text-[10px] text-muted-foreground/50 font-semibold uppercase tracking-widest">{desc}</p>
+                                        <p className="text-[11px] text-muted-foreground/50 font-black uppercase tracking-widest">{desc}</p>
                                     </div>
                                     {tab === key && (
                                         <ChevronRight size={14} className="ml-auto text-primary" strokeWidth={3} />
@@ -128,7 +128,7 @@ export default function SettingsPage() {
                                                         <CardDescription className="text-muted-foreground/60 text-sm font-medium">Manage your digital presence within the organization</CardDescription>
                                                     </div>
 
-                                                    <div className="flex flex-col sm:flex-row items-center gap-8 p-8 rounded-[24px] bg-white dark:bg-muted/20 border border-border dark:border-border/40 relative group/avatar shadow-inner">
+                                                    <div className="flex flex-col sm:flex-row items-center gap-8 p-8 rounded-[24px] bg-card border border-border/60 relative group/avatar shadow-inner">
                                                         <div className="relative shrink-0">
                                                             <div className="w-24 h-24 rounded-[28px] bg-linear-to-br from-primary to-indigo-600 flex items-center justify-center text-white text-4xl font-black shadow-2xl transform transition-all group-hover/avatar:rotate-6">
                                                                 {user?.name?.charAt(0)}
@@ -142,7 +142,7 @@ export default function SettingsPage() {
                                                                 <p className="text-foreground text-2xl font-black tracking-tighter">{user?.name}</p>
                                                                 <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest rounded-md px-2 py-0.5">Active Vendor</Badge>
                                                             </div>
-                                                            <p className="text-muted-foreground font-bold text-sm mb-4">{user?.email}</p>
+                                                            <p className="text-muted-foreground/80 font-bold text-sm mb-4">{user?.email}</p>
                                                             <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                                                                 <Badge variant="secondary" className="bg-card border border-border text-[9px] font-black uppercase tracking-widest text-muted-foreground rounded-xl px-3 py-1.5">{user?.role?.replace('_', ' ')}</Badge>
                                                                 <Badge variant="secondary" className="bg-card border border-border text-[9px] font-black uppercase tracking-widest text-muted-foreground rounded-xl px-3 py-1.5">{user?.department}</Badge>
@@ -151,7 +151,7 @@ export default function SettingsPage() {
                                                     </div>
 
                                                     <div className="space-y-6 pt-6 border-t border-border/20">
-                                                        <h3 className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em]">Environmental Control</h3>
+                                                        <h3 className="text-muted-foreground/40 text-[11px] font-black uppercase tracking-[0.2em]">Environmental Control</h3>
                                                         <SettingRow label="Visual Aesthetic" description="Toggle between high-contrast and low-light interfaces.">
                                                             <div className="bg-muted p-1.5 rounded-2xl border border-border flex items-center gap-2">
                                                                 <AnimatedThemeToggler />
@@ -203,9 +203,9 @@ export default function SettingsPage() {
                                                         <Card className="p-6 rounded-2xl bg-rose-500/5 border border-rose-500/10 flex items-center justify-between group/row hover:bg-rose-500/10 transition-colors shadow-none">
                                                             <div>
                                                                 <p className="text-foreground font-black text-[15px] tracking-tight">Password Management</p>
-                                                                <CardDescription className="text-muted-foreground/60 text-xs font-bold uppercase tracking-widest mt-1">Last rotated 45 days ago</CardDescription>
+                                                                <CardDescription className="text-muted-foreground/60 text-[11px] font-black uppercase tracking-widest mt-1">Last rotated 45 days ago</CardDescription>
                                                             </div>
-                                                            <Button variant="outline" className="h-10 px-6 rounded-xl border-rose-500/20 text-rose-600 hover:bg-rose-500 hover:text-white font-black text-[9px] uppercase tracking-widest transition-all">Reset Secret</Button>
+                                                            <Button variant="outline" className="h-10 px-6 rounded-xl border-rose-500/20 text-rose-600 hover:bg-rose-500 hover:text-white font-black text-[11px] uppercase tracking-widest transition-all">Reset Secret</Button>
                                                         </Card>
 
                                                         <Card className="p-6 rounded-2xl bg-linear-to-r from-blue-500/5 to-transparent border border-blue-500/10 flex items-center justify-between shadow-none">
@@ -215,20 +215,20 @@ export default function SettingsPage() {
                                                                 </div>
                                                                 <div>
                                                                     <p className="text-foreground font-black text-[15px] tracking-tight">Biometric MFA</p>
-                                                                    <CardDescription className="text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Enhanced biometric verification layer</CardDescription>
+                                                                    <CardDescription className="text-muted-foreground/60 text-[11px] font-black uppercase tracking-widest">Enhanced biometric verification layer</CardDescription>
                                                                 </div>
                                                             </div>
                                                             <Badge variant="outline" className="text-muted-foreground/30 text-[9px] font-black uppercase tracking-[0.2em] italic border-none">Experimental</Badge>
                                                         </Card>
 
                                                         <div className="pt-8 border-t border-border/20">
-                                                            <h3 className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] mb-6">Active Sessions</h3>
+                                                            <h3 className="text-muted-foreground/40 text-[11px] font-black uppercase tracking-[0.2em] mb-6">Active Sessions</h3>
                                                             <div className="space-y-4">
                                                                 {[
                                                                     { device: 'Desktop Workstation', os: 'Linux / Chrome 122', ip: '103.21.**.**', current: true },
                                                                     { device: 'Mobile Handset', os: 'Android 14 / Maruti App', ip: '27.56.**.**', current: false },
                                                                 ].map((s, idx) => (
-                                                                    <div key={idx} className="flex items-center justify-between p-4 rounded-xl bg-white dark:bg-muted/20 border border-border dark:border-border/30">
+                                                                    <div key={idx} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/60 shadow-xs">
                                                                         <div className="flex items-center gap-4">
                                                                             <Laptop className={cn("text-muted-foreground/40", s.current && "text-primary")} size={18} />
                                                                             <div>
@@ -314,16 +314,16 @@ function AuditLogTab() {
     const pagination = data?.pagination
 
     return (
-        <div className="space-y-8 max-w-5xl mx-auto">
+        <div className="space-y-8 max-w-[1600px] mx-auto">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1.5">
-                    <h2 className="text-foreground text-3xl font-black tracking-tight flex items-center gap-3">
-                        <div className="size-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                            <ScrollText className="size-4 text-primary" />
+                    <h2 className="text-4xl font-black tracking-tighter flex items-center gap-3.5 mb-2">
+                        <div className="size-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-inner">
+                            <ScrollText className="size-5 text-primary" strokeWidth={3} />
                         </div>
                         Audit Log
                     </h2>
-                    <p className="text-muted-foreground/60 text-sm font-medium">Monitoring system integrity and user accountability</p>
+                    <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-widest">Monitoring system integrity and user accountability</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button onClick={handleExport} variant="outline" className="rounded-xl h-10 px-4 text-xs font-bold gap-2 bg-background border-border/40 hover:bg-accent/50 transition-all">
@@ -522,10 +522,10 @@ function AuditLogTab() {
                     <div className="flex items-center gap-4">
                         <div className="px-3 py-1.5 rounded-xl bg-accent/5 border border-border/40">
                             <span className="text-xs font-bold text-foreground">
-                                {logs.length} <span className="text-muted-foreground/40 font-medium">OF</span> {pagination.total}
+                                {logs.length} <span className="text-muted-foreground/60 font-medium">OF</span> {pagination.total}
                             </span>
                         </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Audit Events Logged</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Audit Events Logged</p>
                     </div>
 
                     {pagination.pages > 1 && (

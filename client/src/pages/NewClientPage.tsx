@@ -17,7 +17,7 @@ export default function NewClientPage() {
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="p-6 md:p-8 max-w-5xl mx-auto space-y-10"
+            className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-10"
         >
             {/* Header */}
             <motion.div

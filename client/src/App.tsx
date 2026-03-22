@@ -11,7 +11,7 @@ import { ThemeProvider } from './components/theme-provider';
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
-const DashboardPage = lazy(() => import('./pages/dashboard'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 
 // Clients
 const ClientsPage = lazy(() => import('./pages/ClientsPage'));

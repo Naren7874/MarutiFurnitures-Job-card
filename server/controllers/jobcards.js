@@ -425,6 +425,11 @@ export const getJobCardPDF = async (req, res, next) => {
       jobCard,
     });
 
+    // Explicitly set CORS headers on binary response — Cloud Run can drop CORS
+    // headers on large non-JSON responses without this explicit override.
+    const origin = req.headers.origin;
+    if (origin) res.set('Access-Control-Allow-Origin', origin);
+    res.set('Access-Control-Allow-Credentials', 'true');
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${jobCard.jobCardNumber}.pdf"` });
     res.send(pdfBuffer);
   } catch (err) {

@@ -49,7 +49,7 @@ export function AppSidebar({ variant = "sidebar", ...props }: React.ComponentPro
                             <span className="font-bold text-sm tracking-tight leading-none text-foreground truncate max-w-[150px]">
                                 {company?.name || "Maruti Furniture"}
                             </span>
-                            <span className="text-[10px] font-medium text-muted-foreground leading-none">Job Card System</span>
+                            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Job Card System</span>
                         </div>
                     )}
                 </div>
@@ -87,9 +87,7 @@ export function AppSidebar({ variant = "sidebar", ...props }: React.ComponentPro
                                                 isCollapsed ? "size-6" : "size-5",
                                                 isCollapsed && isActive && "scale-90 text-background"
                                             )} />
-                                            {!isCollapsed && (
-                                                <span className="font-bold text-sm tracking-tight">{item.title}</span>
-                                            )}
+                                                <span className="font-bold text-[15px] tracking-tight">{item.title}</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
@@ -117,8 +115,8 @@ export function AppSidebar({ variant = "sidebar", ...props }: React.ComponentPro
                             </Avatar>
                             {!isCollapsed && (
                                 <div className="flex flex-col gap-0.5 overflow-hidden ml-3 items-start text-left animate-in fade-in slide-in-from-left-2 transition-all">
-                                    <span className="font-black text-xs uppercase tracking-tight truncate leading-none text-foreground">{authUser?.name || 'User'}</span>
-                                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">{authUser?.role || 'staff'}</span>
+                                    <span className="font-black text-[13px] uppercase tracking-tight truncate leading-none text-foreground">{authUser?.name || 'User'}</span>
+                                    <span className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mt-1.5">{authUser?.role || 'staff'}</span>
                                 </div>
                             )}
                             {!isCollapsed && <ChevronRight className="ml-auto size-4 text-muted-foreground/30 group-hover:translate-x-1 group-hover:text-foreground transition-all" />}

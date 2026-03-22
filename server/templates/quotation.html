@@ -592,15 +592,19 @@
               <td class="col-desc">
                   <%= item.description %>
                 <div class="specs">
-                  <% if(item.specifications) { %>
-                    <% if(item.specifications.size) { %><span>Size: <%= item.specifications.size %></span><% } %>
-                    <% if(item.specifications.polish) { %><span>Polish: <%= item.specifications.polish %></span><% } %>
-                    <% if(item.specifications.fabric) { %><span>Fabric: <%= item.specifications.fabric %></span><% } %>
-                    <% if(item.specifications.material) { %><span>Material: <%= item.specifications.material %></span><% } %>
-                    <% if(item.specifications.finish) { %><span>Finish: <%= item.specifications.finish %></span><% } %>
-                    <% if(item.specifications.hardware) { %><span>Hardware: <%= item.specifications.hardware %></span><% } %>
-                    <% if(item.specifications.notes) { %><span>Note: <%= item.specifications.notes %></span><% } %>
-                  <% } %>
+                    <% if(item.specifications) { %>
+                      <% if(item.specifications.size) { %><span>Size: <%= item.specifications.size %></span><% } %>
+                      <% if(item.specifications.polish) { %><span>Polish: <%= item.specifications.polish %></span><% } %>
+                      <% if(item.specifications.fabrics && item.specifications.fabrics.length > 0) { %>
+                        <% item.specifications.fabrics.forEach(function(fab, fi) { %>
+                          <span>Fabric<%= item.specifications.fabrics.length > 1 ? ' ' + (fi + 1) : '' %>: <%= fab %></span>
+                        <% }); %>
+                      <% } else if(item.specifications.fabric) { %><span>Fabric: <%= item.specifications.fabric %></span><% } %>
+                      <% if(item.specifications.material) { %><span>Material: <%= item.specifications.material %></span><% } %>
+                      <% if(item.specifications.finish) { %><span>Finish: <%= item.specifications.finish %></span><% } %>
+                      <% if(item.specifications.hardware) { %><span>Hardware: <%= item.specifications.hardware %></span><% } %>
+                      <% if(item.specifications.notes) { %><span>Note: <%= item.specifications.notes %></span><% } %>
+                    <% } %>
                 </div>
               </td>
               <td class="col-qty">
@@ -610,7 +614,12 @@
                 <% if(item.mrp) { %>₹<%= item.mrp.toLocaleString('en-IN') %>
                     <% } else { %>—<% } %>
               </td>
-              <td class="col-price">₹<%= (item.totalPrice || 0).toLocaleString('en-IN') %>
+              <td class="col-price">
+                <% if (item.sellingPrice > 0) { %>
+                  ₹<%= (item.totalPrice || 0).toLocaleString('en-IN') %>
+                <% } else { %>
+                  <span style="color: #999; font-size: 10px; font-weight: 500;">TBD</span>
+                <% } %>
               </td>
             </tr>
 

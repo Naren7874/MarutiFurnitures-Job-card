@@ -11,6 +11,7 @@ import {
   getQuotationPDF,
   assignStaffToQuotation,
   updateQuotationJobCardTeams,
+  deleteQuotation,
 } from '../controllers/quotations.js';
 import { authenticateJWT }    from '../middleware/auth.js';
 import { injectCompanyScope } from '../middleware/scope.js';
@@ -30,6 +31,7 @@ router.patch('/:id/send',         checkPermission('quotation.send'),   sendQuota
 router.patch('/:id/approve',      checkPermission('quotation.edit'),   approveQuotation);
 router.patch('/:id/reject',       checkPermission('quotation.edit'),   rejectQuotation);
 router.post('/:id/revise',        checkPermission('quotation.create'), reviseQuotation);
+router.delete('/:id',              checkPermission('quotation.delete'), deleteQuotation);
 
 // ── Assign Staff to Quotation ──────────────────────────────────
 router.patch('/:id/assign-staff', checkPermission('jobcard.assign'),   assignStaffToQuotation);

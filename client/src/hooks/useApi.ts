@@ -29,6 +29,8 @@ export const QK = {
     me: () => ['auth', 'me'],
     dashboard: (cid: string) => ['dashboard', cid, 'stats'],
     reports: (cid: string, type: string, params?: object) => ['reports', cid, type, params],
+    users: (cid: string, params?: object) => ['users', cid, params],
+    user: (cid: string, id: string) => ['user', cid, id],
 };
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -220,6 +222,24 @@ export const useReviseQuotation = (id: string) => {
             toast.success('Revision created successfully');
         },
         onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create revision'),
+    });
+};
+
+export const useDeleteQuotation = (id: string) => {
+    const qc = useQueryClient();
+    const { company } = useAuthStore();
+    const cid = company?.id || '';
+    return useMutation({
+        mutationFn: () => apiDelete(`/quotations/${id}`),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['quotations', cid] });
+            qc.invalidateQueries({ queryKey: ['projects', cid] });
+            qc.invalidateQueries({ queryKey: ['jobcards', cid] });
+            qc.invalidateQueries({ queryKey: ['invoices', cid] });
+            qc.invalidateQueries({ queryKey: ['dashboard', cid] });
+            toast.success('Quotation deleted successfully');
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to delete quotation'),
     });
 };
 
@@ -744,6 +764,22 @@ export const useCancelPO = (id: string) => {
             qc.invalidateQueries({ queryKey: ['purchaseOrders', cid] });
             qc.invalidateQueries({ queryKey: PO_KEYS.one(cid, id) });
         },
+    });
+};
+
+// ─── Users & Roles ────────────────────────────────────────────────────────────
+
+export const useDeleteUser = () => {
+    const qc = useQueryClient();
+    const { company } = useAuthStore();
+    const cid = company?.id || '';
+    return useMutation({
+        mutationFn: (id: string) => apiDelete(`/users/${id}`),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['users', cid] });
+            toast.success('User permanently deleted');
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to delete user'),
     });
 };
 
