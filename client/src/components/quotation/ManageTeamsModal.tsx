@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { format, parseISO } from 'date-fns';
 import {
     Dialog,
     DialogContent,
@@ -19,6 +20,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Badge } from '@/components/ui/badge';
 import { StaffMultiSelect } from '../shared/StaffMultiSelect';
 import { toast } from 'sonner';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface TeamAssignment {
     design: string[];
@@ -216,11 +218,10 @@ export default function ManageTeamsModal({
                                         <label className="text-xs font-black uppercase tracking-[0.2em] text-foreground/80 ml-1 flex items-center gap-2">
                                             <CalendarDays size={14} className="text-primary" /> Expected Delivery
                                         </label>
-                                        <Input 
-                                            type="date"
-                                            value={globalConfig.expectedDelivery} 
-                                            onChange={e => setGlobalConfig(prev => ({ ...prev, expectedDelivery: e.target.value }))}
-                                            className="h-14 rounded-[20px] bg-background/50 border-border/60 text-sm font-bold shadow-sm focus:ring-primary/20 hover:border-primary/40 transition-colors scheme-dark"
+                                        <DatePicker 
+                                            date={globalConfig.expectedDelivery ? parseISO(globalConfig.expectedDelivery) : undefined} 
+                                            setDate={(date) => setGlobalConfig(prev => ({ ...prev, expectedDelivery: date ? format(date, 'yyyy-MM-dd') : '' }))}
+                                            className="h-14 rounded-[20px] bg-background/50 border-border/60 text-sm font-bold shadow-sm focus:ring-primary/20 hover:border-primary/40 transition-colors"
                                         />
                                     </div>
                                 </div>
@@ -352,11 +353,10 @@ export default function ManageTeamsModal({
                                                         <label className="text-xs font-black uppercase tracking-wider text-foreground/50 ml-2 flex items-center gap-2">
                                                             <CalendarDays size={14} className="text-primary/70" /> Delivery Date
                                                         </label>
-                                                        <Input 
-                                                            type="date"
-                                                            value={config.expectedDelivery} 
-                                                            onChange={e => updateSingle(idx, 'expectedDelivery', e.target.value)}
-                                                            className="h-14 rounded-[20px] bg-muted/30 border-border/30 text-sm font-bold shadow-inner group-hover/card:bg-background transition-colors scheme-dark"
+                                                        <DatePicker 
+                                                            date={config.expectedDelivery ? parseISO(config.expectedDelivery) : undefined} 
+                                                            setDate={(date) => updateSingle(idx, 'expectedDelivery', date ? format(date, 'yyyy-MM-dd') : '')}
+                                                            className="h-14 bg-muted/30 border-border/30 text-sm font-bold shadow-inner group-hover/card:bg-background transition-colors"
                                                         />
                                                     </div>
                                                 </div>

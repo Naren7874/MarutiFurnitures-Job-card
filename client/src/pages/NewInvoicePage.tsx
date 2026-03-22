@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { format, parseISO } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Receipt, Loader2, Plus, Trash2, Check, ChevronDown, X } from 'lucide-react';
 import { useCreateInvoice, useClients, useProjects, useProject, useQuotation } from '../hooks/useApi';
@@ -10,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface LineItem {
     category: string;
@@ -340,7 +342,11 @@ export default function NewInvoicePage() {
 
                         <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground/60">Due Date</Label>
-                            <Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} className="rounded-xl h-10" />
+                            <DatePicker 
+                                date={form.dueDate ? parseISO(form.dueDate) : undefined} 
+                                setDate={(date) => setForm(f => ({ ...f, dueDate: date ? format(date, 'yyyy-MM-dd') : '' }))}
+                                className="h-10 border-border/60 font-bold text-xs"
+                            />
                         </div>
                     </div>
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { format, parseISO } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search, FolderOpen, Calendar, Building2, ChevronRight, MoreHorizontal, FilterX, LayoutGrid, Clock, CheckCircle2, X } from 'lucide-react';
 import { useProjects } from '../hooks/useApi';
@@ -11,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { DatePicker } from '@/components/ui/date-picker';
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; border: string; icon: any }> = {
     planning: { bg: 'bg-indigo-500/10', text: 'text-indigo-600 dark:text-indigo-400', border: 'border-indigo-500/20', icon: Clock },
@@ -394,8 +396,11 @@ export default function ProjectsPage() {
                             {/* Expected Delivery */}
                             <div className="space-y-2">
                                 <label className="text-xs font-black uppercase tracking-widest text-muted-foreground/50">Expected Delivery</label>
-                                <Input type="date" value={expectedDelivery} onChange={e => setExpectedDelivery(e.target.value)}
-                                    className="h-11 rounded-xl border-border/50 bg-muted/20" />
+                                <DatePicker 
+                                    date={expectedDelivery ? parseISO(expectedDelivery) : undefined} 
+                                    setDate={(date) => setExpectedDelivery(date ? format(date, 'yyyy-MM-dd') : '')}
+                                    className="h-11 border-border/50 bg-muted/20 font-bold"
+                                />
                             </div>
 
                             <Button

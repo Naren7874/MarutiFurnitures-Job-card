@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { format, parseISO } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useCreatePO, useInventory } from '../hooks/useApi';
@@ -7,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion, AnimatePresence } from 'motion/react';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface POItem {
     itemName: string;
@@ -90,7 +92,11 @@ export default function NewPurchaseOrderPage() {
                         </div>
                         <div className="space-y-1.5">
                             <Label className="text-xs font-bold text-muted-foreground/60">Required By</Label>
-                            <Input type="date" value={requiredBy} onChange={e => setRequiredBy(e.target.value)} className="rounded-xl h-10" />
+                            <DatePicker 
+                                date={requiredBy ? parseISO(requiredBy) : undefined} 
+                                setDate={(date) => setRequiredBy(date ? format(date, 'yyyy-MM-dd') : '')}
+                                className="h-10 border-border/60 font-bold text-xs"
+                            />
                         </div>
                         <div className="space-y-1.5">
                             <Label className="text-xs font-bold text-muted-foreground/60">Notes</Label>

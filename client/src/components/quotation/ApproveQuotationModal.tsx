@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { format, parseISO } from 'date-fns';
 import {
     Dialog,
     DialogContent,
@@ -20,6 +21,7 @@ import { motion } from 'motion/react';
 
 import { Badge } from '@/components/ui/badge';
 import { StaffMultiSelect } from '../shared/StaffMultiSelect';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface TeamAssignment {
     design: string[];
@@ -233,11 +235,10 @@ export default function ApproveQuotationModal({
                                         <label className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/80 ml-1 flex items-center gap-2">
                                             <CalendarDays size={12} className="text-primary" /> Expected Delivery
                                         </label>
-                                        <Input 
-                                            type="date"
-                                            value={globalConfig.expectedDelivery} 
-                                            onChange={e => setGlobalConfig(prev => ({ ...prev, expectedDelivery: e.target.value }))}
-                                            className="h-12 rounded-2xl bg-background/50 border-border/60 text-sm font-bold shadow-sm focus:ring-primary/20 hover:border-primary/40 transition-colors"
+                                        <DatePicker 
+                                            date={globalConfig.expectedDelivery ? parseISO(globalConfig.expectedDelivery) : undefined} 
+                                            setDate={(date) => setGlobalConfig(prev => ({ ...prev, expectedDelivery: date ? format(date, 'yyyy-MM-dd') : '' }))}
+                                            className="h-12 bg-background/50 border-border/60 text-sm font-bold shadow-sm focus:ring-primary/20 hover:border-primary/40 transition-colors"
                                         />
                                     </div>
                                 </div>
@@ -455,11 +456,10 @@ export default function ApproveQuotationModal({
                                                     <label className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1 flex items-center gap-2">
                                                         <CalendarDays size={12} className="text-primary/60" /> Delivery Date
                                                     </label>
-                                                    <Input 
-                                                        type="date"
-                                                        value={config.expectedDelivery} 
-                                                        onChange={e => handleUpdateItem(idx, 'expectedDelivery', e.target.value)}
-                                                        className="h-12 rounded-2xl bg-muted/40 border-border/40 text-sm font-bold shadow-inner group-hover/card:bg-background transition-colors"
+                                                    <DatePicker 
+                                                        date={config.expectedDelivery ? parseISO(config.expectedDelivery) : undefined} 
+                                                        setDate={(date) => handleUpdateItem(idx, 'expectedDelivery', date ? format(date, 'yyyy-MM-dd') : '')}
+                                                        className="h-12 bg-muted/40 border-border/40 text-sm font-bold shadow-inner group-hover/card:bg-background transition-colors"
                                                     />
                                                 </div>
                                             </div>

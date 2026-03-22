@@ -1,6 +1,6 @@
 import { useAuthStore } from '../stores/authStore';
 import { useJobCards, useDashboardStats } from '../hooks/useApi';
-import { Clock, FileX, LayoutGrid, ClipboardCheck, FileText, ShieldCheck, CheckCircle2 as CheckCircleIcon, Package, History } from 'lucide-react';
+import { FileX, LayoutGrid, ClipboardCheck, FileText, ShieldCheck, CheckCircle2 as CheckCircleIcon, Package, History } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { apiGet } from '../lib/axios';
@@ -19,6 +19,7 @@ import { BottleneckAlert } from "@/components/dashboard/bottleneck-alert";
 import { UpcomingDeliveries } from "@/components/dashboard/upcoming-deliveries";
 import { WhatsAppLog } from "@/components/dashboard/whatsapp-log";
 import { QuickActions } from "@/components/dashboard/quick-actions";
+import { DashboardCalendar } from "@/components/dashboard/dashboard-calendar";
 import { DUMMY_ACTIVITIES, DUMMY_USERS } from "@/lib/dummy-data";
 
 const STAFF_ROLES = ['design', 'store', 'production', 'qc', 'dispatch', 'sales', 'accountant'];
@@ -185,12 +186,7 @@ function AdminDashboard() {
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2.5 bg-card border border-border px-5 py-2.5 rounded-2xl shadow-xs">
-                    <Clock size={16} className="text-primary" />
-                    <span className="text-[13px] font-black uppercase tracking-widest text-foreground">
-                        {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
-                    </span>
-                </div>
+                <DashboardCalendar jobCards={allJobCards} />
             </motion.div>
 
             {/* KPI Row */}

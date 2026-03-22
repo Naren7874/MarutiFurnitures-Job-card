@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { format, parseISO } from 'date-fns';
 import { useParams, Link } from 'react-router-dom';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPut, apiPatch, downloadPdf, apiUpload } from '../lib/axios';
@@ -20,6 +21,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { PhotoUploadZone } from '@/components/ui/photo-upload-zone';
 import { cn } from '../lib/utils';
 import { ImagePreview } from '@/components/ui/image-preview';
+import { DatePicker } from '@/components/ui/date-picker';
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -1530,7 +1532,11 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5 col-span-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Delivery Date</Label>
-                                <Input type="date" value={form.scheduledDate} onChange={e => setForm(f => ({ ...f, scheduledDate: e.target.value }))} className="rounded-xl h-10" />
+                                <DatePicker 
+                                    date={form.scheduledDate ? parseISO(form.scheduledDate) : undefined} 
+                                    setDate={(date) => setForm(f => ({ ...f, scheduledDate: date ? format(date, 'yyyy-MM-dd') : '' }))} 
+                                    className="h-10 border-border/40 focus:ring-cyan-500/20 focus:border-cyan-500/50 transition-all font-bold" 
+                                />
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Time Slot</Label>
@@ -1719,7 +1725,11 @@ function EditJobCardModal({ jc, onClose, onSuccess }: any) {
                         </div>
                         <div className="space-y-2 md:col-span-2">
                             <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70">Expected Delivery</Label>
-                            <Input type="date" value={expectedDelivery} onChange={e => setExpectedDelivery(e.target.value)} className="h-12 rounded-xl" />
+                            <DatePicker 
+                                date={expectedDelivery ? parseISO(expectedDelivery) : undefined} 
+                                setDate={(date) => setExpectedDelivery(date ? format(date, 'yyyy-MM-dd') : '')} 
+                                className="h-12 border-border/40 focus:ring-primary/20 hover:border-primary/40 transition-colors font-bold" 
+                            />
                         </div>
                         <div className="space-y-2 md:col-span-3">
                             <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70">Contact Person</Label>
