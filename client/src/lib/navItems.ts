@@ -43,7 +43,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     { title: 'Job Cards',         url: '/jobcards',          icon: ClipboardList,permission: 'jobcard.view' },
 
     // ── Finance & Supply stack ─────────────────────────────────────────
-    { title: 'Proforma Invoices', url: '/proforma-invoices', icon: Banknote,     permission: 'invoice.view' },
+    { title: 'Proforma Invoices', url: '/invoices',          icon: Banknote,     permission: 'invoice.view' },
     { title: 'Inventory',         url: '/inventory',         icon: Package,      permission: 'inventory.view' },
     { title: 'Purchase Orders',   url: '/purchase-orders',   icon: ShoppingCart, permission: 'purchaseOrder.view' },
 
