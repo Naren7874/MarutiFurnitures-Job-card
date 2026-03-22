@@ -609,22 +609,11 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                                     </div>
                                                 </div>
                                             )}
-                                            <label className="cursor-pointer">
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    className="hidden"
-                                                    disabled={item.uploadingExtra}
-                                                    onChange={e => { const f = e.target.files?.[0]; if (f) handleExtraUpload(item.id, f); e.target.value = ''; }}
-                                                />
-                                                <div className={cn(
-                                                    'flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-primary/30 text-primary/60 text-xs font-bold hover:bg-primary/5 transition-colors cursor-pointer',
-                                                    item.uploadingExtra && 'opacity-60 cursor-wait'
-                                                )}>
-                                                    {item.uploadingExtra ? <Loader2 size={12} className="animate-spin" /> : <ImagePlus size={12} />}
-                                                    {item.uploadingExtra ? 'Uploading…' : '+ Add More Photos'}
-                                                </div>
-                                            </label>
+                                            <ExtraPhotoPasteZone 
+                                                itemId={item.id} 
+                                                onUpload={handleExtraUpload} 
+                                                uploading={item.uploadingExtra} 
+                                            />
                                         </div>
 
                                         {/* Fields */}
@@ -825,6 +814,56 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 const inputCls      = 'bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-bold text-[15px] px-5 focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/30 shadow-xs';
 const smallInputCls = 'bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-10 rounded-xl font-bold px-4 text-[13px] focus:ring-1 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/30 w-full shadow-xs';
 const labelCls      = 'text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.2em] block mb-2.5 ml-1';
+
+function ExtraPhotoPasteZone({ itemId, onUpload, uploading }: { itemId: string; onUpload: (id: string, file: File) => Promise<void>; uploading: boolean }) {
+    const [isHovered, setIsHovered] = useState(false);
+
+    useEffect(() => {
+        const handleGlobalPaste = (e: ClipboardEvent) => {
+            if (!isHovered) return;
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const file = items[i].getAsFile();
+                    if (file) {
+                        onUpload(itemId, file).then(() => toast.success('Extra photo pasted!'));
+                        e.preventDefault();
+                        return;
+                    }
+                }
+            }
+        };
+        window.addEventListener('paste', handleGlobalPaste);
+        return () => window.removeEventListener('paste', handleGlobalPaste);
+    }, [isHovered, itemId, onUpload]);
+
+    return (
+        <label 
+            className={cn(
+                "cursor-pointer outline-none transition-all rounded-xl block",
+                isHovered && "ring-2 ring-primary/40 animate-pulse bg-primary/5"
+            )}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploading}
+                onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(itemId, f); e.target.value = ''; }}
+            />
+            <div className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-primary/30 text-primary/60 text-xs font-bold hover:bg-primary/5 transition-all cursor-pointer',
+                uploading && 'opacity-60 cursor-wait'
+            )}>
+                {uploading ? <Loader2 size={12} className="animate-spin" /> : <ImagePlus size={12} />}
+                {uploading ? 'Uploading…' : isHovered ? 'Press Ctrl+V to Paste' : '+ Add More (Paste Ctrl+V)'}
+            </div>
+        </label>
+    );
+}
 
 function FormSection({ title, icon: Icon, children }: { title: string; icon: any; children: React.ReactNode }) {
     return (
