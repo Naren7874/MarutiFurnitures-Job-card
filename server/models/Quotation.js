@@ -25,6 +25,11 @@ const quotationItemSchema = new mongoose.Schema(
       material: String,                                  // "BWR Ply 19mm"
       finish:   String,
       hardware: String,
+      priority: {
+        type: String,
+        enum: ["low", "medium", "high", "urgent"],
+        default: "medium",
+      },
       notes:    String,                                  // "As per design"
     },
 

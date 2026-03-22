@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useJobCards, useDashboardStats } from '../hooks/useApi';
 import { FileX, LayoutGrid, ClipboardCheck, FileText, ShieldCheck, CheckCircle2 as CheckCircleIcon, Package, History } from 'lucide-react';
@@ -74,7 +75,7 @@ const statusColorMap: Record<string, string> = {
 // ── Admin Dashboard ────────────────────────────────────────────────────────────
 
 function AdminDashboard() {
-    const { user, hasPermission } = useAuthStore();
+    const { user, company, hasPermission } = useAuthStore();
     const canViewFinancial = hasPermission('reports.view_financial');
     const canViewProduction = hasPermission('reports.view_production');
     const canDoQC = hasPermission(['qcStage.edit', 'qcStage.pass']);
@@ -86,21 +87,30 @@ function AdminDashboard() {
     const stats = (statsRaw as any)?.data;
     const allJobCards: any[] = (jobsRaw as any)?.data ?? [];
 
-    const { data: priorities } = useQuery({
-        queryKey: ["priority-queue", user?.companyId],
-        queryFn: async () => allJobCards
-            .filter((jc: any) => jc.priority === 'urgent' || jc.priority === 'high')
-            .sort((a: any, b: any) => (b.priority === 'urgent' ? 1 : 0) - (a.priority === 'urgent' ? 1 : 0))
-            .slice(0, 8)
-            .map((jc: any) => ({
-                id: jc._id,
-                jobNumber: jc.jobCardNumber,
-                client: jc.clientId?.name || 'Unknown',
-                priority: jc.priority.toUpperCase() as 'HIGH' | 'URGENT',
-                stage: jc.status.toUpperCase(),
-                completionPercent: jc.status === 'delivered' ? 100 : jc.status === 'qc_passed' ? 90 : 50,
-            }))
-    });
+    const priorities = useMemo(() => {
+        return Array.isArray(allJobCards) 
+            ? allJobCards
+                .filter((jc: any) => !['closed', 'cancelled', 'delivered'].includes(jc.status))
+                .sort((a: any, b: any) => {
+                    const pMap: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+                    const pA = pMap[a.priority] ?? 2;
+                    const pB = pMap[b.priority] ?? 2;
+                    if (pA !== pB) return pA - pB;
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                })
+                .slice(0, 15)
+                .map((jc: any) => ({
+                    id: jc._id,
+                    jobNumber: jc.jobCardNumber,
+                    client: jc.projectId?.projectName 
+                        ? `${jc.clientId?.name || 'Unknown'} — ${jc.projectId.projectName}` 
+                        : (jc.clientId?.name || 'Unknown'),
+                    priority: jc.priority?.toUpperCase() as any,
+                    stage: (jc.status || 'ACTIVE').toUpperCase().replace(/_/g, ' '),
+                    completionPercent: jc.status === 'delivered' ? 100 : jc.status === 'qc_passed' ? 90 : (jc.status === 'in_production' ? 60 : 30),
+                }))
+            : [];
+    }, [allJobCards]);
 
     const statusStats = stats ? Object.entries(stats.jobCards.byStage).map(([status, count]) => ({
         status,
@@ -109,7 +119,7 @@ function AdminDashboard() {
     })) : [];
 
     const { data: bottlenecks } = useQuery({
-        queryKey: ["bottlenecks", user?.companyId],
+        queryKey: ["bottlenecks", company?.id || user?.companyId],
         queryFn: async () => {
             const now = new Date();
             return allJobCards
@@ -128,7 +138,7 @@ function AdminDashboard() {
     });
 
     const { data: deliveries } = useQuery({
-        queryKey: ["upcoming-deliveries", user?.companyId],
+        queryKey: ["upcoming-deliveries", company?.id || user?.companyId],
         queryFn: async () => allJobCards
             .filter((jc: any) => jc.status === 'dispatch_pending' || jc.status === 'out_for_delivery')
             .map((jc: any) => ({

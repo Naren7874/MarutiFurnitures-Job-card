@@ -197,6 +197,7 @@ export const updateQuotation = async (req, res, next) => {
             unit:           quoItem.unit || 'pcs',
           }];
           // Also sync project level fields in case they changed
+          matchingJC.priority = quoItem.specifications?.priority || matchingJC.priority;
           matchingJC.expectedDelivery = quotation.validUntil || matchingJC.expectedDelivery; // fallback or logic
           
           await matchingJC.save();
@@ -226,7 +227,7 @@ export const updateQuotation = async (req, res, next) => {
             }],
             expectedDelivery: quotation.validUntil, // default to validUntil if set
             status:      'active',
-            priority:    'medium',
+            priority:    quoItem.specifications?.priority || 'medium',
             createdBy:   req.user.userId,
             activityLog: [{
               action:    'created',
@@ -489,7 +490,7 @@ export const approveQuotation = async (req, res, next) => {
           : (config.contactPerson || prev.contactPerson || ''),
         expectedDelivery: config.expectedDelivery,
         assignedTo,
-        priority:    'medium',
+        priority:    item.specifications?.priority || 'medium',
         orderDate:   new Date(),
         status:      'active',
         activityLog: [{

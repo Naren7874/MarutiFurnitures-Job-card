@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -10,7 +11,7 @@ interface PriorityQueueItem {
     id: string
     jobNumber: string
     client: string
-    priority: 'URGENT' | 'HIGH'
+    priority: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW'
     stage: string
     completionPercent?: number
     estimatedValue?: number
@@ -23,6 +24,8 @@ interface PriorityQueueProps {
 const priorityConfig = {
     URGENT: { label: 'Urgent', className: 'bg-red-500 text-white border-none' },
     HIGH: { label: 'High', className: 'bg-amber-500 text-white border-none' },
+    MEDIUM: { label: 'Medium', className: 'bg-blue-500 text-white border-none' },
+    LOW: { label: 'Low', className: 'bg-slate-500 text-white border-none' },
 }
 
 const stageColors: Record<string, string> = {
@@ -37,6 +40,7 @@ const stageColors: Record<string, string> = {
 }
 
 export function PriorityQueue({ items }: PriorityQueueProps) {
+    const navigate = useNavigate()
     const urgentCount = items.filter(i => i.priority === 'URGENT').length
 
     return (
@@ -58,7 +62,12 @@ export function PriorityQueue({ items }: PriorityQueueProps) {
                             <span className="text-xs font-semibold text-red-600 dark:text-red-400">{urgentCount} Urgent</span>
                         </div>
                     )}
-                    <Button variant="ghost" size="sm" className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground"
+                        onClick={() => navigate('/jobcards')}
+                    >
                         View All <ExternalLink className="ml-1.5 h-3 w-3" />
                     </Button>
                 </div>
@@ -83,6 +92,7 @@ export function PriorityQueue({ items }: PriorityQueueProps) {
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: index * 0.06 }}
+                                        onClick={() => navigate(`/jobcards/${item.id}`)}
                                         className="group relative p-4 rounded-xl border border-border bg-background hover:bg-muted/30 transition-all cursor-pointer hover:border-primary/30 hover:shadow-sm"
                                     >
                                         <div className="flex items-center justify-between">
@@ -99,7 +109,10 @@ export function PriorityQueue({ items }: PriorityQueueProps) {
                                                             {priorityConfig[item.priority].label}
                                                         </Badge>
                                                     </div>
-                                                    <span className="text-xs text-muted-foreground font-medium truncate block max-w-[180px]">{item.client}</span>
+                                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground/70 font-medium truncate max-w-[200px]">
+                                                        <div className="size-1 rounded-full bg-border" />
+                                                        {item.client}
+                                                    </div>
                                                 </div>
                                             </div>
 

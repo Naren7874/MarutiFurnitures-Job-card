@@ -10,7 +10,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft, Plus, Trash2, Save, Loader2,
     User2, ReceiptText, Search, X, ImagePlus, List, Check,
-    Users,
+    Users, GripVertical
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
@@ -25,7 +25,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { PhotoUploadZone } from '@/components/ui/photo-upload-zone';
 import { DatePicker } from '@/components/ui/date-picker';
-import { motion, AnimatePresence } from 'motion/react';
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { motion, AnimatePresence, Reorder } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { apiUpload } from '../../lib/axios';
 import { toast } from 'sonner';
@@ -44,6 +47,7 @@ interface Item {
     size: string;
     polish: string;
     material: string;
+    priority: 'low' | 'medium' | 'high' | 'urgent';
     fabrics: string[];        // multi-fabric names
     qty: number;
     mrp: number;
@@ -63,6 +67,7 @@ const blankItem = (srNo: number): Item => ({
     id: crypto.randomUUID(),
     srNo,
     category: '', description: '', size: '', polish: '', material: '',
+    priority: 'medium',
     fabrics: [''],
     qty: 1, mrp: 0, sellingPrice: 0, totalPrice: 0,
     photo: '', photoPublicId: '', uploading: false,
@@ -79,6 +84,7 @@ const dbItemToLocal = (dbItem: any): Item => ({
     size: dbItem.specifications?.size || '',
     polish: dbItem.specifications?.polish || '',
     material: dbItem.specifications?.material || '',
+    priority: dbItem.specifications?.priority || 'medium',
     // Multi-fabric: prefer new array, fallback to legacy single fabric string
     fabrics: dbItem.specifications?.fabrics?.length
         ? dbItem.specifications.fabrics
@@ -253,12 +259,13 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         clientId: selectedClient?._id,
         ...project,
         validUntil: project.validUntil || null,
-        items: items.map(({ id, totalPrice, uploading, uploadingFabric, uploadingExtra, size, polish, material, fabrics, ...rest }) => ({
+        items: items.map(({ id, totalPrice, uploading, uploadingFabric, uploadingExtra, size, polish, material, fabrics, priority, ...rest }) => ({
             ...rest,
             specifications: {
                 size,
                 polish,
                 material,
+                priority,
                 fabrics: fabrics.filter(f => f.trim() !== ''),
             },
             totalPrice: rest.qty * (rest.sellingPrice || 0),
@@ -522,19 +529,31 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
                 {/* === Section 2: Items === */}
                 <FormSection title={`Quotation Items (${items.length})`} icon={List}>
-                    <div className="space-y-4">
-                        <AnimatePresence>
+                    <Reorder.Group 
+                        axis="y" 
+                        values={items} 
+                        onReorder={(newItems) => {
+                            setItems(newItems.map((item, idx) => ({ ...item, srNo: idx + 1 })));
+                        }}
+                        className="space-y-4"
+                    >
+                        <AnimatePresence initial={false}>
                             {items.map(item => (
-                                <motion.div
+                                <Reorder.Item
                                     key={item.id}
-                                    layout
+                                    value={item}
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
-                                    className="p-5 bg-card border border-border/60 rounded-2xl space-y-4 relative group"
+                                    className="p-5 bg-card border border-border/60 rounded-2xl space-y-4 relative group touch-none"
                                 >
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[11px] font-black text-primary/70 uppercase tracking-[0.15em] bg-primary/10 px-3 py-1.5 rounded-xl">Item {item.srNo}</span>
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-1 cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-primary transition-colors">
+                                                <GripVertical size={16} />
+                                            </div>
+                                            <span className="text-[11px] font-black text-primary/70 uppercase tracking-[0.15em] bg-primary/10 px-3 py-1.5 rounded-xl">Item {item.srNo}</span>
+                                        </div>
                                         <div className="flex items-center gap-2">
                                             <Button
                                                 type="button"
@@ -638,6 +657,20 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                                 <label className={labelCls}>Polish / Finish</label>
                                                 <Input value={item.polish} onChange={e => updateItem(item.id, 'polish', e.target.value)} placeholder="e.g. Natural Teak" className={smallInputCls} />
                                             </div>
+                                            <div>
+                                                <label className={labelCls}>Priority Level</label>
+                                                <Select value={item.priority} onValueChange={(v: any) => updateItem(item.id, 'priority', v)}>
+                                                    <SelectTrigger className={cn(smallInputCls, "justify-between")}>
+                                                        <SelectValue placeholder="Select Priority" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-2xl">
+                                                        <SelectItem value="low" className="text-[10px] font-black uppercase tracking-widest">Low Level</SelectItem>
+                                                        <SelectItem value="medium" className="text-[10px] font-black uppercase tracking-widest text-yellow-600 dark:text-yellow-500">Medium</SelectItem>
+                                                        <SelectItem value="high" className="text-[10px] font-black uppercase tracking-widest text-primary">High Priority</SelectItem>
+                                                        <SelectItem value="urgent" className="text-[10px] font-black uppercase tracking-widest text-red-600 dark:text-red-500">Urgent Action</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
 
                                             {/* ── Fabric Names (multi) ── */}
                                             <div className="col-span-2">
@@ -704,13 +737,13 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                             </div>
                                         </div>
                                     </div>
-                                </motion.div>
+                                </Reorder.Item>
                             ))}
                         </AnimatePresence>
-                        <Button type="button" variant="outline" onClick={addItem} className="w-full h-11 rounded-2xl border-dashed border-border font-bold text-sm gap-2 hover:border-primary/30 hover:bg-primary/3 transition-all text-muted-foreground hover:text-primary">
-                            <Plus size={14} /> Add Item
-                        </Button>
-                    </div>
+                    </Reorder.Group>
+                    <Button type="button" variant="outline" onClick={addItem} className="w-full h-11 rounded-2xl border-dashed border-border font-bold text-sm gap-2 hover:border-primary/30 hover:bg-primary/3 transition-all text-muted-foreground hover:text-primary">
+                        <Plus size={14} /> Add Item
+                    </Button>
                 </FormSection>
 
                 {/* === Section 3: Financial Summary === */}
