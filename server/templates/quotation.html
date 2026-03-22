@@ -174,11 +174,13 @@
     /* category header row */
     .category-row td {
       background: #f0e8d0;
-      font-weight: 700;
-      font-size: 11px;
+      font-weight: 900;
+      font-size: 16px;
       text-align: center;
       color: #5a3e00;
-      padding: 4px 8px;
+      padding: 6px 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     .col-no {
@@ -216,8 +218,8 @@
     }
 
     .item-photo {
-      max-width: 85px;
-      max-height: 120px;
+      max-width: 140px;
+      max-height: 180px;
       width: auto;
       height: auto;
       object-fit: contain;
@@ -260,15 +262,14 @@
     }
 
     .specs {
-      margin-top: 8px;
-      font-size: 13px;
-      color: #555;
-      line-height: 1.8;
+      margin-top: 4px;
+      font-size: 12px;
+      color: #1a1a1a;
+      line-height: 1.4;
     }
     .specs span {
       display: block;
-      padding: 4px 0;
-      border-bottom: 0.5px solid #ececec;
+      padding: 1px 0;
     }
     .specs span:last-child {
       border-bottom: none;
@@ -503,7 +504,7 @@
       <td class="label">Date & Time</td>
       <td>
         <% var dateObj = new Date(quotation.createdAt); %>
-        <%= dateObj.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) %> <br/>
+        <%= dateObj.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) %> 
         <small style="color: #666;"><%= dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) %></small>
       </td>
     </tr>
@@ -572,34 +573,19 @@
               </td>
               <td class="col-photo">
                 <div class="photo-grid">
-                  <!-- Primary photo -->
+                  <!-- Show ONLY the first available photo -->
                   <div class="photo-wrap">
                     <% if (item.photo) { %>
                       <img src="<%= item.photo %>" class="item-photo" alt="main" />
+                    <% } else if (item.fabricPhoto) { %>
+                      <img src="<%= item.fabricPhoto %>" class="item-photo" alt="fabric" />
+                    <% } else if (item.photos && item.photos.length > 0) { %>
+                      <img src="<%= item.photos[0] %>" class="item-photo" alt="ref 1" />
                     <% } else { %>
                       <div class="no-photo">No Photo</div>
                     <% } %>
-                    <span class="photo-label">Design</span>
                   </div>
-                  <!-- Fabric / material photo -->
-                  <% if (item.fabricPhoto) { %>
-                    <div class="photo-wrap">
-                      <img src="<%= item.fabricPhoto %>" class="item-photo" alt="fabric" />
-                      <span class="photo-label">Fabric</span>
-                    </div>
-                  <% } %>
                 </div>
-                <!-- Extra photos row -->
-                <% if (item.photos && item.photos.length > 0) { %>
-                  <div class="extra-photos">
-                    <% item.photos.forEach(function(url, pi) { %>
-                      <div class="photo-wrap">
-                        <img src="<%= url %>" class="item-photo-sm" alt="ref <%= pi+1 %>" />
-                        <span class="photo-label">Ref <%= pi+1 %></span>
-                      </div>
-                    <% }); %>
-                  </div>
-                <% } %>
               </td>
               <td class="col-desc">
                   <%= item.description %>

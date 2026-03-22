@@ -8,7 +8,7 @@ import {
     ArrowLeft, AlertTriangle, Pencil, CheckCircle2, XCircle, Upload,
     Link2, Package, Loader2, ChevronRight, Clock, CheckCheck,
     Truck, Shield, Wrench, FlaskConical, TriangleAlert, User,
-    CalendarCheck, MapPin, Camera, FileText, Users, MessageSquare, Download, PlusCircle,
+    CalendarCheck, MapPin, Camera, FileText, Users, MessageSquare, Download,
     Layers, ShieldCheck, Zap, Maximize2, Fingerprint, Wind, EyeOff, History
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -1647,19 +1647,12 @@ function EditJobCardModal({ jc, onClose, onSuccess }: any) {
         onSuccess,
     });
 
-    const addItem = () => setItems(prev => [...prev, { description: '', qty: 1, unit: 'pcs', srNo: prev.length + 1 }]);
     const updateItem = (index: number, field: string, value: any) => {
         setItems(prev => {
             const newItems = [...prev];
             if (!newItems[index]) return prev;
             newItems[index] = { ...newItems[index], [field]: value };
             return newItems;
-        });
-    };
-    const removeItem = (index: number) => {
-        setItems(prev => {
-            const newItems = prev.filter((_, i) => i !== index);
-            return newItems.map((it, i) => ({ ...it, srNo: i + 1 }));
         });
     };
 
@@ -1738,11 +1731,8 @@ function EditJobCardModal({ jc, onClose, onSuccess }: any) {
                     </div>
 
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70">Furniture Items</Label>
-                            <Button type="button" variant="outline" size="sm" onClick={addItem} className="h-8 rounded-lg text-xs font-bold gap-2">
-                                <PlusCircle size={14} /> Add Item
-                            </Button>
+                        <div className="flex items-center justify-between pb-2">
+                            <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70">Furniture Item</Label>
                         </div>
 
                         <div className="space-y-4">
@@ -1794,21 +1784,8 @@ function EditJobCardModal({ jc, onClose, onSuccess }: any) {
                                             </div>
                                         </div>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => removeItem(idx)}
-                                        className="absolute -right-2 -top-2 w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:scale-110"
-                                    >
-                                        <XCircle size={14} />
-                                    </button>
                                 </div>
                             ))}
-                            {items.length === 0 && (
-                                <div className="p-8 border-2 border-dashed border-border/40 text-center rounded-2xl flex flex-col items-center">
-                                    <Package size={24} className="text-muted-foreground/30 mb-2" />
-                                    <p className="text-xs font-bold text-muted-foreground/50">No items specified.</p>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>

@@ -28,14 +28,14 @@
     justify-content: space-between;
     align-items: flex-start; /* top align both sides */
     border-bottom: 3px solid #c8a84b;
-    padding-bottom: 15px;
-    margin-bottom: 20px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
     position: relative;
   }
   .header-left {
     display: flex;
     align-items: flex-start; /* top align logo and info */
-    gap: 15px;
+    gap: 15px
   }
   .header-logo {
     height: 90px;
@@ -115,14 +115,14 @@
     font-size: 20px;
     font-weight: 900;
     letter-spacing: 1px;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
   }
 
   /* META TABLE */
   .meta-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 25px;
+    margin-bottom: 15px;
     border: 1px solid #ccc;
   }
   .meta-table td {
@@ -161,23 +161,19 @@
     padding: 12px;
     vertical-align: top;
     font-size: 12px;
+    page-break-inside: avoid;
   }
   .category-row td {
     background: #f2f2f2;
     font-weight: 900;
-    font-size: 11px;
+    font-size: 16px;
     text-align: center;
     color: #333;
     padding: 6px 12px;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
   }
-  .col-no {
-    width: 50px;
-    text-align: center;
-    font-weight: normal;
-    font-size: 14px;
-  }
+
 
   /* ITEM CELL */
   .photo-grid {
@@ -201,37 +197,14 @@
     letter-spacing: 0.5px;
   }
   .item-photo {
-    max-width: 160px;
-    max-height: 220px;
-    width: auto;
-    height: auto;
+    width: 200px;
+    height: 200px;
     object-fit: contain;
-    border-radius: 4px;
-    border: 1px solid #ccc;
+    border-radius: 6px;
+    border: 1.5px solid #aaa;
     display: block;
     background: #fdfdfd;
-  }
-  .item-photo-md {
-    max-width: 120px;
-    max-height: 160px;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    display: block;
-    background: #fdfdfd;
-  }
-  .item-photo-sm {
-    max-width: 90px;
-    max-height: 110px;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    border-radius: 3px;
-    border: 1px solid #ccc;
-    display: block;
-    background: #fdfdfd;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
   .extra-photos-row {
     display: flex;
@@ -241,19 +214,12 @@
     margin-bottom: 10px;
   }
 
-  .item-title {
-    font-size: 14px;
-    color: #2e6073;
-    margin-bottom: 15px;
-    font-weight: 800;
-    line-height:1.2;
-  }
   
   .spec-line {
-    font-size: 12px;
-    color: #1a1a1a;
-    line-height: 1.4;
-    margin-top: 5px;
+    font-size: 16px;
+    color: #333;
+    line-height: 1.5;
+    margin-top: 4px;
   }
   .spec-divider {
     padding-bottom: 2px;
@@ -344,9 +310,9 @@
       <td colspan="3" class="value-full"><%= client.name %><% if(client.firmName){ %> — <%= client.firmName %><% } %></td>
     </tr>
     <tr>
-      <td class="label">Contact Person:</td>
+      <td class="label">Contact Person</td>
       <td class="value"><%= jobCard.salesperson && jobCard.salesperson.name ? jobCard.salesperson.name : '—' %></td>
-      <td class="label">Salesperson Name:</td>
+      <td class="label">Salesperson</td>
       <td class="value"><%= jobCard.salesperson && jobCard.salesperson.name ? jobCard.salesperson.name : '—' %></td>
     </tr>
     <tr>
@@ -361,55 +327,39 @@
 
   <!-- ITEMS TABLE -->
   <table class="items-table">
-    <thead>
-      <tr>
-        <th class="col-no" style="text-align:center;">No.</th>
-        <th>Item</th>
-      </tr>
-    </thead>
     <tbody>
       <% let lastCategory = null; jobCard.items.forEach(function(item) { %>
         <% if (item.category && item.category !== lastCategory) { lastCategory = item.category; %>
           <tr class="category-row">
-            <td colspan="2"><%= item.category %></td>
+            <td><%= item.category %></td>
           </tr>
         <% } %>
         <tr>
-          <td class="col-no"><%= item.srNo %></td>
           <td>
             <!-- Photos -->
-            <!-- Primary: Design photo (large) -->
-            <div class="photo-grid">
-              <% if (item.photo) { %>
-                <div class="photo-wrap">
-                  <img src="<%= item.photo %>" class="item-photo" alt="Design"/>
-                  <span class="photo-label">Design</span>
-                </div>
-              <% } %>
-              <!-- Fabric photo (medium) -->
-              <% if (item.fabricPhoto) { %>
-                <div class="photo-wrap">
-                  <img src="<%= item.fabricPhoto %>" class="item-photo-md" alt="Fabric"/>
-                  <span class="photo-label">Fabric / Material</span>
-                </div>
-              <% } %>
-            </div>
-            <!-- Extra reference photos -->
-            <% if (item.photos && item.photos.length > 0) { %>
-              <div class="extra-photos-row">
-                <% item.photos.forEach(function(url, pi) { %>
+            <div style="margin-bottom: 10px;">
+              <div class="photo-grid">
+                <% if (item.photo) { %>
                   <div class="photo-wrap">
-                    <img src="<%= url %>" class="item-photo-sm" alt="Ref <%= pi+1 %>"/>
-                    <span class="photo-label">Ref <%= pi+1 %></span>
+                    <img src="<%= item.photo %>" class="item-photo" alt="Design"/>
                   </div>
-                <% }); %>
+                <% } %>
+                <% if (item.fabricPhoto) { %>
+                  <div class="photo-wrap">
+                    <img src="<%= item.fabricPhoto %>" class="item-photo" alt="Fabric"/>
+                  </div>
+                <% } %>
+                <% if (item.photos && item.photos.length > 0) { %>
+                  <% item.photos.forEach(function(url) { %>
+                    <div class="photo-wrap">
+                      <img src="<%= url %>" class="item-photo" alt="Ref"/>
+                    </div>
+                  <% }); %>
+                <% } %>
               </div>
-            <% } %>
+            </div>
             <!-- Description -->
-            <div class="item-title">
-              <% if (item.category) { %>
-                <span style="color: #666; font-size: 14px; text-transform: uppercase;"><%= item.category %></span><br/>
-              <% } %>
+            <div class="spec-line">
               <%= item.description %>
             </div>
 
@@ -431,8 +381,5 @@
       <% }); %>
     </tbody>
   </table>
-
-  <div class="bottom-accent"></div>
-
 </body>
 </html>
