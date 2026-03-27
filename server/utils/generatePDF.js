@@ -117,25 +117,54 @@ export const renderPDF = async (templateName, data = {}, options = {}) => {
   const templatePath = path.join(TEMPLATES_DIR, `${templateName}.html`);
   const template = readFileSync(templatePath, 'utf-8');
 
-  // Handle company logo — if it's a local path, convert to Base64 for Puppeteer
-  if (data.company?.logo && data.company.logo.startsWith('/')) {
+  // Handle company logo — convert to Base64 for Puppeteer so it renders instantly
+  if (data.company?.logo) {
     try {
-      // 1. Try server's own public assets directory (for deployment)
-      let logoPath = path.join(__dirname, '../public/assets', path.basename(data.company.logo));
-      
-      // 2. Fallback to client public directory (for local dev dev environment)
-      if (!existsSync(logoPath)) {
-        const clientPublicPath = path.join(__dirname, '../../client/public');
-        logoPath = path.join(clientPublicPath, data.company.logo);
-      }
+      if (data.company.logo.startsWith('/')) {
+        // 1. Try server's own public assets directory (for deployment)
+        let logoPath = path.join(__dirname, '../public/assets', path.basename(data.company.logo));
+        
+        // 2. Fallback to client public directory (for local dev dev environment)
+        if (!existsSync(logoPath)) {
+          const clientPublicPath = path.join(__dirname, '../../client/public');
+          logoPath = path.join(clientPublicPath, data.company.logo);
+        }
 
-      if (existsSync(logoPath)) {
-        const logoBuffer = readFileSync(logoPath);
-        const ext = path.extname(logoPath).slice(1) || 'png';
-        const mimeType = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
-        data.company.logo = `data:${mimeType};base64,${logoBuffer.toString('base64')}`;
-      } else {
-        console.warn('[PDF] Logo not found at expected paths:', logoPath);
+        if (existsSync(logoPath)) {
+          const logoBuffer = readFileSync(logoPath);
+          const ext = path.extname(logoPath).slice(1) || 'png';
+          const mimeType = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
+          data.company.logo = `data:${mimeType};base64,${logoBuffer.toString('base64')}`;
+        } else {
+          console.warn('[PDF] Local logo not found on disk:', logoPath, '— Attempting fetch from FRONTEND_URL');
+          const frontendUrl = process.env.FRONTEND_URL || 'https://jobcard.marutifurniture.com';
+          const remoteUrl = frontendUrl.replace(/\/$/, '') + (data.company.logo.startsWith('/') ? data.company.logo : '/' + data.company.logo);
+          try {
+            const response = await fetch(remoteUrl);
+            if (response.ok) {
+              const arrayBuffer = await response.arrayBuffer();
+              const buffer = Buffer.from(arrayBuffer);
+              const contentType = response.headers.get('content-type') || 'image/png';
+              data.company.logo = `data:${contentType};base64,${buffer.toString('base64')}`;
+            } else {
+              console.warn('[PDF] Fallback fetch failed with status:', response.status);
+            }
+          } catch (fetchErr) {
+            console.error('[PDF] Error fetching fallback logo:', fetchErr.message);
+          }
+        }
+      } else if (data.company.logo.startsWith('http')) {
+        // Fetch remote logo (e.g. from Cloudinary) and embed it as Base64
+        console.log('[PDF] Fetching remote logo to embed as Base64:', data.company.logo);
+        const response = await fetch(data.company.logo);
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const contentType = response.headers.get('content-type') || 'image/png';
+          data.company.logo = `data:${contentType};base64,${buffer.toString('base64')}`;
+        } else {
+          console.warn('[PDF] Failed to fetch remote logo, status:', response.status);
+        }
       }
     } catch (err) {
       console.error('[PDF] Logo Base64 conversion failed:', err);

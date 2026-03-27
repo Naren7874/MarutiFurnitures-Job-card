@@ -214,7 +214,8 @@ export const updateUser = async (req, res, next) => {
       resourceId: user._id,
       resourceLabel: user.name,
       changes: {
-        ...(name !== undefined && { name: { from: undefined, to: name } }),
+        ...(firstName !== undefined && { firstName: { from: undefined, to: firstName } }),
+        ...(lastName !== undefined && { lastName: { from: undefined, to: lastName } }),
         ...(role !== undefined && { role: { from: undefined, to: role } }),
         ...(department !== undefined && { department: { from: undefined, to: department } }),
         ...(isActive !== undefined && { isActive: { from: undefined, to: isActive } }),
