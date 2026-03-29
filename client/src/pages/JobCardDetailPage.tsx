@@ -9,8 +9,11 @@ import {
     Link2, Package, Loader2, ChevronRight, Clock, CheckCheck,
     Truck, Shield, Wrench, FlaskConical, TriangleAlert, User,
     CalendarCheck, MapPin, Camera, FileText, Users, MessageSquare, Download,
-    Layers, ShieldCheck, Zap, Maximize2, Fingerprint, Wind, EyeOff, History
+    Layers, ShieldCheck, Zap, Maximize2, Fingerprint, Wind, EyeOff, History,
+    Archive, Copy, ArchiveRestore, AlertCircle, Plus, ShoppingCart, 
+    ArrowRightCircle, CheckSquare
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -38,14 +41,14 @@ const JOB_STATUS_BADGE: Record<string, string> = {
 };
 
 const SUB_STAGE_ORDER = [
-    'cutting', 'edge_banding', 'cnc_drilling', 'assembly',
-    'polishing', 'finishing', 'hardware_fitting', 'packing',
+    'cutting', 'edge_banding', 'sanding', 'cleaning',
+    'assembly', 'hardware_fitting', 'polishing', 'packing',
 ];
 
 const SUB_STAGE_ICONS: Record<string, any> = {
-    cutting: Wrench, edge_banding: Wrench, cnc_drilling: Wrench,
-    assembly: Package, polishing: FlaskConical, finishing: FlaskConical,
-    hardware_fitting: Wrench, packing: Package,
+    cutting: Wrench, edge_banding: Wrench, sanding: Wrench,
+    cleaning: FlaskConical, assembly: Package, hardware_fitting: Wrench,
+    polishing: FlaskConical, packing: Package,
 };
 
 // ── Helper components ─────────────────────────────────────────────────────────
@@ -114,6 +117,7 @@ export default function JobCardDetailPage() {
         { value: 'production', label: 'Production', icon: Wrench, show: canSeeProd },
         { value: 'qc', label: 'QC', icon: Shield, show: canSeeQC },
         { value: 'dispatch', label: 'Dispatch', icon: Truck, show: canSeeDispatch },
+        { value: 'closure', label: 'Closure', icon: Archive, show: user?.role === 'admin' || user?.role === 'super_admin' },
     ];
     const visibleTabs = ALL_TABS.filter(t => t.show);
 
@@ -166,7 +170,7 @@ export default function JobCardDetailPage() {
     }
 
     return (
-        <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-6">
+        <div className="p-2 md:p-4 max-w-full mx-auto space-y-4">
             <Link to="/jobcards" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-bold">
                 <ArrowLeft size={16} /> Back to Job Cards
             </Link>
@@ -269,6 +273,11 @@ export default function JobCardDetailPage() {
                 {canSeeProd && <TabsContent value="production" className="mt-4"><ProductionTab id={id!} jc={jc} qcClient={qc} canEdit={canEditProd} /></TabsContent>}
                 {canSeeQC && <TabsContent value="qc" className="mt-4"><QCTab id={id!} jc={jc} qcClient={qc} canEdit={canEditQC} /></TabsContent>}
                 {canSeeDispatch && <TabsContent value="dispatch" className="mt-4"><DispatchTab id={id!} jc={jc} qcClient={qc} canEdit={canEditDispatch} /></TabsContent>}
+                {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                    <TabsContent value="closure" className="mt-4">
+                        <ClosureTab id={id!} jc={jc} qcClient={qc} />
+                    </TabsContent>
+                )}
             </Tabs>
 
             {/* Modals */}
@@ -994,92 +1003,181 @@ function StoreTab({ id, jc, qcClient, canEdit }: any) {
         onSuccess: () => qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'store'] }),
     });
 
-    if (isLoading) return <div className="h-32 bg-muted/20 rounded-2xl animate-pulse mt-4" />;
-    if (!stage) return <EmptyStage name="Store Stage" />;
+    if (isLoading) return <div className="h-48 bg-muted/10 rounded-3xl animate-pulse mt-4 border border-border/10" />;
+    
+    // Stage Empty State (Not even initiated)
+    if (!stage) return (
+        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
+            className="mt-4 rounded-[2.5rem] border border-amber-500/20 bg-amber-500/5 p-12 text-center space-y-6">
+            <div className="w-20 h-20 rounded-3xl bg-amber-500/10 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/5">
+                <Package size={32} className="text-amber-500" />
+            </div>
+            <div className="max-w-md mx-auto">
+                <p className="font-black text-xl text-foreground mb-2 uppercase tracking-tight">Store Stage Pending</p>
+                <p className="text-muted-foreground/50 text-sm font-medium leading-relaxed">
+                    Once the design is finalized and signed off, the Bill of Materials will appear here for material procurement and issuance.
+                </p>
+            </div>
+        </motion.div>
+    );
 
     const bom = stage.bom || [];
     const issuedCount = bom.filter((b: any) => b.issued).length;
+    const progress = bom.length > 0 ? (issuedCount / bom.length) * 100 : 0;
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 mt-2">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 mt-4">
             {!canEdit && <ReadOnlyBanner />}
 
-            {/* ── Context Banner ── */}
-            <motion.div initial={{ y: -10 }} animate={{ y: 0 }}
-                className="rounded-[20px] border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-transparent p-5">
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                        <Package size={14} className="text-amber-500" />
-                    </div>
-                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400">Store Stage</h3>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Expected Delivery</p>
-                        <p className={cn('text-sm font-bold', !jc.expectedDelivery ? 'text-muted-foreground/40' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
-                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}
-                        </p>
-                    </div>
-                    <AssignedStaffList users={jc.assignedTo?.store} roleLabel="Assigned Store Staff" color="bg-amber-500" />
-                    <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Stage Status</p>
-                        <span className={cn(
-                            'inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black border uppercase tracking-wide',
-                            jc.status === 'in_store' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
-                        )}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                            {jc.status?.replace(/_/g, ' ') || 'pending'}
-                        </span>
-                    </div>
-                </div>
-            </motion.div>
+            {/* ── Store Stage Context ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-8">
+                    <div className="h-full rounded-[2.5rem] border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-transparent p-8 shadow-sm">
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-[1.2rem] bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                                    <Package size={18} className="text-amber-500" />
+                                </div>
+                                <div>
+                                    <h3 className="font-black text-sm uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400 leading-none">Material Management</h3>
+                                    <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest mt-1">Inventory & Issuance</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 mb-1">Status</p>
+                                <span className={cn(
+                                    'inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black border uppercase tracking-widest',
+                                    jc.status === 'in_store' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20 shadow-lg shadow-amber-500/5' : 'bg-muted text-muted-foreground border-border'
+                                )}>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                                    {jc.status?.replace(/_/g, ' ') || 'pending'}
+                                </span>
+                            </div>
+                        </div>
 
-            <SectionCard title="Store Stage — Bill of Materials" icon={Package} color="text-amber-500">
-            <div className="space-y-4">
-                {/* BOM Progress */}
-                <div className="flex items-center justify-between">
-                    <p className="text-xs font-black text-foreground/60">{issuedCount} / {bom.length} materials issued</p>
-                    <div className="w-48 h-2 bg-muted/40 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${bom.length > 0 ? (issuedCount / bom.length) * 100 : 0}%` }} />
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-8">
+                            <div className="space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">Target Delivery</p>
+                                <p className={cn('text-sm font-black italic tracking-tight', !jc.expectedDelivery ? 'text-muted-foreground/20' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500 animate-pulse' : 'text-foreground/80')}>
+                                    {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'NOT ASSIGNED'}
+                                </p>
+                            </div>
+                            <AssignedStaffList users={jc.assignedTo?.store} roleLabel="Store Custodians" color="bg-amber-500" />
+                            <div className="col-span-2 lg:col-span-1 border-t lg:border-t-0 lg:border-l border-border/10 pt-4 lg:pt-0 lg:pl-8">
+                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 mb-2 text-right lg:text-left">Milestone Progress</p>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex-1 h-3 bg-muted/20 rounded-full overflow-hidden border border-border/5">
+                                        <motion.div 
+                                            initial={{ width: 0 }} 
+                                            animate={{ width: `${progress}%` }}
+                                            className="h-full bg-linear-to-r from-amber-500 to-emerald-500 rounded-full shadow-lg" 
+                                        />
+                                    </div>
+                                    <p className="text-[11px] font-black text-foreground/60 tracking-tighter w-12 text-right">{Math.round(progress)}%</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* BOM Table */}
+                <div className="lg:col-span-4">
+                    <div className="h-full rounded-[2rem] bg-card border border-border/40 p-6 flex flex-col justify-center gap-4 group/cta hover:border-primary/30 transition-all duration-500 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover/cta:opacity-10 transition-opacity">
+                            <ShoppingCart size={80} />
+                        </div>
+                        <h4 className="font-black text-sm uppercase tracking-widest text-foreground/80 relative z-10">Procurement Action</h4>
+                        <p className="text-xs text-muted-foreground/60 font-medium leading-relaxed relative z-10">Shortage detected in BOM? Instantiate a purchase request directly linked to this job card.</p>
+                        <Link to="/purchase-orders/new" className="relative z-10">
+                            <Button variant="outline" className="w-full rounded-[1.2rem] h-12 font-black text-[10px] uppercase tracking-widest gap-2 bg-background border-border/60 hover:bg-primary/5 hover:border-primary/30 hover:text-primary transition-all active:scale-95 group/btn">
+                                <Plus size={14} className="group-hover/btn:rotate-90 transition-transform duration-300" /> Raise Purchase Order
+                            </Button>
+                        </Link>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── BOM List ── */}
+            <div className="rounded-[2rem] bg-card/10 backdrop-blur-xl border border-border/20 overflow-hidden shadow-2xl">
+                <div className="px-6 py-4 border-b border-border/10 flex items-center justify-between bg-card/20">
+                    <div className="flex items-center gap-3">
+                        <ArrowRightCircle size={16} className="text-amber-500" />
+                        <h3 className="font-black text-xs uppercase tracking-[0.2em] text-foreground/80">Bill of Materials</h3>
+                    </div>
+                    <div className="px-3 py-1 rounded-xl bg-muted/30 border border-border/10 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">
+                        {bom.length} {bom.length === 1 ? 'Item' : 'Items'} Loaded
+                    </div>
+                </div>
+
                 {bom.length > 0 ? (
-                    <div className="rounded-xl border border-border/30 overflow-hidden">
+                    <div className="overflow-x-auto scrollbar-hide">
                         <table className="w-full text-xs">
-                            <thead className="bg-muted/30">
-                                <tr>
-                                    <th className="text-left px-4 py-2.5 font-black text-muted-foreground/50 uppercase tracking-wider">Material</th>
-                                    <th className="text-center px-4 py-2.5 font-black text-muted-foreground/50 uppercase tracking-wider">Required</th>
-                                    <th className="text-center px-4 py-2.5 font-black text-muted-foreground/50 uppercase tracking-wider">In Stock</th>
-                                    <th className="text-center px-4 py-2.5 font-black text-muted-foreground/50 uppercase tracking-wider">Status</th>
-                                    <th className="text-center px-4 py-2.5 font-black text-muted-foreground/50 uppercase tracking-wider">Action</th>
+                            <thead>
+                                <tr className="bg-muted/10 text-muted-foreground/40">
+                                    <th className="text-left px-6 py-3 font-black uppercase tracking-[0.15em] w-1/3">Technical Detail</th>
+                                    <th className="text-center px-4 py-3 font-black uppercase tracking-[0.15em]">Requirement</th>
+                                    <th className="text-center px-4 py-3 font-black uppercase tracking-[0.15em]">Inventory Status</th>
+                                    <th className="text-center px-4 py-3 font-black uppercase tracking-[0.15em]">Dispatch State</th>
+                                    <th className="text-center px-6 py-3 font-black uppercase tracking-[0.15em] w-32">Operations</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-border/5">
                                 {bom.map((b: any) => {
-                                    const stockOk = (b.inventoryId?.currentStock ?? 0) >= b.requiredQty;
+                                    const stockOk = (b.inventoryId?.currentStock ?? 0) >= (b.requiredQty || 0);
                                     return (
-                                        <tr key={b._id} className="border-t border-border/20 hover:bg-muted/10">
-                                            <td className="px-4 py-3 font-bold text-foreground/80">{b.inventoryId?.itemName || b.itemName}</td>
-                                            <td className="px-4 py-3 text-center font-bold">{b.requiredQty} {b.unit}</td>
-                                            <td className={cn('px-4 py-3 text-center font-black', stockOk ? 'text-emerald-500' : 'text-rose-500')}>
-                                                {b.inventoryId?.currentStock ?? '?'}
+                                        <tr key={b._id} className="group hover:bg-amber-500/2 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="space-y-0.5">
+                                                    <p className="text-sm font-black text-foreground/80 tracking-tight group-hover:text-amber-500 transition-colors">{b.inventoryId?.itemName || b.itemName}</p>
+                                                    <p className="text-[10px] font-medium text-muted-foreground/50 italic">{b.inventoryId?.category || 'Standard Component'}</p>
+                                                </div>
                                             </td>
-                                            <td className="px-4 py-3 text-center">
+                                            <td className="px-4 py-5 text-center">
+                                                <div className="inline-flex items-center px-3 py-1.5 rounded-xl bg-muted/20 border border-border/10 font-black text-foreground/70 tracking-tighter shadow-sm">
+                                                    {b.requiredQty} <span className="ml-1 opacity-40">{b.unit}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-5 text-center">
+                                                <div className="flex flex-col items-center gap-1.5">
+                                                    <span className={cn(
+                                                        'px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm',
+                                                        stockOk ? 'bg-emerald-500/5 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/5 text-rose-500 border-rose-500/20 animate-pulse'
+                                                    )}>
+                                                        {b.inventoryId?.currentStock ?? 0} {b.unit}
+                                                    </span>
+                                                    {!stockOk && (
+                                                        <Link to={`/purchase-orders/new?itemName=${encodeURIComponent(b.inventoryId?.itemName || b.itemName)}`} 
+                                                            className="inline-flex items-center gap-1 text-[9px] font-black text-rose-500/60 hover:text-rose-500 uppercase tracking-tighter transition-all">
+                                                            <ShoppingCart size={10} /> Fast Raise PO
+                                                        </Link>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-5 text-center">
                                                 {b.issued ? (
-                                                    <span className="text-emerald-500 font-black flex items-center justify-center gap-1"><CheckCircle2 size={12} /> Issued</span>
+                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500 text-white text-[9px] font-black uppercase tracking-[0.15em] shadow-lg shadow-emerald-500/20">
+                                                        <CheckSquare size={12} /> Issued
+                                                    </div>
                                                 ) : (
-                                                    <span className="text-muted-foreground/40 font-bold">Pending</span>
+                                                    <div className={cn(
+                                                        "text-[10px] font-black uppercase tracking-widest opacity-30 italic",
+                                                        stockOk ? "text-amber-500" : "text-rose-500"
+                                                    )}>
+                                                        {stockOk ? "Ready to Issue" : "Shortage Alert"}
+                                                    </div>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 text-center">
+                                            <td className="px-8 py-5 text-right">
                                                 {canEdit && !b.issued && (
-                                                    <button onClick={() => issueOneMut.mutate(b._id)}
-                                                        className="px-2 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black hover:bg-primary/20 transition">
+                                                    <Button 
+                                                        size="sm"
+                                                        onClick={() => issueOneMut.mutate(b._id)}
+                                                        disabled={!stockOk}
+                                                        className={cn(
+                                                            "h-9 rounded-xl text-[10px] font-black uppercase tracking-widest px-6 shadow-sm transition-all active:scale-95",
+                                                            stockOk ? "bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/10" : "bg-muted text-muted-foreground/30 opacity-50 cursor-not-allowed"
+                                                        )}>
                                                         Issue
-                                                    </button>
+                                                    </Button>
                                                 )}
                                             </td>
                                         </tr>
@@ -1089,27 +1187,24 @@ function StoreTab({ id, jc, qcClient, canEdit }: any) {
                         </table>
                     </div>
                 ) : (
-                    <p className="text-center text-muted-foreground/30 text-sm font-bold py-6">No BOM items added yet</p>
+                    <div className="py-24 flex flex-col items-center justify-center text-center px-10">
+                        <div className="w-16 h-16 rounded-[2rem] bg-muted/20 flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
+                            <Package size={24} className="text-muted-foreground/20" />
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 italic">No Materials Specified Yet</p>
+                    </div>
                 )}
 
-                {canEdit && (
-                    <div className="flex gap-3 pt-2">
-                        <Link to="/purchase-orders/new">
-                            <Button variant="outline" className="rounded-xl font-black gap-2 border-border/60 text-xs">
-                                <Package size={13} /> Raise Purchase Order
-                            </Button>
-                        </Link>
-                        {jc.status === 'in_store' && (
-                            <Button onClick={() => issueAllMut.mutate()} disabled={issueAllMut.isPending || bom.length === 0}
-                                className="flex-1 rounded-xl font-black gap-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs">
-                                {issueAllMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <CheckCheck size={13} />}
-                                Issue All → Move to Production
-                            </Button>
-                        )}
+                {canEdit && jc.status === 'in_store' && (
+                    <div className="p-8 border-t border-border/5 bg-card/30 flex justify-end">
+                        <Button onClick={() => issueAllMut.mutate()} disabled={issueAllMut.isPending || bom.length === 0}
+                            className="w-full lg:w-fit rounded-[1.2rem] h-14 px-12 font-black text-xs uppercase tracking-[0.15em] gap-3 bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-500/20 active:scale-95 transition-all group/issue">
+                            {issueAllMut.isPending ? <Loader2 size={16} className="animate-spin" /> : <CheckCheck size={16} className="group-hover:scale-110 transition-transform" />}
+                            Mark All Issued → Initiate Production
+                        </Button>
                     </div>
                 )}
             </div>
-        </SectionCard>
         </motion.div>
     );
 }
@@ -1613,6 +1708,96 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
                 )}
             </div>
         </SectionCard>
+        </motion.div>
+    );
+}
+
+// ── Closure Tab ───────────────────────────────────────────────────────────────
+
+function ClosureTab({ id, jc, qcClient }: { id: string; jc: any; qcClient: any }) {
+    const [warrantyNotes, setWarrantyNotes] = useState(jc.warrantyNotes || '');
+    const [punchList, setPunchList] = useState(jc.punchListItems?.join('\n') || '');
+
+    const closeMut = useMutation({
+        mutationFn: () => apiPatch(`/jobcards/${id}/close`, { warrantyNotes, punchListItems: punchList.split('\n').filter(Boolean) }),
+        onSuccess: () => qcClient.invalidateQueries({ queryKey: ['jobcard', id] }),
+        onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to close job card'),
+    });
+
+    const templateMut = useMutation({
+        mutationFn: (name: string) => apiPatch(`/jobcards/${id}`, { isTemplate: true, templateName: name }),
+        onSuccess: () => toast.success('Saved as template!'),
+    });
+
+    const isClosed = jc.status === 'closed';
+
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 mt-2">
+            <SectionCard title="Job Finalization & Closure" icon={Archive} color="text-emerald-500">
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">Warranty Notes</Label>
+                            <textarea
+                                value={warrantyNotes}
+                                onChange={e => setWarrantyNotes(e.target.value)}
+                                disabled={isClosed}
+                                className="w-full h-24 rounded-2xl border border-border bg-background p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                                placeholder="Enter specific warranty terms or duration for this job..."
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">Punch List / Pending Items</Label>
+                            <textarea
+                                value={punchList}
+                                onChange={e => setPunchList(e.target.value)}
+                                disabled={isClosed}
+                                className="w-full h-24 rounded-2xl border border-border bg-background p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                                placeholder="One item per line (e.g. Minor scratch on left door)"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="bg-muted/10 rounded-2xl p-6 border border-border/40 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h4 className="font-black text-sm text-foreground">Final Stage Actions</h4>
+                                <p className="text-xs text-muted-foreground/60 font-medium">Verify payment status and document before archiving.</p>
+                            </div>
+                            <div className="flex gap-3">
+                                {!isClosed && (
+                                    <Button
+                                        onClick={() => {
+                                            const name = prompt('Enter template name:');
+                                            if (name) templateMut.mutate(name);
+                                        }}
+                                        variant="outline"
+                                        className="rounded-xl font-black gap-2 h-11 border-border/60"
+                                    >
+                                        <Copy size={14} /> Save as Template
+                                    </Button>
+                                )}
+                                <Button
+                                    onClick={() => closeMut.mutate()}
+                                    disabled={closeMut.isPending || isClosed || jc.status !== 'delivered'}
+                                    className={cn(
+                                        "rounded-xl font-black gap-2 h-11 px-8 shadow-lg transition-all",
+                                        isClosed ? "bg-muted text-muted-foreground/30 shadow-none" : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20"
+                                    )}
+                                >
+                                    {isClosed ? <ArchiveRestore size={14} /> : <CheckCircle2 size={14} />}
+                                    {isClosed ? 'Job Card Archived' : 'Close & Archive Job Card'}
+                                </Button>
+                            </div>
+                        </div>
+                        {jc.status !== 'delivered' && !isClosed && (
+                            <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1.5 animate-pulse">
+                                <AlertCircle size={10} /> Job must be marked as 'Delivered' before it can be closed.
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </SectionCard>
         </motion.div>
     );
 }

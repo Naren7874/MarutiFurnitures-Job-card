@@ -25,9 +25,11 @@ import { DatePicker } from '@/components/ui/date-picker';
 
 interface TeamAssignment {
     design: string[];
+    store: string[];
     production: string[];
     qc: string[];
     dispatch: string[];
+    accounts: string[];
 }
 
 interface JobCardConfig {
@@ -60,7 +62,7 @@ export default function ApproveQuotationModal({
         salesPerson: { id: '', name: '' },
         contactPerson: { id: '', name: '' },
         expectedDelivery: '',
-        assignedTo: { design: [], production: [], qc: [], dispatch: [] } as TeamAssignment,
+        assignedTo: { design: [], store: [], production: [], qc: [], dispatch: [], accounts: [] } as TeamAssignment,
     });
     const [advancePayment, setAdvancePayment] = useState({
         amount: 0,
@@ -87,9 +89,11 @@ export default function ApproveQuotationModal({
                 expectedDelivery: '',
                 assignedTo: { 
                     design: [...defaultStaffIds], 
+                    store: [],
                     production: [...defaultStaffIds], 
                     qc: [], 
-                    dispatch: [] 
+                    dispatch: [],
+                    accounts: []
                 },
             })));
             setGlobalConfig({
@@ -98,9 +102,11 @@ export default function ApproveQuotationModal({
                 expectedDelivery: '',
                 assignedTo: { 
                     design: [...defaultStaffIds], 
+                    store: [],
                     production: [...defaultStaffIds], 
                     qc: [], 
-                    dispatch: [] 
+                    dispatch: [],
+                    accounts: []
                 },
             });
             // Reset advance payment fields
@@ -120,9 +126,11 @@ export default function ApproveQuotationModal({
             expectedDelivery: globalConfig.expectedDelivery || c.expectedDelivery,
             assignedTo: {
                 design: globalConfig.assignedTo.design.length ? globalConfig.assignedTo.design : c.assignedTo.design,
+                store: globalConfig.assignedTo.store.length ? globalConfig.assignedTo.store : c.assignedTo.store,
                 production: globalConfig.assignedTo.production.length ? globalConfig.assignedTo.production : c.assignedTo.production,
                 qc: globalConfig.assignedTo.qc.length ? globalConfig.assignedTo.qc : c.assignedTo.qc,
                 dispatch: globalConfig.assignedTo.dispatch.length ? globalConfig.assignedTo.dispatch : c.assignedTo.dispatch,
+                accounts: globalConfig.assignedTo.accounts.length ? globalConfig.assignedTo.accounts : c.assignedTo.accounts,
             }
         })));
     };
@@ -279,6 +287,21 @@ export default function ApproveQuotationModal({
                                             }))}
                                         />
                                         <StaffMultiSelect 
+                                            label="Store" 
+                                            icon={Package} 
+                                            selectedIds={globalConfig.assignedTo.store}
+                                            allUsers={allUsers}
+                                            onToggle={(id) => setGlobalConfig(prev => ({
+                                                ...prev,
+                                                assignedTo: {
+                                                    ...prev.assignedTo,
+                                                    store: prev.assignedTo.store.includes(id) 
+                                                        ? prev.assignedTo.store.filter(x => x !== id)
+                                                        : [...prev.assignedTo.store, id]
+                                                }
+                                            }))}
+                                        />
+                                        <StaffMultiSelect 
                                             label="Quality Control" 
                                             icon={Shield} 
                                             selectedIds={globalConfig.assignedTo.qc}
@@ -305,6 +328,21 @@ export default function ApproveQuotationModal({
                                                     dispatch: prev.assignedTo.dispatch.includes(id) 
                                                         ? prev.assignedTo.dispatch.filter(x => x !== id)
                                                         : [...prev.assignedTo.dispatch, id]
+                                                }
+                                            }))}
+                                        />
+                                        <StaffMultiSelect 
+                                            label="Accounts" 
+                                            icon={IndianRupee} 
+                                            selectedIds={globalConfig.assignedTo.accounts}
+                                            allUsers={allUsers}
+                                            onToggle={(id) => setGlobalConfig(prev => ({
+                                                ...prev,
+                                                assignedTo: {
+                                                    ...prev.assignedTo,
+                                                    accounts: prev.assignedTo.accounts.includes(id) 
+                                                        ? prev.assignedTo.accounts.filter(x => x !== id)
+                                                        : [...prev.assignedTo.accounts, id]
                                                 }
                                             }))}
                                         />
@@ -497,6 +535,18 @@ export default function ApproveQuotationModal({
                                                     })}
                                                 />
                                                 <StaffMultiSelect 
+                                                    label="Store" 
+                                                    icon={Package} 
+                                                    selectedIds={config.assignedTo.store}
+                                                    allUsers={allUsers}
+                                                    onToggle={(id) => handleUpdateItem(idx, 'assignedTo', {
+                                                        ...config.assignedTo,
+                                                        store: config.assignedTo.store.includes(id) 
+                                                            ? config.assignedTo.store.filter(x => x !== id)
+                                                            : [...config.assignedTo.store, id]
+                                                    })}
+                                                />
+                                                <StaffMultiSelect 
                                                     label="QC" 
                                                     icon={Shield} 
                                                     selectedIds={config.assignedTo.qc}
@@ -518,6 +568,18 @@ export default function ApproveQuotationModal({
                                                         dispatch: config.assignedTo.dispatch.includes(id) 
                                                             ? config.assignedTo.dispatch.filter(x => x !== id)
                                                             : [...config.assignedTo.dispatch, id]
+                                                    })}
+                                                />
+                                                <StaffMultiSelect 
+                                                    label="Accounts" 
+                                                    icon={IndianRupee} 
+                                                    selectedIds={config.assignedTo.accounts}
+                                                    allUsers={allUsers}
+                                                    onToggle={(id) => handleUpdateItem(idx, 'assignedTo', {
+                                                        ...config.assignedTo,
+                                                        accounts: config.assignedTo.accounts.includes(id) 
+                                                            ? config.assignedTo.accounts.filter(x => x !== id)
+                                                            : [...config.assignedTo.accounts, id]
                                                     })}
                                                 />
                                             </div>

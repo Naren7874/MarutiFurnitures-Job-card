@@ -84,7 +84,7 @@ const jobCardSchema = new mongoose.Schema(
       production: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       qc:         [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       dispatch:   [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-      accountant: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+      accounts:   [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     },
 
     // Single source of truth for job status

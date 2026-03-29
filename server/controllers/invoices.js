@@ -237,6 +237,11 @@ export const sendInvoice = async (req, res, next) => {
       });
     }
 
+    // WhatsApp Hook (Dormant until ready)
+    // if (invoice.clientId?.whatsappNumber) {
+    //   await sendWhatsApp(invoice.clientId.whatsappNumber, WA_TEMPLATES.INVOICE_SENT, [invoice.invoiceNumber, pdfUrl]);
+    // }
+
     auditLog(req, {
       action: 'update',
       resourceType: 'Invoice',

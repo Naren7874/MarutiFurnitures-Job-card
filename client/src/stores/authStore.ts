@@ -11,7 +11,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { registerTokenGetter, registerCompanyGetter } from '../lib/axios';
+import { apiPost, registerTokenGetter, registerCompanyGetter } from '../lib/axios';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -46,7 +46,7 @@ interface AuthState {
     // Actions
     setAuth: (token: string, user: AuthUser, companies?: CompanyInfo[]) => void;
     setCompany: (company: CompanyInfo) => void;
-    switchCompany: (company: CompanyInfo) => void;
+    switchCompany: (company: CompanyInfo) => Promise<boolean>;
     setToken: (token: string) => void;
     logout: () => void;
     hasPermission: (permission: string | string[]) => boolean;
@@ -74,12 +74,24 @@ export const useAuthStore = create<AuthState>()(
             },
 
             /**
-             * Switch active company — no re-login required.
-             * Axios interceptor will pick up the new activeCompanyId and
-             * send it as X-Company-Id header on every subsequent request.
+             * Switch active company — calls backend to get a new token 
+             * scoped to the new company.
              */
-            switchCompany: (company) => {
-                set({ company });
+            switchCompany: async (company) => {
+                try {
+                    const res: any = await apiPost('/auth/switch-company', { companySlug: company.slug });
+                    if (res.success) {
+                        set({ 
+                            token: res.token, 
+                            user: res.user, 
+                            company: res.company || company 
+                        });
+                        return true;
+                    }
+                } catch (err) {
+                    console.error('Failed to switch company:', err);
+                }
+                return false;
             },
 
             setToken: (token) => {

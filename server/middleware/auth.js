@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { UserPermission } from '../models/UserPermission.js';
+import Company from '../models/Company.js';
 
 /**
  * authenticateJWT
@@ -9,7 +11,7 @@ import User from '../models/User.js';
  *   - user.isActive  → 401 if account is deactivated
  *   - tokenVersion   → 401 if token was issued before the last deactivate/reactivate cycle
  *
- * req.user = { userId, companyId, role, isSuperAdmin, name, tokenVersion }
+ * req.user = { userId, companyId, role, isSuperAdmin, name, department, tokenVersion }
  */
 export const authenticateJWT = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -31,9 +33,9 @@ export const authenticateJWT = async (req, res, next) => {
   }
 
   try {
-    // Fetch user to verify isActive + tokenVersion (DB hit on every request — cached by Node process)
+    // Fetch user basic info
     const user = await User.findById(decoded.userId)
-      .select('isActive tokenVersion isSuperAdmin role companyId name department')
+      .select('isActive tokenVersion isSuperAdmin name profilePhoto')
       .lean();
 
     if (!user) {
@@ -44,25 +46,31 @@ export const authenticateJWT = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Account is deactivated. Contact admin.' });
     }
 
-    // Token version mismatch — user was deactivated and reactivated, or had tokens explicitly invalidated
     if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion) {
       return res.status(401).json({ success: false, message: 'Session expired. Please log in again.' });
     }
 
-    // Super admin company switcher: honour X-Company-Id header
+    // Determine the active companyId
     let companyId = decoded.companyId;
     if (user.isSuperAdmin && req.headers['x-company-id']) {
       companyId = req.headers['x-company-id'];
     }
 
+    // Fetch the company-specific permission/role context
+    const permission = await UserPermission.findOne({ userId: user._id, companyId }).lean();
+    if (!permission && !user.isSuperAdmin) {
+      return res.status(403).json({ success: false, message: 'Not authorized for this company' });
+    }
+
     req.user = {
-      userId:       decoded.userId,
+      userId:       user._id,
       companyId,
-      role:         user.role,
+      role:         permission?.role || (user.isSuperAdmin ? 'super_admin' : null),
       isSuperAdmin: user.isSuperAdmin,
       name:         user.name,
-      department:   user.department,
+      department:   permission?.department || null,
       tokenVersion: user.tokenVersion,
+      profilePhoto: user.profilePhoto,
     };
 
     next();

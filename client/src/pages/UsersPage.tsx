@@ -703,14 +703,17 @@ export default function UsersPage() {
                     <div>
                         <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none truncate">User Management</h1>
                         <div className="flex items-center gap-3.5">
-                            <span className="text-[13px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">{users.length} Team Members</span>
+                            <span className="text-[13px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">
+                                {filtered.length} {roleFilter !== 'all' ? `${getRoleCfg(roleFilter).label} Members` : 'Team Members'}
+                                {roleFilter !== 'all' && <span className="text-muted-foreground/40"> / {users.length} Total</span>}
+                            </span>
                             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
                             <span className="text-[11px] font-black uppercase tracking-widest text-emerald-500/80">
-                                {activeCount} Authorized
+                                {filtered.filter(u => u.isActive).length} Authorized
                             </span>
-                            {inactiveCount > 0 && (
+                            {filtered.filter(u => !u.isActive).length > 0 && (
                                 <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/40">
-                                    {inactiveCount} Restricted
+                                    {filtered.filter(u => !u.isActive).length} Restricted
                                 </span>
                             )}
                         </div>

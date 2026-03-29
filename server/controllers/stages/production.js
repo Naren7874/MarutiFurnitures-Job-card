@@ -41,6 +41,9 @@ export const updateSubstage = async (req, res, next) => {
       metadata: { substageName: name, workerName },
     });
 
+    // WhatsApp Hook (Dormant until ready)
+    // await sendWhatsAppBulk(['91xxxxxxxxxx'], WA_TEMPLATES.SUBSTAGE_COMPLETE, [name, stage.jobCardId, status]);
+
     res.status(200).json({ success: true, data: stage });
   } catch (err) { next(err); }
 };

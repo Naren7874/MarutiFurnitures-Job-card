@@ -6,7 +6,8 @@ const userSchema = new mongoose.Schema(
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
-      required: true,
+      // Non-required allows global user creation without immediate company bind,
+      // though typically they'll have a "home" company.
     },
 
     firstName:  { type: String, required: true, trim: true },
@@ -64,8 +65,8 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Unique email per company
-userSchema.index({ companyId: 1, email: 1 }, { unique: true });
+// Global unique email (staff are common across companies)
+userSchema.index({ email: 1 }, { unique: true });
 
 // Populate full name before save
 userSchema.pre("save", async function () {

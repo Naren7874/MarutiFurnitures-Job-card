@@ -72,6 +72,7 @@ The top-level multi-tenant entity. Every record in every collection carries a `c
 | `whatsappNumber` | String | |
 | `profilePhoto` | String | Cloudinary URL |
 | `role` | String | Enum: `super_admin`, `sales`, `design`, `store`, `production`, `qc`, `dispatch`, `accountant`, `client` |
+| `department` | String | Enum: `sales`, `design`, `store`, `production`, `qc`, `dispatch`, `accounts`, `none` |
 | **`department`** ✅ | String | Enum: `sales`, `design`, `store`, `production`, `qc`, `dispatch`, `accounts`, `management` |
 | `isSuperAdmin` | Boolean | Cross-company access flag |
 | `isActive` | Boolean | Default: true |
@@ -242,7 +243,7 @@ The core production document.
 | `title` | String | Required. e.g., "Reception Area Sofas" |
 | `items` | [ItemSchema] | srNo, description, photo, specifications, qty, unit |
 | `salesperson` | Object | id, name |
-| `assignedTo` | Object | design[], store[], production[], qc[], dispatch[], accountant[] |
+| `assignedTo` | Object | design[], store[], production[], qc[], dispatch[], accounts[] |
 | `status` | String | 11 states: `active`, `in_store`, `material_ready`, `in_production`, `qc_pending`, `qc_failed`, `qc_passed`, `dispatched`, `delivered`, `closed`, `on_hold`, `cancelled` |
 | `whatsapp` | Object | groupName, groupId, groupLink |
 | `storeStageId` | ObjectId | ref: StoreStage |

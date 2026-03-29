@@ -27,7 +27,10 @@ export const checkPermission = (permission) => async (req, res, next) => {
   };
 
   try {
-    const userPerm = await UserPermission.findOne({ userId: req.user.userId }).lean();
+    const userPerm = await UserPermission.findOne({ 
+      userId: req.user.userId, 
+      companyId: req.user.companyId 
+    }).lean();
     const effective = userPerm?.effectivePermissions || [];
     
     const requiredList = Array.isArray(permission) ? permission : [permission];

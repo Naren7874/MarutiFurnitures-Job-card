@@ -4,6 +4,7 @@ import { StoreStage } from '../../models/StoreStage.js';
 import { uploadReqFiles } from '../../middleware/upload.js';
 import { sendWhatsApp, WA_TEMPLATES } from '../../utils/sendWhatsApp.js';
 import { auditLog } from '../../utils/auditLogger.js';
+import { notifyDepartment } from '../../utils/notifications.js';
 
 /** GET /api/jobcards/:id/design */
 export const getDesign = async (req, res, next) => {
@@ -146,12 +147,20 @@ export const markDesignReady = async (req, res, next) => {
       { status: 'approved' }
     );
 
-    // Create StoreStage document
+    // Create StoreStage document with initial BOM from JobCard items
     const storeStage = await StoreStage.create({
       companyId: req.user.companyId,
       jobCardId: jobCard._id,
       projectId: jobCard.projectId,
       status:    'pending',
+      bom: (jobCard.items || []).map(item => ({
+        materialName: item.description || `Item #${item.srNo}`,
+        required: item.qty || 1,
+        unit: item.unit || 'pcs',
+        inStock: 0,
+        shortage: item.qty || 1,
+        issued: false
+      }))
     });
 
     // Update job card
@@ -163,6 +172,18 @@ export const markDesignReady = async (req, res, next) => {
     await JobCard.findByIdAndUpdate(jobCard._id, {
       $push: { activityLog: { action: 'design_ready', doneBy: req.user.userId, prevStatus: 'active', newStatus: 'in_store', timestamp: new Date() } },
     });
+
+    // Notify Store Department
+    await notifyDepartment(req.user.companyId, 'store', {
+      type: 'status_changed',
+      title: 'New Design Ready',
+      message: `Job Card ${jobCard.jobCardNumber} is ready for material issuance.`,
+      jobCardId: jobCard._id,
+      projectId: jobCard.projectId,
+    });
+
+    // WhatsApp Hook (Dormant until ready)
+    // await sendWhatsAppBulk(['91xxxxxxxxxx'], WA_TEMPLATES.DESIGN_READY, [jobCard.jobCardNumber, company.name]);
 
     auditLog(req, {
       action: 'update',

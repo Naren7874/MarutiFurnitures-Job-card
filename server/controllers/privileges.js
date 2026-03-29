@@ -13,7 +13,7 @@ import { auditLog } from '../utils/auditLogger.js';
 // GET /api/privileges/roles
 export const getRoles = async (req, res, next) => {
   try {
-    const roles = await Role.find({ companyId: req.user.companyId })
+    const roles = await Role.find({})
       .sort({ isSystem: -1, name: 1 })
       .lean();
     res.status(200).json({ success: true, data: roles });
@@ -23,7 +23,7 @@ export const getRoles = async (req, res, next) => {
 // GET /api/privileges/roles/:id
 export const getRoleById = async (req, res, next) => {
   try {
-    const role = await Role.findOne({ _id: req.params.id, companyId: req.user.companyId }).lean();
+    const role = await Role.findById(req.params.id).lean();
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
     res.status(200).json({ success: true, data: role });
   } catch (err) { next(err); }
@@ -35,11 +35,11 @@ export const createRole = async (req, res, next) => {
     const { name, permissions = [], dataScope = 'own' } = req.body;
     if (!name) return res.status(400).json({ success: false, message: 'Role name is required' });
 
-    const existing = await Role.findOne({ companyId: req.user.companyId, name: name.trim() });
+    const existing = await Role.findOne({ name: name.trim() });
     if (existing) return res.status(400).json({ success: false, message: 'A role with this name already exists' });
 
     const role = await Role.create({
-      companyId: req.user.companyId,
+      companyId: null, // Global role
       name: name.trim(),
       isSystem: false,
       permissions,
@@ -55,7 +55,7 @@ export const createRole = async (req, res, next) => {
 // PUT /api/privileges/roles/:id
 export const updateRole = async (req, res, next) => {
   try {
-    const role = await Role.findOne({ _id: req.params.id, companyId: req.user.companyId });
+    const role = await Role.findById(req.params.id);
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
     if (role.isSystem) return res.status(403).json({ success: false, message: 'System roles cannot be modified' });
 
@@ -75,7 +75,7 @@ export const updateRole = async (req, res, next) => {
 // DELETE /api/privileges/roles/:id
 export const deleteRole = async (req, res, next) => {
   try {
-    const role = await Role.findOne({ _id: req.params.id, companyId: req.user.companyId });
+    const role = await Role.findById(req.params.id);
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
     if (role.isSystem) return res.status(403).json({ success: false, message: 'System roles cannot be deleted' });
 

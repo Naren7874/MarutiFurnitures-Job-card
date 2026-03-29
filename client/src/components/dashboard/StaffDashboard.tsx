@@ -353,7 +353,7 @@ const SalesDashboard = () => {
 const AccountantDashboard = () => {
     const { id: userId } = useAuthStore(state => state.user) || {};
     const { all: rawAll, isLoading } = useAllJobCards();
-    const all = rawAll.filter(j => j.assignedTo?.accountant?.some((u: any) => (u._id || u.id || u) === userId));
+    const all = rawAll.filter(j => j.assignedTo?.accounts?.some((u: any) => (u._id || u.id || u) === userId));
 
     const pending = all.filter(j => j.status === 'delivered');
     const closed  = all.filter(j => j.status === 'closed');

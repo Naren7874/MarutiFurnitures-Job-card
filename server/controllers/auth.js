@@ -51,42 +51,45 @@ export const login = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Update last login — use updateOne to bypass full document validation.
-    // user.save() would trigger required-field checks for firstName/lastName
-    // which can fail for users created before those fields were added.
+    // Update last login
     await User.updateOne({ _id: user._id }, { lastLogin: new Date() });
 
-    const token = signToken(buildTokenPayload(user));
+    // Fetch all companies where this user has a mission
+    const permissions = await UserPermission.find({ userId: user._id }).lean();
+    const authorizedCompanyIds = permissions.map(p => p.companyId.toString());
 
-    // Audit log — login event (req.user is not set on this public route, pass actor explicitly)
-    auditLog(req, {
-      action: 'login',
-      resourceType: 'User',
-      resourceId: user._id,
-      resourceLabel: user.name,
-      metadata: { email: user.email, role: user.role },
-      actor: { id: user._id, name: user.name, role: user.role, companyId: user.companyId },
-    });
-
-    // Fetch effective permissions for frontend
-    const effectivePermissions = await resolvePermissions(user._id);
-
-    // For super admins: return all companies so the frontend can show a switcher
     let allCompanies = [];
     if (user.isSuperAdmin) {
+      // Super Admin sees everything
       const companies = await Company.find({ isActive: true }).lean();
       allCompanies = companies.map(c => ({
-        id: c._id,
-        name: c.name,
-        slug: c.slug,
-        logo: c.logo,
-        gstin: c.gstin,
-        plan: c.plan,
+        id: c._id, name: c.name, slug: c.slug, logo: c.logo, gstin: c.gstin
+      }));
+    } else {
+      // Regular staff see their authorized companies
+      const companies = await Company.find({ _id: { $in: authorizedCompanyIds }, isActive: true }).lean();
+      allCompanies = companies.map(c => ({
+        id: c._id, name: c.name, slug: c.slug, logo: c.logo, gstin: c.gstin
       }));
     }
 
-    // Default company = where user is registered (first in list for super admin)
-    const loginCompany = await Company.findById(user.companyId).lean();
+    // Default company to start with:
+    // 1. user.companyId if it's still valid/active
+    // 2. or the first in allCompanies
+    let activeCompanyId = user.companyId;
+    if (!activeCompanyId || !allCompanies.find(c => c.id.toString() === activeCompanyId.toString())) {
+      activeCompanyId = allCompanies[0]?.id;
+    }
+
+    const token = signToken({
+      ...buildTokenPayload(user),
+      companyId: activeCompanyId
+    });
+
+    // Fetch effective permissions for the active company
+    const effectivePermissions = await resolvePermissions(user._id, activeCompanyId);
+
+    const loginCompany = allCompanies.find(c => c.id.toString() === (activeCompanyId?.toString() || ''));
 
     res.status(200).json({
       success: true,
@@ -97,19 +100,12 @@ export const login = async (req, res, next) => {
         email: user.email,
         role: user.role,
         department: user.department,
-        companyId: user.companyId,
+        companyId: activeCompanyId,
         isSuperAdmin: user.isSuperAdmin,
         profilePhoto: user.profilePhoto,
         effectivePermissions,
       },
-      company: loginCompany ? {
-        id: loginCompany._id,
-        name: loginCompany.name,
-        slug: loginCompany.slug,
-        logo: loginCompany.logo,
-        gstin: loginCompany.gstin,
-        plan: loginCompany.plan,
-      } : null,
+      company: loginCompany || null,
       allCompanies,
     });
   } catch (err) {
@@ -146,18 +142,22 @@ export const getMe = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const effectivePermissions = await resolvePermissions(user._id);
+    const activeCompanyId = req.user.companyId;
+    const effectivePermissions = await resolvePermissions(user._id, activeCompanyId);
 
+    // Fetch all authorized companies for the switcher
     let allCompanies = [];
     if (user.isSuperAdmin) {
       const companies = await Company.find({ isActive: true }).lean();
       allCompanies = companies.map(c => ({
-        id: c._id,
-        name: c.name,
-        slug: c.slug,
-        logo: c.logo,
-        gstin: c.gstin,
-        plan: c.plan,
+        id: c._id, name: c.name, slug: c.slug, logo: c.logo, gstin: c.gstin
+      }));
+    } else {
+      const permissions = await UserPermission.find({ userId: user._id }).lean();
+      const authorizedCompanyIds = permissions.map(p => p.companyId.toString());
+      const companies = await Company.find({ _id: { $in: authorizedCompanyIds }, isActive: true }).lean();
+      allCompanies = companies.map(c => ({
+        id: c._id, name: c.name, slug: c.slug, logo: c.logo, gstin: c.gstin
       }));
     }
 
@@ -169,7 +169,7 @@ export const getMe = async (req, res, next) => {
         email: user.email,
         role: user.role,
         department: user.department,
-        companyId: user.companyId?._id || user.companyId,
+        companyId: activeCompanyId,
         isSuperAdmin: user.isSuperAdmin,
         profilePhoto: user.profilePhoto,
         effectivePermissions,
@@ -260,18 +260,25 @@ export const switchCompany = async (req, res, next) => {
   try {
     const { companySlug } = req.body;
 
-    if (!req.user.isSuperAdmin) {
-      return res.status(403).json({ success: false, message: 'Super admin only' });
-    }
-
     const company = await Company.findOne({ slug: companySlug, isActive: true }).lean();
     if (!company) {
       return res.status(404).json({ success: false, message: 'Company not found' });
     }
 
+    // Authorization check: Super Admin or has a UserPermission record for this company
+    if (!req.user.isSuperAdmin) {
+      const permission = await UserPermission.findOne({ userId: req.user.userId, companyId: company._id }).lean();
+      if (!permission) {
+        return res.status(403).json({ success: false, message: 'Not authorized for this company' });
+      }
+    }
+
     const user = await User.findById(req.user.userId).lean();
     const newPayload = { ...buildTokenPayload(user), companyId: company._id };
     const token = signToken(newPayload);
+
+    // Fetch new effective permissions for this company context
+    const effectivePermissions = await resolvePermissions(user._id, company._id);
 
     auditLog(req, {
       action: 'switch_company',
@@ -283,6 +290,15 @@ export const switchCompany = async (req, res, next) => {
     res.status(200).json({
       success: true,
       token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.isSuperAdmin ? 'super_admin' : (await UserPermission.findOne({ userId: user._id, companyId: company._id }).lean())?.role,
+        companyId: company._id,
+        isSuperAdmin: user.isSuperAdmin,
+        effectivePermissions,
+      },
       company: { id: company._id, name: company.name, slug: company.slug, logo: company.logo },
     });
   } catch (err) {

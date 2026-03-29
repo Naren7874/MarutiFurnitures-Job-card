@@ -29,6 +29,11 @@ const userPermissionSchema = new mongoose.Schema(
   {
     companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Company", required: true },
     userId:    { type: mongoose.Schema.Types.ObjectId, ref: "User",    required: true },
+    role:      { type: String, required: true },
+    department: {
+      type: String,
+      enum: ["sales", "design", "store", "production", "qc", "dispatch", "accounts", "management"],
+    },
     roleId:    { type: mongoose.Schema.Types.ObjectId, ref: "Role",    required: true },
 
     // Additional permission sets assigned on top of role
@@ -59,7 +64,8 @@ const userPermissionSchema = new mongoose.Schema(
   { timestamps: false }
 );
 
-userPermissionSchema.index({ userId: 1 }, { unique: true });
+userPermissionSchema.index({ userId: 1, companyId: 1 }, { unique: true });
+userPermissionSchema.index({ userId: 1 });
 userPermissionSchema.index({ companyId: 1 });
 
 export const UserPermission = mongoose.model("UserPermission", userPermissionSchema);

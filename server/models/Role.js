@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 ───────────────────────────────────────── */
 const roleSchema = new mongoose.Schema(
   {
-    companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Company", required: true },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Company" }, // Now optional for global roles
 
     name: { type: String, required: true, trim: true },  // "Senior Designer", "Warehouse Lead"
     isSystem: { type: Boolean, default: false },          // true = cannot delete
@@ -27,7 +27,7 @@ const roleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-roleSchema.index({ companyId: 1, name: 1 }, { unique: true });
+roleSchema.index({ name: 1 }, { unique: true });
 
 export const Role = mongoose.model("Role", roleSchema);
 

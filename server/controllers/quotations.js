@@ -12,7 +12,8 @@ import { DispatchStage } from '../models/DispatchStage.js';
 import { generateQuotationNumber, generateProjectNumber, generateJobCardNumber, generateInvoiceNumber } from '../utils/autoNumber.js';
 import { generateAndUploadPDF } from '../utils/generatePDF.js';
 import { sendEmail, quotationEmailHTML } from '../utils/sendEmail.js';
-import { sendWhatsApp, WA_TEMPLATES } from '../utils/sendWhatsApp.js';
+import { sendWhatsApp, sendWhatsAppBulk, WA_TEMPLATES } from '../utils/sendWhatsApp.js';
+import { notifyRecipients } from '../utils/notifications.js';
 import { auditLog } from '../utils/auditLogger.js';
 
 // ── POST /api/quotations ─────────────────────────────────────────────────────
@@ -462,7 +463,7 @@ export const approveQuotation = async (req, res, next) => {
         production: prev.assignedStaff || [],
         qc:         [],
         dispatch:   [],
-        accountant: [],
+        accounts:   [],
       };
 
       const jobCard = await JobCard.create({
@@ -517,6 +518,28 @@ export const approveQuotation = async (req, res, next) => {
       await jobCard.save();
 
       jobCards.push(jobCard);
+
+      // 3. Notify assigned staff (Internal)
+      const allAssigned = Object.values(assignedTo).flat().filter(id => !!id);
+      if (allAssigned.length > 0) {
+        await notifyRecipients({
+          companyId: req.user.companyId,
+          recipients: allAssigned,
+          type: 'job_card_created',
+          title: 'New Job Card Assigned',
+          message: `Job Card ${jobCardNumber} has been created for project ${prev.projectName}`,
+          jobCardId: jobCard._id,
+          projectId: project._id,
+          quotationId: prev._id,
+        });
+      }
+
+      // 4. WhatsApp Hook (Dormant until ready)
+      // await sendWhatsAppBulk(
+      //   ['91xxxxxxxxxx'], // Group members or specific staff
+      //   WA_TEMPLATES.JOB_CARD_CREATED, 
+      //   [jobCardNumber, prev.projectName, company.name]
+      // );
     }
 
     // 4. AUTO-CREATE INVOICE from quotation items

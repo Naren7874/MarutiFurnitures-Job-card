@@ -20,7 +20,7 @@ const storeStageSchema = new mongoose.Schema(
         unit:         { type: String },                  // "sheets", "sqft", "pcs"
         inStock:      { type: Number, default: 0 },      // pulled at time of check
         shortage:     { type: Number, default: 0 },      // required - inStock (if > 0)
-        issued:       { type: Boolean, default: false },
+        issued:       { type: Number, default: 0 },
         issuedAt:     Date,
         issuedBy:     { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       },

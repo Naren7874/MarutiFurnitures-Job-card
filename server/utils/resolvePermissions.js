@@ -10,11 +10,15 @@ import { Role } from '../models/Role.js';
  *   3. PermissionSet permissions (additive bundles)
  *   4. Role default permissions
  *
- * @param {string} userId - Mongoose ObjectId string
- * @returns {string[]}    - Sorted array of effective permission strings
+ * @param {string} userId    - Mongoose ObjectId string
+ * @param {string} companyId - Mongoose ObjectId string (optional, defaults to user's primary if omitted)
+ * @returns {string[]}      - Sorted array of effective permission strings
  */
-export const resolvePermissions = async (userId) => {
-  const record = await UserPermission.findOne({ userId })
+export const resolvePermissions = async (userId, companyId) => {
+  const query = { userId };
+  if (companyId) query.companyId = companyId;
+
+  const record = await UserPermission.findOne(query)
     .populate('roleId')
     .populate('permissionSetIds')
     .lean();
@@ -44,7 +48,7 @@ export const resolvePermissions = async (userId) => {
 
   // 4. Cache in DB (async, don't await — let it save in background)
   UserPermission.findOneAndUpdate(
-    { userId },
+    query,
     { effectivePermissions: effective, updatedAt: now }
   ).catch(() => {});
 
@@ -54,8 +58,9 @@ export const resolvePermissions = async (userId) => {
 /**
  * Rebuild and cache effectivePermissions for a user (call after role change or override change)
  * @param {string} userId
+ * @param {string} companyId
  */
-export const rebuildPermissions = async (userId) => {
-  const effective = await resolvePermissions(userId);
+export const rebuildPermissions = async (userId, companyId) => {
+  const effective = await resolvePermissions(userId, companyId);
   return effective;
 };

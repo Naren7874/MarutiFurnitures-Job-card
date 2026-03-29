@@ -3,6 +3,7 @@ import JobCard from '../../models/JobCard.js';
 import { Inventory } from '../../models/Inventory.js';
 import { ProductionStage } from '../../models/ProductionStage.js';
 import { auditLog } from '../../utils/auditLogger.js';
+import { notifyDepartment } from '../../utils/notifications.js';
 
 /** GET /api/jobcards/:id/store — BOM with live inventory levels */
 export const getStore = async (req, res, next) => {
@@ -81,7 +82,28 @@ export const issueAllMaterials = async (req, res, next) => {
   try {
     const store = await StoreStage.findOneAndUpdate(
       { jobCardId: req.params.id },
-      { allMaterialsIssued: true, status: 'material_ready', issuedBy: req.user.userId, issuedAt: new Date() },
+      [
+        {
+          $set: {
+            allMaterialsIssued: true,
+            status: 'material_ready',
+            issuedBy: req.user.userId,
+            issuedAt: new Date(),
+            bom: {
+              $map: {
+                input: '$bom',
+                as: 'item',
+                in: {
+                  $mergeObjects: [
+                    '$$item',
+                    { issued: '$$item.required', issuedAt: new Date(), issuedBy: req.user.userId }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ],
       { new: true }
     );
     if (!store) return res.status(404).json({ success: false, message: 'Store stage not found' });
@@ -128,5 +150,14 @@ const _triggerProduction = async (jobCardId, user, store) => {
 
   await JobCard.findByIdAndUpdate(jobCardId, {
     $push: { activityLog: { action: 'materials_issued', doneBy: user.userId, prevStatus: 'material_ready', newStatus: 'in_production', timestamp: new Date() } },
+  });
+
+  // Notify Production Department
+  await notifyDepartment(user.companyId, 'production', {
+    type: 'materials_issued',
+    title: 'Materials Issued → Start Production',
+    message: `Materials for Job Card ${jobCard.jobCardNumber} are issued. Production can start now.`,
+    jobCardId: jobCard._id,
+    projectId: jobCard.projectId,
   });
 };

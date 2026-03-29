@@ -2,7 +2,8 @@ import JobCard from '../models/JobCard.js';
 import Project from '../models/Project.js';
 import Company from '../models/Company.js';
 import Notification from '../models/Notification.js';
-import DesignRequest from '../models/DesignRequest.js'; // Added import
+import DesignRequest from '../models/DesignRequest.js'; 
+import { Invoice } from '../models/Invoice.js';
 import mongoose from 'mongoose';
 import { generateJobCardNumber } from '../utils/autoNumber.js';
 import { generateAndUploadPDF } from '../utils/generatePDF.js';
@@ -136,7 +137,7 @@ export const getJobCards = async (req, res, next) => {
     // assignedTo arrays. We must cast to ObjectId or the $in comparison will NEVER match.
     if (!req.user.isSuperAdmin && req.user.role !== 'sales') {
       const dept = req.user.department; // set directly from DB by auth.js middleware
-      const VALID_DEPTS = ['design', 'store', 'production', 'qc', 'dispatch', 'accountant'];
+      const VALID_DEPTS = ['design', 'store', 'production', 'qc', 'dispatch', 'accounts'];
       if (dept && VALID_DEPTS.includes(dept)) {
         const userOid = new mongoose.Types.ObjectId(req.user.userId);
         filter[`assignedTo.${dept}`] = { $in: [userOid] };
@@ -180,7 +181,7 @@ export const getJobCardById = async (req, res, next) => {
       .populate('assignedTo.production', 'name role')
       .populate('assignedTo.qc', 'name role')
       .populate('assignedTo.dispatch', 'name role')
-      .populate('assignedTo.accountant', 'name role')
+      .populate('assignedTo.accounts', 'name role')
       .lean();
 
     if (!jobCard) return res.status(404).json({ success: false, message: 'Job card not found' });
@@ -376,6 +377,15 @@ export const closeJobCard = async (req, res, next) => {
       });
     }
 
+    // Stage 8 Guard: Check if fully paid
+    const invoice = await Invoice.findOne({ projectId: jobCard.projectId, companyId: req.user.companyId });
+    if (invoice && invoice.balanceDue > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot close: Invoice balance of ₹${invoice.balanceDue} is still pending.`,
+      });
+    }
+
     jobCard.status = 'closed';
     jobCard.warrantyNotes = warrantyNotes;
     jobCard.punchListItems = punchListItems || [];
@@ -390,6 +400,9 @@ export const closeJobCard = async (req, res, next) => {
       newStatus: 'closed',
       note: 'Job card closed and archived',
     });
+
+    // WhatsApp Hook (Dormant until ready)
+    // await sendWhatsAppBulk(['91xxxxxxxxxx'], WA_TEMPLATES.JOB_CLOSED, [jobCard.jobCardNumber]);
 
     auditLog(req, {
       action: 'update',
@@ -442,7 +455,7 @@ export const getJobCardPDF = async (req, res, next) => {
 export const assignJobCard = async (req, res, next) => {
   try {
     const { stage, userIds } = req.body; // stage: 'design' | 'store' | 'production' | etc.
-    const VALID_STAGES = ['design', 'store', 'production', 'qc', 'dispatch', 'accountant'];
+    const VALID_STAGES = ['design', 'store', 'production', 'qc', 'dispatch', 'accounts'];
 
     if (!VALID_STAGES.includes(stage)) {
       return res.status(400).json({ success: false, message: 'Invalid stage for assignment' });

@@ -20,6 +20,7 @@ import NotificationSheet from './NotificationSheet';
 
 const ALL_NAV = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/', permission: '' },
+    { label: 'Notifications', icon: Bell, path: '/notifications', permission: '' },
     { label: 'Clients', icon: Users, path: '/clients', permission: 'client.view' },
     { label: 'Quotations', icon: FileText, path: '/quotations', permission: 'quotation.view' },
     { label: 'Projects', icon: Folder, path: '/projects', permission: 'project.view' },
@@ -46,8 +47,9 @@ const renderLogo = (c: any, className = "size-7") => {
 };
 
 function CompanySwitcher() {
-    const { user, company, allCompanies, switchCompany } = useAuthStore();
+    const { company, allCompanies, switchCompany } = useAuthStore();
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 
@@ -60,8 +62,8 @@ function CompanySwitcher() {
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    // Only super admin with multiple companies gets the switcher
-    if (!user?.isSuperAdmin || allCompanies.length <= 1) {
+    // Regular users with multiple companies also get the switcher
+    if (allCompanies.length <= 1) {
         return (
             <div className="flex items-center px-5 py-2 rounded-full bg-muted/40 border border-border">
                 <span className="text-foreground text-sm font-black tracking-tight uppercase truncate max-w-[180px]">{company?.name ?? 'Loading…'}</span>
@@ -89,10 +91,13 @@ function CompanySwitcher() {
                         {allCompanies.map((c) => (
                             <button
                                 key={c.id}
-                                onClick={() => { 
-                                    switchCompany(c); 
-                                    setOpen(false); 
-                                    queryClient.invalidateQueries();
+                                onClick={async () => { 
+                                    const success = await switchCompany(c); 
+                                    if (success) {
+                                        setOpen(false); 
+                                        queryClient.clear(); // Clear all cache as company context changed
+                                        navigate(0); // Optional: reload to ensure all hooks refresh with new token
+                                    }
                                 }}
                                 className={cn(
                                     "aspect-square rounded-[2.5rem] transition-all duration-500 group/item relative overflow-visible border-4",
@@ -126,8 +131,13 @@ function CompanySwitcher() {
 export default function AppLayout() {
     const { user, company, logout, hasPermission, updateUser, updateCompanies } = useAuthStore();
     const { sidebarCollapsed, toggleSidebar } = useUIStore();
-    const { unreadCount, setSheetOpen } = useNotificationStore();
+    const { unreadCount, setSheetOpen, fetchNotifications } = useNotificationStore();
     const navigate = useNavigate();
+
+    // Fetch notifications on mount
+    useEffect(() => {
+        fetchNotifications();
+    }, [fetchNotifications]);
 
     // Sync profile & companies from backend to store to ensure permissions/logos are fresh
     const { data: meContent } = useMe() as any;
@@ -224,7 +234,7 @@ export default function AppLayout() {
             <div className="flex-1 flex flex-col overflow-hidden">
 
                 {/* Top bar */}
-                <header className="flex items-center justify-between px-6 py-3 border-b border-border bg-background">
+                <header className="flex items-center justify-between px-4 py-2 border-b border-border bg-background">
                     {/* LEFT: Company Switcher */}
                     <CompanySwitcher />
 

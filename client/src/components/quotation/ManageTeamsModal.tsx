@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
     Loader2, CheckCircle2, User2, CalendarDays, Users, Package,
     ArrowRight, Shield, Wrench, Truck, PencilLine, Settings2,
-    RefreshCw
+    RefreshCw, IndianRupee
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPatch } from '../../lib/axios';
@@ -24,9 +24,11 @@ import { DatePicker } from '@/components/ui/date-picker';
 
 interface TeamAssignment {
     design: string[];
+    store: string[];
     production: string[];
     qc: string[];
     dispatch: string[];
+    accounts: string[];
 }
 
 interface JobCardConfig {
@@ -58,7 +60,7 @@ export default function ManageTeamsModal({
         salesPerson: { id: '', name: '' },
         contactPerson: '',
         expectedDelivery: '',
-        assignedTo: { design: [], production: [], qc: [], dispatch: [] },
+        assignedTo: { design: [], store: [], production: [], qc: [], dispatch: [], accounts: [] },
     });
 
     const { data: usersRaw } = useQuery({
@@ -79,9 +81,11 @@ export default function ManageTeamsModal({
                 expectedDelivery: jc.expectedDelivery ? new Date(jc.expectedDelivery).toISOString().slice(0, 10) : '',
                 assignedTo: {
                     design: jc.assignedTo?.design || [],
+                    store: jc.assignedTo?.store || [],
                     production: jc.assignedTo?.production || [],
                     qc: jc.assignedTo?.qc || [],
                     dispatch: jc.assignedTo?.dispatch || [],
+                    accounts: jc.assignedTo?.accounts || [],
                 },
             })));
         }
@@ -112,9 +116,11 @@ export default function ManageTeamsModal({
             expectedDelivery: globalConfig.expectedDelivery || c.expectedDelivery,
             assignedTo: {
                 design: globalConfig.assignedTo?.design?.length ? globalConfig.assignedTo.design : c.assignedTo.design,
+                store: globalConfig.assignedTo?.store?.length ? globalConfig.assignedTo.store : c.assignedTo.store,
                 production: globalConfig.assignedTo?.production?.length ? globalConfig.assignedTo.production : c.assignedTo.production,
                 qc: globalConfig.assignedTo?.qc?.length ? globalConfig.assignedTo.qc : c.assignedTo.qc,
                 dispatch: globalConfig.assignedTo?.dispatch?.length ? globalConfig.assignedTo.dispatch : c.assignedTo.dispatch,
+                accounts: globalConfig.assignedTo?.accounts?.length ? globalConfig.assignedTo.accounts : c.assignedTo.accounts,
             }
         })));
         toast.info('Applied global settings to all items');
@@ -241,6 +247,15 @@ export default function ManageTeamsModal({
                                             }}
                                         />
                                         <StaffMultiSelect 
+                                            label="Store" icon={Package} 
+                                            selectedIds={globalConfig.assignedTo?.store || []} 
+                                            allUsers={allUsers}
+                                            onToggle={id => {
+                                                const next = globalConfig.assignedTo!.store!.includes(id) ? globalConfig.assignedTo!.store!.filter(x=>x!==id) : [...globalConfig.assignedTo!.store!, id];
+                                                setGlobalConfig(prev => ({ ...prev, assignedTo: { ...prev.assignedTo!, store: next } }));
+                                            }}
+                                        />
+                                        <StaffMultiSelect 
                                             label="Production" icon={Wrench} 
                                             selectedIds={globalConfig.assignedTo?.production || []} 
                                             allUsers={allUsers}
@@ -265,6 +280,15 @@ export default function ManageTeamsModal({
                                             onToggle={id => {
                                                 const next = globalConfig.assignedTo!.dispatch!.includes(id) ? globalConfig.assignedTo!.dispatch!.filter(x=>x!==id) : [...globalConfig.assignedTo!.dispatch!, id];
                                                 setGlobalConfig(prev => ({ ...prev, assignedTo: { ...prev.assignedTo!, dispatch: next } }));
+                                            }}
+                                        />
+                                        <StaffMultiSelect 
+                                            label="Accounts" icon={IndianRupee} 
+                                            selectedIds={globalConfig.assignedTo?.accounts || []} 
+                                            allUsers={allUsers}
+                                            onToggle={id => {
+                                                const next = globalConfig.assignedTo!.accounts!.includes(id) ? globalConfig.assignedTo!.accounts!.filter(x=>x!==id) : [...globalConfig.assignedTo!.accounts!, id];
+                                                setGlobalConfig(prev => ({ ...prev, assignedTo: { ...prev.assignedTo!, accounts: next } }));
                                             }}
                                         />
                                     </div>
@@ -374,6 +398,15 @@ export default function ManageTeamsModal({
                                                             }}
                                                         />
                                                         <StaffMultiSelect 
+                                                            label="Store" icon={Package} 
+                                                            selectedIds={config.assignedTo.store}
+                                                            allUsers={allUsers}
+                                                            onToggle={id => {
+                                                                const next = config.assignedTo.store.includes(id) ? config.assignedTo.store.filter(x=>x!==id) : [...config.assignedTo.store, id];
+                                                                updateSingle(idx, 'assignedTo', { store: next });
+                                                            }}
+                                                        />
+                                                        <StaffMultiSelect 
                                                             label="Production" icon={Wrench} 
                                                             selectedIds={config.assignedTo.production}
                                                             allUsers={allUsers}
@@ -398,6 +431,15 @@ export default function ManageTeamsModal({
                                                             onToggle={id => {
                                                                 const next = config.assignedTo.dispatch.includes(id) ? config.assignedTo.dispatch.filter(x=>x!==id) : [...config.assignedTo.dispatch, id];
                                                                 updateSingle(idx, 'assignedTo', { dispatch: next });
+                                                            }}
+                                                        />
+                                                        <StaffMultiSelect 
+                                                            label="Accounts" icon={IndianRupee} 
+                                                            selectedIds={config.assignedTo.accounts}
+                                                            allUsers={allUsers}
+                                                            onToggle={id => {
+                                                                const next = config.assignedTo.accounts.includes(id) ? config.assignedTo.accounts.filter(x=>x!==id) : [...config.assignedTo.accounts, id];
+                                                                updateSingle(idx, 'assignedTo', { accounts: next });
                                                             }}
                                                         />
                                                     </div>
