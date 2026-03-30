@@ -14,95 +14,106 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 async function migrate() {
     try {
         await mongoose.connect(process.env.MONGO_URI);
-        console.log('Connected to DB');
+        console.log('✅ Connected to DB');
 
-        // 1. Get all roles and de-duplicate by name
+        // ── STEP 1: Deduplicate roles by name ────────────────────────────────
         const allRoles = await Role.find({}).lean();
-        const roleMap = {}; // name -> masterRoleDoc
-        
         console.log(`Found ${allRoles.length} raw role records.`);
 
+        // Build a map: role name → master doc (prefer already-global roles)
+        const roleMap = {};
         for (const r of allRoles) {
             if (!roleMap[r.name]) {
-                // First time we see this role name, make it the "Master"
-                // But prefer a role that is already global or from a main company if possible
                 roleMap[r.name] = r;
-            } else {
-                // We already have a master, but if this one has more permissions, maybe merge?
-                // For simplicity, we just keep the first one found.
+            } else if (!r.companyId) {
+                // Prefer the global role (companyId: null) as master
+                roleMap[r.name] = r;
             }
         }
 
-        // 2. Converge to Global Roles (companyId: null)
-        const globalRoleIds = {}; // name -> newGlobalRoleId
+        // ── STEP 2: Converge to Global Roles (companyId: null) ───────────────
+        const globalRoleIds = {}; // name → _id of the global role
         for (const name in roleMap) {
             const master = roleMap[name];
-            
-            // Check if a global role already exists with this name (no companyId)
+
             let globalRole = await Role.findOne({ name, companyId: null });
-            
+
             if (!globalRole) {
-                // Convert the master to global
-                globalRole = await Role.findByIdAndUpdate(master._id, 
-                    { companyId: null, isSystem: master.isSystem || false }, 
+                // Promote master to global
+                globalRole = await Role.findByIdAndUpdate(
+                    master._id,
+                    { $unset: { companyId: 1 }, $set: { isSystem: master.isSystem || false } },
                     { new: true }
                 );
-                console.log(`   🌟 Created Global Role: ${name}`);
+                console.log(`   🌟 Promoted to global: ${name}`);
             } else {
-                console.log(`   ✅ Global Role already exists: ${name}`);
+                console.log(`   ✅ Already global: ${name}`);
             }
             globalRoleIds[name] = globalRole._id;
         }
 
-        // 3. Cleanup: Delete roles that are not global
+        // ── STEP 3: Delete all company-specific (non-global) roles ───────────
         const delRes = await Role.deleteMany({ companyId: { $ne: null } });
-        console.log(`   🗑️ Deleted ${delRes.deletedCount} redundant company-specific roles.`);
+        console.log(`   🗑️  Deleted ${delRes.deletedCount} company-specific roles.`);
 
-        // 4. Update all UserPermissions to use global Role IDs
-        const users = await User.find({}).lean();
-        const companies = await Company.find({ isActive: true }).lean();
-        
-        console.log(`Processing sync for ${users.length} users across ${companies.length} companies...`);
-
-        for (const user of users) {
-             console.log(`User: ${user.email}`);
-             const roleName = user.role || 'sales';
-             const masterRoleId = globalRoleIds[roleName] || globalRoleIds['sales'];
-
-             if (!masterRoleId) {
-                 console.warn(`   ⚠️ No master role found for ${roleName}. skipping.`);
-                 continue;
-             }
-
-             for (const comp of companies) {
-                 const existingPerm = await UserPermission.findOne({ userId: user._id, companyId: comp._id });
-                 
-                 if (!existingPerm) {
-                     await UserPermission.create({
-                         userId: user._id,
-                         companyId: comp._id,
-                         role: roleName,
-                         roleId: masterRoleId,
-                         effectivePermissions: user.isSuperAdmin ? ['*.*'] : [], // resolvePermissions will fix
-                     });
-                     console.log(`   ➕ Created permission for ${comp.name}`);
-                 } else {
-                     await UserPermission.updateOne(
-                         { _id: existingPerm._id },
-                         { $set: { role: roleName, roleId: masterRoleId } }
-                     );
-                     console.log(`   🔄 Updated permission for ${comp.name}`);
-                 }
-                 
-                 // Rebuild cache
-                 await resolvePermissions(user._id, comp._id).catch(() => {});
-             }
+        // ── STEP 4: Point all UserPermissions to correct global roleIds ───────
+        console.log('Updating UserPermission records to use global role IDs...');
+        for (const [roleName, globalRoleId] of Object.entries(globalRoleIds)) {
+            const result = await UserPermission.updateMany(
+                { role: roleName },
+                { $set: { roleId: globalRoleId } }
+            );
+            console.log(`   🔄 Updated ${result.modifiedCount} UserPermissions for role: ${roleName}`);
         }
 
-        console.log('Global Migration Complete!');
+        // ── STEP 5: Ensure every user has a UserPermission for every company ──
+        const users = await User.find({}).lean();
+        const companies = await Company.find({ isActive: true }).lean();
+
+        console.log(`\nSyncing ${users.length} users across ${companies.length} companies...`);
+
+        for (const user of users) {
+            const roleName = user.role;
+            if (!roleName) {
+                console.warn(`   ⚠️  User ${user.email} has no role — skipping.`);
+                continue;
+            }
+
+            const globalRoleId = globalRoleIds[roleName];
+            if (!globalRoleId) {
+                console.warn(`   ⚠️  No global role found for "${roleName}" (user: ${user.email}) — skipping.`);
+                continue;
+            }
+
+            for (const comp of companies) {
+                const exists = await UserPermission.findOne({
+                    userId: user._id,
+                    companyId: comp._id,
+                }).lean();
+
+                if (!exists) {
+                    await UserPermission.create({
+                        userId:               user._id,
+                        companyId:            comp._id,
+                        role:                 roleName,
+                        roleId:               globalRoleId,
+                        effectivePermissions: user.isSuperAdmin ? ['*.*'] : [],
+                    });
+                    console.log(`   ➕ Created UserPermission: ${user.email} → ${comp.name}`);
+                }
+
+                // Rebuild effective permissions cache
+                await resolvePermissions(
+                    user._id.toString(),
+                    comp._id.toString()
+                ).catch(err => console.warn(`   ⚠️  resolvePermissions failed for ${user.email}: ${err.message}`));
+            }
+        }
+
+        console.log('\n✅ Global Migration Complete!');
         process.exit(0);
     } catch (err) {
-        console.error('Migration failed:', err);
+        console.error('❌ Migration failed:', err);
         process.exit(1);
     }
 }

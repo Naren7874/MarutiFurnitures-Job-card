@@ -182,14 +182,16 @@ export const getUserPermissions = async (req, res, next) => {
   try {
     const { userId } = req.params;
 
-    // Verify user belongs to same company
-    const user = await User.findOne({ _id: userId, companyId: req.user.companyId }).lean();
+    // Global user lookup
+    const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const userPerm = await UserPermission.findOne({ userId })
+    // Authorization: verify user is in admin's company
+    const userPerm = await UserPermission.findOne({ userId, companyId: req.user.companyId })
       .populate('roleId', 'name permissions dataScope')
       .populate('permissionSetIds', 'name description permissions')
       .lean();
+    if (!userPerm && !req.user.isSuperAdmin) return res.status(403).json({ success: false, message: 'User is not part of your company' });
 
     res.status(200).json({
       success: true,
@@ -209,8 +211,11 @@ export const grantPermission = async (req, res, next) => {
 
     if (!permission) return res.status(400).json({ success: false, message: 'permission is required' });
 
-    const user = await User.findOne({ _id: userId, companyId: req.user.companyId }).lean();
+    // Global user lookup + company authorization
+    const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const perm = await UserPermission.findOne({ userId, companyId: req.user.companyId }).lean();
+    if (!perm) return res.status(403).json({ success: false, message: 'User is not part of your company' });
 
     const override = {
       permission,
@@ -250,8 +255,11 @@ export const denyPermission = async (req, res, next) => {
 
     if (!permission) return res.status(400).json({ success: false, message: 'permission is required' });
 
-    const user = await User.findOne({ _id: userId, companyId: req.user.companyId }).lean();
+    // Global user lookup + company authorization
+    const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const perm = await UserPermission.findOne({ userId, companyId: req.user.companyId }).lean();
+    if (!perm) return res.status(403).json({ success: false, message: 'User is not part of your company' });
 
     const override = {
       permission,
@@ -288,8 +296,11 @@ export const removeOverride = async (req, res, next) => {
   try {
     const { userId, overrideId } = req.params;
 
-    const user = await User.findOne({ _id: userId, companyId: req.user.companyId }).lean();
+    // Global user lookup + company authorization
+    const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const authCheck = await UserPermission.findOne({ userId, companyId: req.user.companyId }).lean();
+    if (!authCheck) return res.status(403).json({ success: false, message: 'User is not part of your company' });
 
     const userPerm = await UserPermission.findOne({ userId });
     if (!userPerm) return res.status(404).json({ success: false, message: 'No permission record found' });
@@ -324,8 +335,11 @@ export const assignPermissionSet = async (req, res, next) => {
 
     if (!permissionSetId) return res.status(400).json({ success: false, message: 'permissionSetId is required' });
 
-    const user = await User.findOne({ _id: userId, companyId: req.user.companyId }).lean();
+    // Global user lookup + company authorization
+    const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const authCheck = await UserPermission.findOne({ userId, companyId: req.user.companyId }).lean();
+    if (!authCheck) return res.status(403).json({ success: false, message: 'User is not part of your company' });
 
     const set = await PermissionSet.findOne({ _id: permissionSetId, companyId: req.user.companyId }).lean();
     if (!set) return res.status(404).json({ success: false, message: 'Permission set not found' });
@@ -355,8 +369,11 @@ export const removePermissionSet = async (req, res, next) => {
   try {
     const { userId, setId } = req.params;
 
-    const user = await User.findOne({ _id: userId, companyId: req.user.companyId }).lean();
+    // Global user lookup + company authorization
+    const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const authCheck = await UserPermission.findOne({ userId, companyId: req.user.companyId }).lean();
+    if (!authCheck) return res.status(403).json({ success: false, message: 'User is not part of your company' });
 
     await UserPermission.findOneAndUpdate(
       { userId },
@@ -382,8 +399,11 @@ export const getOverrideHistory = async (req, res, next) => {
   try {
     const { userId } = req.params;
 
-    const user = await User.findOne({ _id: userId, companyId: req.user.companyId }).lean();
+    // Global user lookup + company authorization
+    const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const authCheck = await UserPermission.findOne({ userId, companyId: req.user.companyId }).lean();
+    if (!authCheck && !req.user.isSuperAdmin) return res.status(403).json({ success: false, message: 'User is not part of your company' });
 
     const history = await AuditLog.find({
       companyId: req.user.companyId,

@@ -76,7 +76,7 @@ function CompanySwitcher() {
             <button
                 onClick={() => setOpen(v => !v)}
                 className={cn(
-                    "flex items-center px-6 py-2.5 rounded-full border transition-all duration-300",
+                    "flex items-center px-6 py-2.5 rounded-full border transition-all duration-300 cursor-pointer",
                     open 
                         ? "bg-primary/5 border-primary/30 shadow-xl shadow-primary/5" 
                         : "bg-card border-border hover:border-primary/20 hover:bg-muted/50 hover:shadow-lg"
@@ -100,7 +100,7 @@ function CompanySwitcher() {
                                     }
                                 }}
                                 className={cn(
-                                    "aspect-square rounded-[2.5rem] transition-all duration-500 group/item relative overflow-visible border-4",
+                                    "aspect-square rounded-[2.5rem] transition-all duration-500 group/item relative overflow-visible border-4 cursor-pointer",
                                     company?.id === c.id 
                                         ? "border-primary bg-card shadow-[0_20px_40px_rgba(var(--primary),0.15)] scale-[1.02]" 
                                         : "border-transparent bg-card shadow-sm hover:border-border/40 hover:shadow-xl hover:scale-[1.05]"

@@ -56,7 +56,9 @@ export const login = async (req, res, next) => {
 
     // Fetch all companies where this user has a mission
     const permissions = await UserPermission.find({ userId: user._id }).lean();
-    const authorizedCompanyIds = permissions.map(p => p.companyId.toString());
+    const authorizedCompanyIds = permissions
+      .filter(p => p.companyId)
+      .map(p => p.companyId.toString());
 
     let allCompanies = [];
     if (user.isSuperAdmin) {
@@ -154,7 +156,9 @@ export const getMe = async (req, res, next) => {
       }));
     } else {
       const permissions = await UserPermission.find({ userId: user._id }).lean();
-      const authorizedCompanyIds = permissions.map(p => p.companyId.toString());
+      const authorizedCompanyIds = permissions
+        .filter(p => p.companyId)
+        .map(p => p.companyId.toString());
       const companies = await Company.find({ _id: { $in: authorizedCompanyIds }, isActive: true }).lean();
       allCompanies = companies.map(c => ({
         id: c._id, name: c.name, slug: c.slug, logo: c.logo, gstin: c.gstin

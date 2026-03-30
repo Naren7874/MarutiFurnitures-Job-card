@@ -91,19 +91,19 @@ const COMPANIES = [
   },
 ];
 
-// ── System Role Definitions ─────────────────────────────────────────────────
+// ── System Role Definitions (GLOBAL — companyId: null) ─────────────────────
 
-const buildRoles = (companyId) => [
+const buildRoles = () => [
   {
-    companyId,
+    companyId: null,
     name: 'super_admin',
     isSystem: true,
-    permissions: ['*.*'],  // Wildcard — all permissions
+    permissions: ['*.*'],
     dataScope: 'all',
     isActive: true,
   },
   {
-    companyId,
+    companyId: null,
     name: 'sales',
     isSystem: true,
     permissions: [
@@ -119,7 +119,7 @@ const buildRoles = (companyId) => [
     isActive: true,
   },
   {
-    companyId,
+    companyId: null,
     name: 'design',
     isSystem: true,
     permissions: [
@@ -133,7 +133,7 @@ const buildRoles = (companyId) => [
     isActive: true,
   },
   {
-    companyId,
+    companyId: null,
     name: 'store',
     isSystem: true,
     permissions: [
@@ -147,7 +147,7 @@ const buildRoles = (companyId) => [
     isActive: true,
   },
   {
-    companyId,
+    companyId: null,
     name: 'production',
     isSystem: true,
     permissions: [
@@ -159,7 +159,7 @@ const buildRoles = (companyId) => [
     isActive: true,
   },
   {
-    companyId,
+    companyId: null,
     name: 'qc',
     isSystem: true,
     permissions: [
@@ -171,7 +171,7 @@ const buildRoles = (companyId) => [
     isActive: true,
   },
   {
-    companyId,
+    companyId: null,
     name: 'dispatch',
     isSystem: true,
     permissions: [
@@ -183,7 +183,7 @@ const buildRoles = (companyId) => [
     isActive: true,
   },
   {
-    companyId,
+    companyId: null,
     name: 'accountant',
     isSystem: true,
     permissions: [
@@ -200,7 +200,7 @@ const buildRoles = (companyId) => [
     isActive: true,
   },
   {
-    companyId,
+    companyId: null,
     name: 'client',
     isSystem: true,
     permissions: [
@@ -214,13 +214,12 @@ const buildRoles = (companyId) => [
   },
 ];
 
-// ── Seed Function ───────────────────────────────────────────────────────────
+// ── Seed Function ─────────────────────────────────────────────────────────────
 
 const seed = async () => {
   await mongoose.connect(process.env.MONGO_URI);
   console.log('✅ Connected to MongoDB');
 
-  // Clear existing base data for a clean seed
   console.log('🧹 Cleaning existing collections...');
   await Company.deleteMany({});
   await Role.deleteMany({});
@@ -228,47 +227,48 @@ const seed = async () => {
   await UserPermission.deleteMany({});
   console.log('✅ Collections cleared');
 
+  // ── Create Companies ──────────────────────────────────────────────────────
   const createdCompanies = [];
-
   for (const companyData of COMPANIES) {
     const company = await Company.create(companyData);
     createdCompanies.push(company);
     console.log(`✅ Company created: ${company.name} (${company._id})`);
-
-    // Create system roles for this company
-    const roles = buildRoles(company._id);
-    const createdRoles = await Role.insertMany(roles);
-    console.log(`   ↳ ${createdRoles.length} system roles created`);
   }
 
-  // ── Super Admin User (cross-company) ─────────────────────────────────────
+  // ── Create GLOBAL System Roles ONCE (companyId: null) ────────────────────
+  const createdRoles = await Role.insertMany(buildRoles());
+  console.log(`✅ ${createdRoles.length} global system roles created (companyId: null)`);
 
-  const primaryCompany = createdCompanies[0];
-  const superAdminRole = await Role.findOne({ companyId: primaryCompany._id, name: 'super_admin' });
+  const superAdminRole = createdRoles.find(r => r.name === 'super_admin');
 
+  // ── Super Admin User ──────────────────────────────────────────────────────
   const superAdmin = await User.create({
-    companyId:   primaryCompany._id,
-    name:        'Super Admin',
-    email:       'admin@maruti.com',
-    password:    'Admin@1234',           // Will be hashed by pre-save hook
-    phone:       '9876543210',
-    role:        'super_admin',
-    department:  'management',
+    companyId:    createdCompanies[0]._id,  // Home company (display only)
+    firstName:    'Super',
+    lastName:     'Admin',
+    email:        'admin@maruti.com',
+    password:     'Admin@1234',             // Hashed by pre-save hook
+    phone:        '9876543210',
+    role:         'super_admin',
+    department:   'management',
     isSuperAdmin: true,
-    isActive:    true,
+    isActive:     true,
   });
   console.log(`✅ Super Admin created: ${superAdmin.email}`);
 
-  // Create UserPermission record for super admin
-  await UserPermission.create({
-    companyId:            primaryCompany._id,
-    userId:               superAdmin._id,
-    roleId:               superAdminRole._id,
-    permissionSetIds:     [],
-    overrides:            [],
-    effectivePermissions: ['*.*'],
-  });
-  console.log(`   ↳ UserPermission record created for super admin`);
+  // ── Provision Super Admin across ALL companies ────────────────────────────
+  for (const company of createdCompanies) {
+    await UserPermission.create({
+      companyId:            company._id,
+      userId:               superAdmin._id,
+      role:                 'super_admin',
+      roleId:               superAdminRole._id,
+      permissionSetIds:     [],
+      overrides:            [],
+      effectivePermissions: ['*.*'],
+    });
+    console.log(`   ↳ UserPermission created for ${company.name}`);
+  }
 
   console.log('\n🎉 Seed complete!');
   console.log('─────────────────────────────────────');
