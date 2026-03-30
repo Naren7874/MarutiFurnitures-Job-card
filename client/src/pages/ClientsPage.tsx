@@ -31,6 +31,7 @@ export default function ClientsPage() {
     const navigate = useNavigate();
     const canCreate = hasPermission('client.create');
     const canEdit   = hasPermission('client.edit');
+    const canDelete = hasPermission('client.delete');
 
     const { data: raw, isLoading } = useClients({ 
         search, 
@@ -214,25 +215,29 @@ export default function ClientsPage() {
                                         <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-bl from-primary/5 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
 
                                         {/* Quick Actions Overlay */}
-                                        {canEdit && (
+                                        {(canEdit || canDelete) && (
                                             <div className="absolute top-4 right-4 flex flex-col gap-2 translate-x-12 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300 z-20">
-                                                <Link 
-                                                    to={`/clients/${c._id}/edit`}
-                                                    className="size-10 rounded-xl bg-white/80 dark:bg-card/50 border border-border flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    <Edit2 size={16} />
-                                                </Link>
-                                                <button 
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        setDeleteId(c._id);
-                                                    }}
-                                                    className="size-10 rounded-xl bg-white/80 dark:bg-card/50 border border-border flex items-center justify-center text-muted-foreground hover:bg-red-500 hover:text-white hover:border-red-500 transition-all shadow-sm"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                {canEdit && (
+                                                    <Link 
+                                                        to={`/clients/${c._id}/edit`}
+                                                        className="size-10 rounded-xl bg-white/80 dark:bg-card/50 border border-border flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </Link>
+                                                )}
+                                                {canDelete && (
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setDeleteId(c._id);
+                                                        }}
+                                                        className="size-10 rounded-xl bg-white/80 dark:bg-card/50 border border-border flex items-center justify-center text-muted-foreground hover:bg-red-500 hover:text-white hover:border-red-500 transition-all shadow-sm"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
                                             </div>
                                         )}
 
@@ -315,7 +320,7 @@ export default function ClientsPage() {
                                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Firm Name</th>
                                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Contact</th>
                                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Type</th>
-                                {canEdit && <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Actions</th>}
+                                {(canEdit || canDelete) && <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Actions</th>}
                             </tr>
                         </thead>
                         <tbody>
@@ -347,26 +352,30 @@ export default function ClientsPage() {
                                             {CLIENT_TYPE_LABELS[c.clientType] || 'Direct Client'}
                                         </span>
                                     </td>
-                                    {canEdit && (
+                                    {(canEdit || canDelete) && (
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Link 
-                                                    to={`/clients/${c._id}/edit`}
-                                                    className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    <Edit2 size={16} />
-                                                </Link>
-                                                <button 
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        setDeleteId(c._id);
-                                                    }}
-                                                    className="p-2 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                {canEdit && (
+                                                    <Link 
+                                                        to={`/clients/${c._id}/edit`}
+                                                        className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </Link>
+                                                )}
+                                                {canDelete && (
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setDeleteId(c._id);
+                                                        }}
+                                                        className="p-2 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     )}
