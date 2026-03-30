@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Phone, Building2, CheckCircle, XCircle, Users, MapPin, ArrowUpRight, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Search, Phone, Building2, CheckCircle, XCircle, Users, MapPin, ArrowUpRight, Edit2, Trash2, LayoutGrid, List, ArrowUpDown } from 'lucide-react';
 import { useClients, useDeleteClientPermanent } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,8 @@ const CLIENT_TYPE_LABELS: Record<string, string> = {
 export default function ClientsPage() {
     const [search, setSearch] = useState('');
     const [clientType, setClientType] = useState('');
+    const [sortBy, setSortBy] = useState('createdAt:desc');
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
     const [page, setPage] = useState(1);
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const { hasPermission } = useAuthStore();
@@ -30,7 +32,13 @@ export default function ClientsPage() {
     const canCreate = hasPermission('client.create');
     const canEdit   = hasPermission('client.edit');
 
-    const { data: raw, isLoading } = useClients({ search, clientType: clientType || undefined, page, limit: 20 });
+    const { data: raw, isLoading } = useClients({ 
+        search, 
+        clientType: clientType || undefined, 
+        page, 
+        limit: viewMode === 'table' ? 50 : 20,
+        sortBy
+    });
     const resp: any = raw;
     const clients: any[] = resp?.data ?? [];
     const pagination: any = resp?.pagination ?? {};
@@ -65,13 +73,37 @@ export default function ClientsPage() {
                         </p>
                     </div>
                 </div>
-                {canCreate && (
-                    <Link to="/clients/new">
-                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-[0.15em] h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                            <Plus size={18} strokeWidth={3} /> Add New Client
-                        </Button>
-                    </Link>
-                )}
+                <div className="flex items-center gap-4">
+                    {/* View Mode Toggle */}
+                    <div className="flex p-1 bg-card border border-border/60 rounded-2xl shadow-sm">
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={cn(
+                                "p-2 rounded-xl transition-all",
+                                viewMode === 'grid' ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <LayoutGrid size={20} />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('table')}
+                            className={cn(
+                                "p-2 rounded-xl transition-all",
+                                viewMode === 'table' ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <List size={20} />
+                        </button>
+                    </div>
+
+                    {canCreate && (
+                        <Link to="/clients/new">
+                            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-[0.15em] h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                                <Plus size={18} strokeWidth={3} /> Add New Client
+                            </Button>
+                        </Link>
+                    )}
+                </div>
             </motion.div>
 
             {/* Search & Filter Section */}
@@ -79,7 +111,7 @@ export default function ClientsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="grid grid-cols-1 md:grid-cols-4 gap-4"
+                className="grid grid-cols-1 md:grid-cols-6 gap-4"
             >
                 <div className="md:col-span-3 relative group">
                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
@@ -90,23 +122,41 @@ export default function ClientsPage() {
                         className="pl-12 bg-card border-border/80 text-foreground h-14 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/40 shadow-sm backdrop-blur-md w-full"
                     />
                 </div>
-                <div>
+                
+                <div className="md:col-span-1.5">
                     <Select value={clientType || 'all'} onValueChange={(v) => { setClientType(v === 'all' ? '' : v); setPage(1); }}>
                         <SelectTrigger className="h-14! bg-card border-border/80 text-foreground rounded-2xl font-bold text-xs uppercase tracking-[0.15em] px-6 shadow-sm focus:ring-2 focus:ring-primary/10 transition-all">
                             <SelectValue placeholder="FILTER BY TYPE" />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl shadow-2xl border-border/50">
-                            <SelectItem value="all" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] hover:bg-primary/10 transition-colors py-3">All Categories</SelectItem>
-                            <SelectItem value="direct_client" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] hover:bg-primary/10 transition-colors py-3">Direct Clients</SelectItem>
-                            <SelectItem value="architect" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] hover:bg-primary/10 transition-colors py-3">Architects</SelectItem>
-                            <SelectItem value="project_designer" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] hover:bg-primary/10 transition-colors py-3">Project Designers</SelectItem>
-                            <SelectItem value="factory_manager" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] hover:bg-primary/10 transition-colors py-3">Factory Managers</SelectItem>
+                            <SelectItem value="all" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">All Categories</SelectItem>
+                            <SelectItem value="direct_client" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Direct Clients</SelectItem>
+                            <SelectItem value="architect" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Architects</SelectItem>
+                            <SelectItem value="project_designer" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Project Designers</SelectItem>
+                            <SelectItem value="factory_manager" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Factory Managers</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="md:col-span-1.5">
+                    <Select value={sortBy} onValueChange={(v) => { setSortBy(v); setPage(1); }}>
+                        <SelectTrigger className="h-14! bg-card border-border/80 text-foreground rounded-2xl font-bold text-xs uppercase tracking-[0.15em] px-6 shadow-sm focus:ring-2 focus:ring-primary/10 transition-all">
+                            <div className="flex items-center gap-2">
+                                <ArrowUpDown size={14} className="text-primary" />
+                                <SelectValue placeholder="SORT BY" />
+                            </div>
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl shadow-2xl border-border/50">
+                            <SelectItem value="createdAt:desc" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Newest First</SelectItem>
+                            <SelectItem value="name:asc" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Name (A-Z)</SelectItem>
+                            <SelectItem value="name:desc" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Name (Z-A)</SelectItem>
+                            <SelectItem value="firmName:asc" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Firm (A-Z)</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
 
                 {(search || clientType) && (
-                    <div className="md:col-span-4 flex items-center gap-2">
+                    <div className="md:col-span-6 flex items-center gap-2">
                         <span className="text-[10px] font-black uppercase text-muted-foreground/40 tracking-[0.15em] ml-2">Active Filters:</span>
                         {clientType && (
                             <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
@@ -130,12 +180,19 @@ export default function ClientsPage() {
 
             {/* Content List */}
             {isLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className={cn(
+                    viewMode === 'grid' 
+                        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
+                        : "space-y-4"
+                )}>
                     {[...Array(8)].map((_, i) => (
-                        <div key={i} className="h-64 bg-muted/40 rounded-[32px] animate-pulse border border-border/30" />
+                        <div key={i} className={cn(
+                            "bg-muted/40 animate-pulse border border-border/30",
+                            viewMode === 'grid' ? "h-64 rounded-[32px]" : "h-16 rounded-2xl"
+                        )} />
                     ))}
                 </div>
-            ) : (
+            ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <AnimatePresence mode="popLayout">
                         {clients.map((c: any, idx: number) => (
@@ -245,6 +302,79 @@ export default function ClientsPage() {
                         ))}
                     </AnimatePresence>
                 </div>
+            ) : (
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="bg-card border border-border/60 rounded-[32px] overflow-hidden shadow-sm"
+                >
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-muted/30 border-b border-border/50">
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Client Name</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Firm Name</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Contact</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Type</th>
+                                {canEdit && <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Actions</th>}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {clients.map((c) => (
+                                <tr 
+                                    key={c._id} 
+                                    onClick={() => navigate(`/clients/${c._id}`)}
+                                    className="border-b border-border/30 hover:bg-primary/5 transition-colors cursor-pointer group"
+                                >
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                                                {c.name?.charAt(0)}
+                                            </div>
+                                            <span className="text-foreground font-bold text-sm group-hover:text-primary transition-colors">{c.name}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="text-muted-foreground text-sm font-medium">{c.firmName || '-'}</span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-foreground text-sm font-bold">{c.phone}</span>
+                                            {c.email && <span className="text-muted-foreground text-[10px]">{c.email}</span>}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="px-3 py-1 rounded-full bg-primary/5 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20">
+                                            {CLIENT_TYPE_LABELS[c.clientType] || 'Direct Client'}
+                                        </span>
+                                    </td>
+                                    {canEdit && (
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Link 
+                                                    to={`/clients/${c._id}/edit`}
+                                                    className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <Edit2 size={16} />
+                                                </Link>
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        setDeleteId(c._id);
+                                                    }}
+                                                    className="p-2 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </motion.div>
             )}
 
             {!isLoading && clients.length === 0 && (

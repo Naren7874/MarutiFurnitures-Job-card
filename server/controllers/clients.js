@@ -30,7 +30,7 @@ export const createClient = async (req, res, next) => {
 
 export const getClients = async (req, res, next) => {
   try {
-    const { search, clientType, isActive = 'true', page = 1, limit = 20 } = req.query;
+    const { search, clientType, isActive = 'true', page = 1, limit = 20, sortBy } = req.query;
 
     const filter = { ...req.companyFilter };
     if (isActive !== 'all') filter.isActive = String(isActive) === 'true';
@@ -47,9 +47,18 @@ export const getClients = async (req, res, next) => {
       ];
     }
 
+    // Sorting logic
+    const sort = {};
+    if (sortBy) {
+      const [field, order] = sortBy.split(':');
+      sort[field] = order === 'desc' ? -1 : 1;
+    } else {
+      sort.createdAt = -1; // Default: newest first
+    }
+
     const [clients, total] = await Promise.all([
       Client.find(filter)
-        .sort({ createdAt: -1 })
+        .sort(sort)
         .skip((page - 1) * limit)
         .limit(Number(limit))
         .lean(),
