@@ -305,6 +305,10 @@ export const deleteUser = async (req, res, next) => {
     const user = await User.findById(targetUserId).lean();
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
+    if (user.role === 'super_admin') {
+      return res.status(403).json({ success: false, message: 'Super admin users cannot be deleted' });
+    }
+
     // Remove ALL UserPermission records across every company
     await UserPermission.deleteMany({ userId: targetUserId });
 

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
     Users, Plus, Search, Mail, Phone, ShieldCheck,
     KeyRound, UserX, UserCheck, Edit2, X, Eye, EyeOff, Loader2,
-    CheckCircle2, AlertCircle, Building2, Filter, MoreVertical, Shield
+    CheckCircle2, AlertCircle, Building2, Filter, MoreVertical, Shield, Trash2
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Button } from '@/components/ui/button'
@@ -28,6 +28,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -123,6 +124,11 @@ const deactivateUser = async (id: string) => {
 
 const resetPassword = async ({ id, newPassword }: { id: string; newPassword: string }) => {
     const { data } = await api.post(`/users/${id}/reset-password`, { newPassword })
+    return data
+}
+
+const deleteUser = async (id: string) => {
+    const { data } = await api.delete(`/users/${id}`)
     return data
 }
 
@@ -645,12 +651,14 @@ export default function UsersPage() {
     const [drawerOpen, setDrawerOpen] = useState(false)
     const [editTarget, setEditTarget] = useState<AppUser | null>(null)
     const [resetTarget, setResetTarget] = useState<AppUser | null>(null)
+    const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null)
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
     const { hasPermission } = useAuthStore()
 
     const canCreate = hasPermission('user.create')
     const canEdit   = hasPermission('user.edit')
     const canDeactivate = hasPermission('user.deactivate')
+    const canDelete = hasPermission('user.delete')
     const canManagePrivs = hasPermission('privilege.view')
 
     const { data: users = [], isLoading, error: loadError } = useQuery<AppUser[]>({
@@ -673,6 +681,16 @@ export default function UsersPage() {
         mutationFn: ({ id }: { id: string }) => api.patch(`/users/${id}/activate`).then(r => r.data),
         onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); showToast('User activated') },
         onError: (e: any) => showToast(e.response?.data?.message || 'Error', 'error'),
+    })
+
+    const deleteMut = useMutation({
+        mutationFn: deleteUser,
+        onSuccess: () => { 
+            qc.invalidateQueries({ queryKey: ['users'] }); 
+            showToast('User permanently deleted');
+            setDeleteTarget(null);
+        },
+        onError: (e: any) => showToast(e.response?.data?.message || 'Error deleting user', 'error'),
     })
 
     function showToast(msg: string, type: 'success' | 'error' = 'success') {
@@ -956,6 +974,16 @@ export default function UsersPage() {
                                                                 </DropdownMenuItem>
                                                             )
                                                         )}
+                                                        {canDelete && user.role !== 'super_admin' && <DropdownMenuSeparator />}
+                                                        {canDelete && user.role !== 'super_admin' && (
+                                                            <DropdownMenuItem 
+                                                                onClick={e => { e.stopPropagation(); setDeleteTarget(user) }} 
+                                                                className="rounded-lg gap-2 cursor-pointer text-rose-500 focus:text-rose-500 focus:bg-rose-500/5"
+                                                            >
+                                                                <Trash2 className="size-3.5" />
+                                                                <span>Delete User</span>
+                                                            </DropdownMenuItem>
+                                                        )}
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>
@@ -984,6 +1012,18 @@ export default function UsersPage() {
                         onSuccess={showToast}
                     />
                 )}
+
+                {/* Delete Confirmation */}
+                <ConfirmationDialog
+                    open={!!deleteTarget}
+                    onOpenChange={(open) => !open && setDeleteTarget(null)}
+                    title="Delete User Permanently?"
+                    description={`Are you sure you want to delete ${deleteTarget?.name}? This will permanently remove their account and all associated permissions across ALL companies. This action cannot be undone.`}
+                    confirmText="Delete Permanently"
+                    variant="destructive"
+                    isPending={deleteMut.isPending}
+                    onConfirm={() => { if (deleteTarget) deleteMut.mutate(deleteTarget._id) }}
+                />
 
                 {/* Toast */}
                 <AnimatePresence>

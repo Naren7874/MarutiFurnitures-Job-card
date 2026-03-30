@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
     ArrowLeft, User, ShieldCheck, ShieldX, ShieldAlert, Shield,
     Trash2, Loader2,
@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import api from '@/lib/axios'
 import { useAuthStore } from '@/stores/authStore'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -257,6 +258,20 @@ function OverridesTab({ userId, overrides, canGrant, canDeny, onRemove }: { user
 export default function UserDetailPage() {
     const { id } = useParams(); const navigate = useNavigate(); const qc = useQueryClient(); const { hasPermission } = useAuthStore()
     const [activeTab, setActiveTab] = useState<'perms' | 'overrides' | 'history'>('perms')
+    const [confirmDelete, setConfirmDelete] = useState(false)
+    
+    const canDelete = hasPermission('user.delete')
+
+    const deleteMut = useMutation({
+        mutationFn: async () => {
+            await api.delete(`/users/${id}`)
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['users'] })
+            navigate('/users')
+        },
+        onError: (e: any) => alert(e.response?.data?.message || 'Error deleting user')
+    })
     
     const { data: user, isLoading: loadingUser } = useQuery<AppUser>({ queryKey: ['user', id], queryFn: () => api.get(`/users/${id}`).then(r => r.data.data) })
     const { data: permsData, isLoading: loadingPerms } = useQuery<UserPermData>({ queryKey: ['user-perms', id], queryFn: () => api.get(`/privileges/users/${id}`).then(r => r.data.data), staleTime: 0 })
@@ -273,12 +288,24 @@ export default function UserDetailPage() {
         <div className="max-w-6xl mx-auto p-6 space-y-6">
             <button onClick={() => navigate('/users')} className="flex items-center gap-2 text-[10px] font-black text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest"><ArrowLeft className="size-3" /> Back to users</button>
             <Card className="rounded-3xl shadow-xl border-border bg-card overflow-hidden">
-                <CardContent className="p-8 flex items-center gap-6">
-                    <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20"><User className="size-8" /></div>
-                    <div>
-                        <div className="flex items-center gap-3 mb-1"><h1 className="text-xl font-black text-foreground">{user.name}</h1><RoleBadge role={user.role} /></div>
-                        <p className="text-xs text-muted-foreground font-medium flex items-center gap-4"><span className="flex items-center gap-1.5"><Mail className="size-3" /> {user.email}</span> {user.phone && <span className="flex items-center gap-1.5"><Phone className="size-3" /> {user.phone}</span>}</p>
+                <CardContent className="p-8 flex items-center justify-between gap-6">
+                    <div className="flex items-center gap-6">
+                        <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20"><User className="size-8" /></div>
+                        <div>
+                            <div className="flex items-center gap-3 mb-1"><h1 className="text-xl font-black text-foreground">{user.name}</h1><RoleBadge role={user.role} /></div>
+                            <p className="text-xs text-muted-foreground font-medium flex items-center gap-4"><span className="flex items-center gap-1.5"><Mail className="size-3" /> {user.email}</span> {user.phone && <span className="flex items-center gap-1.5"><Phone className="size-3" /> {user.phone}</span>}</p>
+                        </div>
                     </div>
+                    {canDelete && user.role !== 'super_admin' && (
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setConfirmDelete(true)}
+                            className="rounded-xl border-rose-500/30 text-rose-500 hover:bg-rose-500/10 font-bold text-[10px] uppercase tracking-widest gap-2 h-9 px-4 shrink-0 transition-all hover:scale-105 active:scale-95"
+                        >
+                            <Trash2 className="size-3.5" /> Delete Account
+                        </Button>
+                    )}
                 </CardContent>
             </Card>
 
@@ -314,6 +341,17 @@ export default function UserDetailPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <ConfirmationDialog
+                open={confirmDelete}
+                onOpenChange={setConfirmDelete}
+                variant="destructive"
+                title="Permanently Delete User?"
+                description={`Are you sure you want to delete ${user.name}? This will permanently remove their account, permissions, and history across the entire system. This action cannot be undone.`}
+                confirmText="Delete Permanently"
+                isPending={deleteMut.isPending}
+                onConfirm={() => deleteMut.mutate()}
+            />
         </div>
     )
 }
