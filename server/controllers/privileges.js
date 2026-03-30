@@ -3,7 +3,8 @@ import { PermissionSet, UserPermission } from '../models/UserPermission.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { AccessLog } from '../models/AccessLog.js';
 import User from '../models/User.js';
-import { resolvePermissions } from '../utils/resolvePermissions.js';
+import UserOverride from '../models/UserOverride.js';
+import { resolvePermissions, rebuildAllPermissions } from '../utils/resolvePermissions.js';
 import { auditLog } from '../utils/auditLogger.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -193,15 +194,37 @@ export const getUserPermissions = async (req, res, next) => {
       .lean();
     if (!userPerm && !req.user.isSuperAdmin) return res.status(403).json({ success: false, message: 'User is not part of your company' });
 
+    // Fetch GLOBAL overrides (no companyId — apply to all companies)
+    const overrides = await UserOverride.find({ userId })
+      .populate('grantedBy', 'name')
+      .sort({ grantedAt: -1 })
+      .lean();
+
+    // Compute effectivePermissions LIVE (not from stale DB cache)
+    const now = new Date();
+    const rolePerms = new Set(userPerm?.roleId?.permissions || []);
+    for (const ps of userPerm?.permissionSetIds || []) {
+      for (const p of ps.permissions || []) rolePerms.add(p);
+    }
+    for (const o of overrides) {
+      if (o.expiresAt && o.expiresAt < now) continue;
+      if (o.type === 'grant') rolePerms.add(o.permission);
+      if (o.type === 'deny')  rolePerms.delete(o.permission);
+    }
+    const liveEffectivePermissions = [...rolePerms].sort();
+
     res.status(200).json({
       success: true,
       data: {
         user: { _id: user._id, name: user.name, role: user.role, email: user.email, isActive: user.isActive },
-        permissions: userPerm || null,
+        permissions: userPerm
+          ? { ...userPerm, overrides, effectivePermissions: liveEffectivePermissions }
+          : null,
       },
     });
   } catch (err) { next(err); }
 };
+
 
 // POST /api/privileges/users/:userId/grant
 export const grantPermission = async (req, res, next) => {
@@ -211,28 +234,27 @@ export const grantPermission = async (req, res, next) => {
 
     if (!permission) return res.status(400).json({ success: false, message: 'permission is required' });
 
-    // Global user lookup + company authorization
+    // Global user lookup + company authorization check
     const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    const perm = await UserPermission.findOne({ userId, companyId: req.user.companyId }).lean();
-    if (!perm) return res.status(403).json({ success: false, message: 'User is not part of your company' });
+    const companyPerm = await UserPermission.findOne({ userId, companyId: req.user.companyId }).lean();
+    if (!companyPerm && !req.user.isSuperAdmin) return res.status(403).json({ success: false, message: 'User is not part of your company' });
 
-    const override = {
-      permission,
-      type: 'grant',
-      reason: reason || '',
-      expiresAt: expiresAt ? new Date(expiresAt) : null,
-      grantedBy: req.user.userId,
-      grantedAt: new Date(),
-    };
-
-    await UserPermission.findOneAndUpdate(
-      { userId },
-      { $push: { overrides: override } },
-      { upsert: true }
+    // Upsert into GLOBAL UserOverride (no companyId)
+    await UserOverride.findOneAndUpdate(
+      { userId, permission },
+      {
+        type: 'grant',
+        reason: reason || '',
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        grantedBy: req.user.userId,
+        grantedAt: new Date(),
+      },
+      { upsert: true, new: true }
     );
 
-    await resolvePermissions(userId);
+    // Rebuild cache for ALL of user's company records
+    await rebuildAllPermissions(userId);
 
     auditLog(req, {
       action: 'permission_grant',
@@ -255,28 +277,27 @@ export const denyPermission = async (req, res, next) => {
 
     if (!permission) return res.status(400).json({ success: false, message: 'permission is required' });
 
-    // Global user lookup + company authorization
+    // Global user lookup + company authorization check
     const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    const perm = await UserPermission.findOne({ userId, companyId: req.user.companyId }).lean();
-    if (!perm) return res.status(403).json({ success: false, message: 'User is not part of your company' });
+    const companyPerm = await UserPermission.findOne({ userId, companyId: req.user.companyId }).lean();
+    if (!companyPerm && !req.user.isSuperAdmin) return res.status(403).json({ success: false, message: 'User is not part of your company' });
 
-    const override = {
-      permission,
-      type: 'deny',
-      reason: reason || '',
-      expiresAt: expiresAt ? new Date(expiresAt) : null,
-      grantedBy: req.user.userId,
-      grantedAt: new Date(),
-    };
-
-    await UserPermission.findOneAndUpdate(
-      { userId },
-      { $push: { overrides: override } },
-      { upsert: true }
+    // Upsert into GLOBAL UserOverride (no companyId)
+    await UserOverride.findOneAndUpdate(
+      { userId, permission },
+      {
+        type: 'deny',
+        reason: reason || '',
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        grantedBy: req.user.userId,
+        grantedAt: new Date(),
+      },
+      { upsert: true, new: true }
     );
 
-    await resolvePermissions(userId);
+    // Rebuild cache for ALL of user's company records
+    await rebuildAllPermissions(userId);
 
     auditLog(req, {
       action: 'permission_deny',
@@ -296,24 +317,23 @@ export const removeOverride = async (req, res, next) => {
   try {
     const { userId, overrideId } = req.params;
 
-    // Global user lookup + company authorization
+    // Global user lookup + company authorization check
     const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     const authCheck = await UserPermission.findOne({ userId, companyId: req.user.companyId }).lean();
-    if (!authCheck) return res.status(403).json({ success: false, message: 'User is not part of your company' });
+    if (!authCheck && !req.user.isSuperAdmin) return res.status(403).json({ success: false, message: 'User is not part of your company' });
 
-    const userPerm = await UserPermission.findOne({ userId });
-    if (!userPerm) return res.status(404).json({ success: false, message: 'No permission record found' });
+    // Find and delete from GLOBAL UserOverride collection
+    const overrideDoc = await UserOverride.findOne({ _id: overrideId, userId });
+    if (!overrideDoc) return res.status(404).json({ success: false, message: 'Override not found' });
 
-    const overrideToRemove = userPerm.overrides.id(overrideId);
-    if (!overrideToRemove) return res.status(404).json({ success: false, message: 'Override not found' });
+    const removedPermission = overrideDoc.permission;
+    const removedType = overrideDoc.type;
 
-    const removedPermission = overrideToRemove.permission;
-    const removedType = overrideToRemove.type;
+    await overrideDoc.deleteOne();
 
-    userPerm.overrides.pull({ _id: overrideId });
-    await userPerm.save();
-    await resolvePermissions(userId);
+    // Rebuild cache for ALL of user's company records
+    await rebuildAllPermissions(userId);
 
     auditLog(req, {
       action: 'update',

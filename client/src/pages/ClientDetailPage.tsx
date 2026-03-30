@@ -366,7 +366,7 @@ export default function ClientDetailPage() {
                         <div className="space-y-4">
                             <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
                                 <span className="text-muted-foreground/40">Registered</span>
-                                <span className="text-foreground">{new Date(client.createdAt).toLocaleDateString()}</span>
+                                <span className="text-foreground">{new Date(client.createdAt).toLocaleDateString('en-GB')}</span>
                             </div>
                             <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
                                 <span className="text-muted-foreground/40">Total Orders</span>

@@ -37,7 +37,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 const fmtDate = (d: string) =>
-    d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'Asia/Kolkata' }) : '—';
+    d ? new Date(d).toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata' }) : '—';
 
 const isOverdue = (jc: any) =>
     jc.expectedDelivery &&
@@ -413,7 +413,7 @@ const RoleBanner = ({ meta, name }: { meta: typeof ROLE_META[string]; name: stri
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 px-5 py-3 rounded-2xl">
                     <Clock size={14} className="text-white/60" />
                     <span className="text-white text-xs font-bold">
-                        {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Kolkata' })}
+                        {new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata' })}
                     </span>
                 </div>
             </div>

@@ -1,23 +1,28 @@
 import { UserPermission } from '../models/UserPermission.js';
 import { Role } from '../models/Role.js';
+import UserOverride from '../models/UserOverride.js';
 
 /**
- * Compute the final set of effective permissions for a user.
+ * Compute the final set of effective permissions for a user in a given company context.
  *
  * Priority (highest → lowest):
- *   1. User-level DENY overrides (removes the permission)
- *   2. User-level GRANT overrides (adds the permission, if not expired)
+ *   1. Global DENY overrides (UserOverride.type === 'deny')   — removes the permission
+ *   2. Global GRANT overrides (UserOverride.type === 'grant') — adds the permission
  *   3. PermissionSet permissions (additive bundles)
  *   4. Role default permissions
  *
+ * Overrides are stored in the global UserOverride collection (no companyId),
+ * so they apply uniformly to the user across all companies.
+ *
  * @param {string} userId    - Mongoose ObjectId string
- * @param {string} companyId - Mongoose ObjectId string (optional, defaults to user's primary if omitted)
- * @returns {string[]}      - Sorted array of effective permission strings
+ * @param {string} companyId - Mongoose ObjectId string (specific company context)
+ * @returns {string[]}       - Sorted array of effective permission strings
  */
 export const resolvePermissions = async (userId, companyId) => {
   const query = { userId };
   if (companyId) query.companyId = companyId;
 
+  // 1. Get the per-company permission record (role + permission sets)
   const record = await UserPermission.findOne(query)
     .populate('roleId')
     .populate('permissionSetIds')
@@ -27,16 +32,17 @@ export const resolvePermissions = async (userId, companyId) => {
 
   const now = new Date();
 
-  // 1. Start with role defaults
+  // 2. Start with role defaults
   const base = new Set(record.roleId?.permissions || []);
 
-  // 2. Add all PermissionSet permissions
+  // 3. Add all PermissionSet permissions
   for (const ps of record.permissionSetIds || []) {
     for (const p of ps.permissions || []) base.add(p);
   }
 
-  // 3. Apply overrides
-  for (const override of record.overrides || []) {
+  // 4. Apply GLOBAL overrides from UserOverride collection
+  const overrides = await UserOverride.find({ userId }).lean();
+  for (const override of overrides) {
     // Skip expired overrides
     if (override.expiresAt && override.expiresAt < now) continue;
 
@@ -46,7 +52,7 @@ export const resolvePermissions = async (userId, companyId) => {
 
   const effective = [...base].sort();
 
-  // 4. Cache in DB (async, don't await — let it save in background)
+  // 5. Cache in DB (async, don't await — let it save in background)
   UserPermission.findOneAndUpdate(
     query,
     { effectivePermissions: effective, updatedAt: now }
@@ -56,9 +62,22 @@ export const resolvePermissions = async (userId, companyId) => {
 };
 
 /**
- * Rebuild and cache effectivePermissions for a user (call after role change or override change)
+ * Rebuild effectivePermissions for ALL company records of a user.
+ * Call this after any override or role change.
  * @param {string} userId
- * @param {string} companyId
+ */
+export const rebuildAllPermissions = async (userId) => {
+  const allRecords = await UserPermission.find({ userId }).lean();
+  for (const record of allRecords) {
+    if (record.companyId) {
+      await resolvePermissions(userId, record.companyId.toString());
+    }
+  }
+};
+
+/**
+ * Alias kept for backward compatibility.
+ * @deprecated Use rebuildAllPermissions for global consistency.
  */
 export const rebuildPermissions = async (userId, companyId) => {
   const effective = await resolvePermissions(userId, companyId);

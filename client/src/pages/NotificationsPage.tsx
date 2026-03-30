@@ -21,7 +21,7 @@ const fmtTime = (d: string) => {
     if (mins < 60) return `${mins}m ago`;
     const hrs = Math.floor(mins / 60);
     if (hrs < 24) return `${hrs}h ago`;
-    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    return new Date(d).toLocaleDateString('en-GB');
 };
 
 function NotifCard({ n, onRead }: { n: AppNotification; onRead: () => void }) {

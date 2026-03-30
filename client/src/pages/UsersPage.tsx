@@ -143,7 +143,7 @@ function timeAgo(dateStr?: string) {
     if (hrs < 24) return `${hrs}h ago`
     const days = Math.floor(hrs / 24)
     if (days < 30) return `${days}d ago`
-    return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })
+    return new Date(dateStr).toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata' })
 }
 
 // ── Role badge ────────────────────────────────────────────────────────────────
@@ -689,8 +689,7 @@ export default function UsersPage() {
         return matchesSearch && matchesRole
     })
 
-    const activeCount = users.filter(u => u.isActive).length
-    const inactiveCount = users.length - activeCount
+
 
     const openCreate = () => { setEditTarget(null); setDrawerOpen(true) }
     const openEdit = (u: AppUser) => { setEditTarget(u); setDrawerOpen(true) }

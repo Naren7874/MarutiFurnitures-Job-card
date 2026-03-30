@@ -151,7 +151,7 @@ export default function QuotationsPage() {
                                                             <div className="flex items-center gap-2 mt-1">
                                                                 <Clock size={12} className="text-muted-foreground/40" />
                                                                  <p className="text-muted-foreground/60 text-[11px] font-black uppercase tracking-tight">
-                                                                     {new Date(q.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
+                                                                     {new Date(q.createdAt).toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata' })}
                                                                  </p>
                                                             </div>
                                                         </div>

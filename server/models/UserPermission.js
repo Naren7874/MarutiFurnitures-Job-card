@@ -8,9 +8,9 @@ import mongoose from "mongoose";
 const permissionSetSchema = new mongoose.Schema(
   {
     companyId:   { type: mongoose.Schema.Types.ObjectId, ref: "Company", required: true },
-    name:        { type: String, required: true, trim: true }, // "Warehouse Lead"
+    name:        { type: String, required: true, trim: true },
     description: String,
-    permissions: [{ type: String }],                     // ["inventory.*", "jobcard.production.view"]
+    permissions: [{ type: String }],
     createdBy:   { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
@@ -21,9 +21,14 @@ export const PermissionSet = mongoose.model("PermissionSet", permissionSetSchema
 
 /* ─────────────────────────────────────────
    USER PERMISSION
-   Per-user record:
-     role defaults + permission sets + overrides
-     = effectivePermissions (cached)
+   Per-user-per-company bridge record:
+     - role in this company (roleId)
+     - additional permission sets (additive)
+     - effectivePermissions cache (rebuilt on change)
+
+   NOTE: Individual overrides (grant/deny) are stored in the
+   GLOBAL UserOverride model (no companyId) so they apply
+   uniformly across all companies the user belongs to.
 ───────────────────────────────────────── */
 const userPermissionSchema = new mongoose.Schema(
   {
@@ -39,24 +44,9 @@ const userPermissionSchema = new mongoose.Schema(
     // Additional permission sets assigned on top of role
     permissionSetIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "PermissionSet" }],
 
-    // Individual overrides — grant or deny a single permission
-    overrides: [
-      {
-        permission: { type: String, required: true },    // "invoice.create"
-        type: {
-          type: String,
-          enum: ["grant", "deny"],
-          required: true,
-        },
-        expiresAt:  Date,                                // null = permanent
-        reason:     String,
-        grantedBy:  { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        grantedAt:  { type: Date, default: Date.now },
-      },
-    ],
-
-    // Cached computed list — rebuilt on every role/override change
-    // Priority: user-level deny > user-level grant > role default
+    // Cached computed list — rebuilt on every role/override change.
+    // Built from: role permissions + permissionSet permissions + global UserOverride entries
+    // Priority: global deny > global grant > role default
     effectivePermissions: [{ type: String }],
 
     updatedAt: { type: Date, default: Date.now },

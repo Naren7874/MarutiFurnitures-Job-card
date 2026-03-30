@@ -31,7 +31,7 @@ const PAY_MODES: Record<string, { label: string; placeholder: string; required: 
 };
 
 const fmt = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
-const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 
 export default function InvoiceDetailPage() {
     const { id } = useParams<{ id: string }>();
