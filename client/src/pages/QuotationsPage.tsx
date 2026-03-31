@@ -53,13 +53,13 @@ export default function QuotationsPage() {
                     <div className="flex items-center gap-3.5">
                         <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                         <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
-                            {pagination.total ?? 0} Global Estimates
+                            {pagination.total ?? 0} Quotations
                         </p>
                     </div>
                 </div>
                 {canCreate && (
                     <Link to="/quotations/new">
-                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-3 font-black text-[13px] uppercase tracking-[0.2em] h-12 px-8 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 group">
+                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-3 font-black text-[13px] tracking-[0.2em] h-12 px-8 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 group">
                             <Plus size={18} strokeWidth={3} className="group-hover:rotate-90 transition-transform" /> Create Quotation
                         </Button>
                     </Link>
@@ -77,8 +77,8 @@ export default function QuotationsPage() {
                     <Input
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                        placeholder="SEARCH BY QUOTE, PROJECT OR CLIENT..."
-                        className="pl-14 pr-6 bg-card border-border/80 text-foreground h-[60px] rounded-2xl focus:ring-4 focus:ring-primary/10 transition-all font-black text-[11px] uppercase tracking-[0.15em] placeholder:text-muted-foreground/40 shadow-xs w-full"
+                        placeholder="Search by quotation number, project, or client"
+                        className="pl-14 pr-6 bg-card border-border/80 text-foreground h-[60px] rounded-2xl focus:ring-4 focus:ring-primary/10 transition-all font-black text-[11px] tracking-[0.15em] placeholder:text-muted-foreground/40 shadow-xs w-full"
                     />
                 </div>
                 <div>
@@ -87,8 +87,8 @@ export default function QuotationsPage() {
                         <SelectValue placeholder="STATUS FILTER" />
                     </SelectTrigger>
                     <SelectContent className="rounded-3xl shadow-2xl border-border/50">
-                        <SelectItem value="all" className="rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-2.5">All Quotes</SelectItem>
-                        <SelectItem value="draft" className="rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-2.5">Drafts</SelectItem>
+                        <SelectItem value="all" className="rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-2.5">All Quotations</SelectItem>
+                        <SelectItem value="draft" className="rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-2.5">Pending</SelectItem>
                         <SelectItem value="sent" className="rounded-xl font-black text-[9px] uppercase tracking-widest text-blue-500 hover:bg-blue-500/10 transition-colors py-2.5">Sent to Client</SelectItem>
                         <SelectItem value="approved" className="rounded-xl font-black text-[9px] uppercase tracking-widest text-emerald-500 hover:bg-emerald-500/10 transition-colors py-2.5">Approved</SelectItem>
                         <SelectItem value="rejected" className="rounded-xl font-black text-[9px] uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 transition-colors py-2.5">Rejected</SelectItem>
@@ -123,10 +123,10 @@ export default function QuotationsPage() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-border/40 bg-muted/20">
-                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Quotation Identity</th>
+                                    <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Quotation No </th>
                                     <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden sm:table-cell">Client Name</th>
                                     <th className="text-right px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden md:table-cell">Total Value</th>
-                                    <th className="text-center px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Lifecycle</th>
+                                    <th className="text-center px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/20">
@@ -171,7 +171,7 @@ export default function QuotationsPage() {
                                                         cfg.bg, cfg.text, cfg.border
                                                     )}>
                                                         <div className={cn("size-1.5 rounded-full", cfg.text.replace('text-', 'bg-'))} />
-                                                        {q.status}
+                                                        {q.status?.toLowerCase() === 'draft' ? 'Pending' : q.status}
                                                     </span>
                                                 </td>
                                             </motion.tr>

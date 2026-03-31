@@ -7,7 +7,7 @@ import { cn } from '../lib/utils';
 import { apiGet } from '../lib/axios';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,28 +28,49 @@ const STAFF_ROLES = ['design', 'store', 'production', 'qc', 'dispatch', 'sales',
 const StatCard = ({ icon: Icon, label, value, sub, colorClass, delay = 0 }: any) => (
     <motion.div
         initial={{ opacity: 0, y: 20 }}
+        whileHover={{ y: -5, scale: 1.02 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay }}
+        transition={{ duration: 0.4, delay, ease: "easeOut" }}
+        className="h-full"
     >
-        <Card className="group hover:shadow-2xl hover:shadow-primary/5 transition-all relative overflow-hidden shadow-sm border-border/50 dark:border-white/5 rounded-[24px]">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-bl from-primary/5 to-transparent rounded-bl-[100px] opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-6", colorClass)}>
-                    <Icon size={22} strokeWidth={2.5} />
+        <Card className="group h-full relative overflow-hidden transition-all duration-500 border-white/10 bg-white/5 backdrop-blur-xl hover:bg-white/10 hover:border-white/20 hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] dark:hover:shadow-primary/10 rounded-[28px] flex flex-col justify-between">
+            {/* Ambient Background Glow */}
+            <div className={cn("absolute -top-12 -right-12 w-32 h-32 blur-[60px] opacity-20 group-hover:opacity-40 transition-opacity duration-700 rounded-full", colorClass.split(' ')[0].replace('/10', '/30'))} />
+
+            <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
+                <div className={cn(
+                    "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-inner",
+                    colorClass
+                )}>
+                    <Icon size={20} strokeWidth={2.5} className="drop-shadow-sm" />
                 </div>
                 {sub && (
-                <Badge variant="outline" className="bg-muted/50 border-none text-[11px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 rounded-full h-7 px-3">
+                    <Badge variant="outline" className="bg-white/5 border-white/10 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 rounded-full h-6 px-3">
                         {sub}
                     </Badge>
                 )}
             </CardHeader>
-            <CardContent>
-                <CardDescription className="text-muted-foreground/50 text-[11px] font-black uppercase tracking-[0.2em] mb-1.5">{label}</CardDescription>
-                <div className="flex items-baseline gap-2">
-                    <p className="text-foreground text-3xl font-black tracking-tight">{value ?? '0'}</p>
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary/20" />
+
+            <CardContent className="relative z-10 pb-4 grow flex flex-col justify-end">
+                <div className="space-y-1">
+                    <p className="text-muted-foreground/60 text-[9px] font-black uppercase tracking-[0.25em] transition-colors group-hover:text-muted-foreground/80">
+                        {label}
+                    </p>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-foreground text-3xl font-black tracking-tighter tabular-nums drop-shadow-sm">
+                            {value ?? '0'}
+                        </span>
+                        <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className={cn("h-1.5 w-1.5 rounded-full", colorClass.split(' ')[1] || "bg-primary")}
+                        />
+                    </div>
                 </div>
             </CardContent>
+
+            {/* Decorative Bottom Line */}
+            <div className={cn("absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-700 ease-out", colorClass.split(' ')[1] || "bg-primary")} />
         </Card>
     </motion.div>
 );
@@ -79,16 +100,16 @@ function AdminDashboard() {
     const canViewFinancial = hasPermission('reports.view_financial');
     const canViewProduction = hasPermission('reports.view_production');
     const canDoQC = hasPermission(['qcStage.edit', 'qcStage.pass']);
-    
+
     const { data: statsRaw, isLoading: statsLoading } = useDashboardStats();
     const { data: jobsRaw } = useJobCards({ limit: 100 });
     const { data: notificationsRaw } = useQuery({ queryKey: ['notifications-all'], queryFn: () => apiGet('/notifications?limit=50') }) as any;
-    
+
     const stats = (statsRaw as any)?.data;
     const allJobCards: any[] = (jobsRaw as any)?.data ?? [];
 
     const priorities = useMemo(() => {
-        return Array.isArray(allJobCards) 
+        return Array.isArray(allJobCards)
             ? allJobCards
                 .filter((jc: any) => !['closed', 'cancelled', 'delivered'].includes(jc.status))
                 .sort((a: any, b: any) => {
@@ -102,8 +123,8 @@ function AdminDashboard() {
                 .map((jc: any) => ({
                     id: jc._id,
                     jobNumber: jc.jobCardNumber,
-                    client: jc.projectId?.projectName 
-                        ? `${jc.clientId?.name || 'Unknown'} — ${jc.projectId.projectName}` 
+                    client: jc.projectId?.projectName
+                        ? `${jc.clientId?.name || 'Unknown'} — ${jc.projectId.projectName}`
                         : (jc.clientId?.name || 'Unknown'),
                     priority: jc.priority?.toUpperCase() as any,
                     stage: (jc.status || 'ACTIVE').toUpperCase().replace(/_/g, ' '),
@@ -192,7 +213,9 @@ function AdminDashboard() {
                         </h1>
                         <div className="flex items-center gap-3">
                             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <p className="text-muted-foreground font-medium">System operational. Here's your workspace overview.</p>
+                            <p className="text-muted-foreground font-medium">
+                                Here’s your dashboard overview
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -205,9 +228,8 @@ function AdminDashboard() {
                     <>
                         <StatCard
                             icon={LayoutGrid}
-                            label="Active Projects"
+                            label="Ongoing Projects"
                             value={stats?.projects.active || 0}
-                            sub="Boutique"
                             colorClass="bg-blue-500/10 text-blue-600 dark:text-blue-400"
                             delay={0.1}
                         />
@@ -215,7 +237,6 @@ function AdminDashboard() {
                             icon={ClipboardCheck}
                             label="Active Job Cards"
                             value={stats?.jobCards.total || 0}
-                            sub="Running"
                             colorClass="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
                             delay={0.2}
                         />
@@ -223,18 +244,16 @@ function AdminDashboard() {
                 )}
                 <StatCard
                     icon={FileText}
-                    label="Pending Quotes"
+                    label="Pending Quotations"
                     value={(stats?.quotations.pending || 0) + (stats?.quotations.draft || 0)}
-                    sub="Drafts"
                     colorClass="bg-amber-500/10 text-amber-600 dark:text-amber-400"
                     delay={0.3}
                 />
                 {canDoQC && (
                     <StatCard
                         icon={ShieldCheck}
-                        label="QC Pending"
+                        label="Quality Check Pending"
                         value={stats?.jobCards.qcPending || 0}
-                        sub="Awaiting"
                         colorClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                         delay={0.4}
                     />
@@ -243,16 +262,14 @@ function AdminDashboard() {
                     icon={CheckCircleIcon}
                     label="Completed Projects"
                     value={stats?.projects.completed || 0}
-                    sub="Success"
                     colorClass="bg-primary/10 text-primary"
                     delay={0.5}
                 />
                 {canViewFinancial && (
                     <StatCard
                         icon={FileX}
-                        label="Rejected Quotes"
+                        label="Rejected Quotations"
                         value={stats?.quotations.rejected || 0}
-                        sub="Declined"
                         colorClass="bg-rose-500/10 text-rose-600 dark:text-rose-400"
                         delay={0.6}
                     />
@@ -271,7 +288,6 @@ function AdminDashboard() {
                         icon={Package}
                         label="Low Stock Alerts"
                         value={stats?.inventory.lowStock || 0}
-                        sub="Inventory"
                         colorClass="bg-amber-500/10 text-amber-600 dark:text-amber-400"
                     />
                 </div>
@@ -280,7 +296,7 @@ function AdminDashboard() {
                 <div className="xl:col-span-4 flex flex-col gap-8">
                     <StatusDistribution data={statusStats} />
                     <div className="bg-card border border-border/60 rounded-[32px] p-8 shadow-sm">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-6">Stage Load Analysis</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-6">Workload by Stage</p>
                         <div className="space-y-5">
                             {[
                                 { label: 'Production', status: 'in_production', color: '#3B82F6' },
@@ -323,7 +339,7 @@ function AdminDashboard() {
                         timeSlot: d.timeSlot,
                         status: d.status as 'SCHEDULED' | 'IN_TRANSIT' | 'DELIVERED'
                     }))} />
-                    
+
                     {/* Activity Audit */}
                     <Card className="rounded-[32px] border-border/60 bg-card shadow-sm overflow-hidden flex flex-col">
                         <CardHeader className="p-6 border-b border-border/20 flex flex-row items-center justify-between">
@@ -331,7 +347,7 @@ function AdminDashboard() {
                                 <div className="p-2 rounded-xl bg-primary/10 text-primary shadow-inner">
                                     <History size={18} />
                                 </div>
-                                <CardTitle className="text-sm font-black uppercase tracking-tight">Activity Audit</CardTitle>
+                                <CardTitle className="text-sm font-black uppercase tracking-tight">Recent Activity</CardTitle>
                             </div>
                             <Badge variant="outline" className="text-[9px] font-black tracking-[0.2em] opacity-40">FEED</Badge>
                         </CardHeader>
@@ -350,7 +366,7 @@ function AdminDashboard() {
                                                             className="text-[10px] font-black"
                                                             style={{ backgroundColor: `${roleColor}15`, color: roleColor }}
                                                         >
-                                                             {activity.actor[0]}
+                                                            {activity.actor[0]}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div className="flex-1 min-w-0">

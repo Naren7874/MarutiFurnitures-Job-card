@@ -39,9 +39,9 @@ const containerVariants = {
 
 const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20, filter: "blur(10px)" },
-    visible: { 
-        opacity: 1, 
-        y: 0, 
+    visible: {
+        opacity: 1,
+        y: 0,
         filter: "blur(0px)",
         transition: { duration: 0.8, ease: "easeOut" }
     }
@@ -95,13 +95,14 @@ export default function LoginPage() {
                     <Card className="glass dark:glass-dark border border-neutral-200 dark:border-white/10 rounded-[40px] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] dark:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] backdrop-blur-3xl relative overflow-hidden p-0 ring-1 ring-neutral-200 dark:ring-white/10 group/card transition-all duration-500">
                         {/* Animated Border Shimmer */}
                         <div className="absolute inset-0 rounded-[40px] border border-neutral-900/5 dark:border-white/5 pointer-events-none z-20 group-hover/card:border-neutral-900/10 dark:group-hover/card:border-white/20 transition-colors duration-500" />
-                        
+
                         {/* Interactive Glare / Shine */}
                         <div className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-linear-to-br from-neutral-400/5 via-transparent to-transparent dark:from-white/10 pointer-events-none rotate-12 transition-transform duration-1000 group-hover/card:scale-110" />
-                        
+
                         <CardHeader className="p-10 md:p-12 pb-0 text-center relative z-20">
-                            <CardTitle className="text-neutral-900 dark:text-white text-3xl font-black tracking-tight mb-2 drop-shadow-sm transition-colors duration-500">Login Access</CardTitle>
-                            <CardDescription className="text-neutral-500 dark:text-white/40 text-sm font-medium leading-relaxed max-w-[280px] mx-auto transition-colors duration-500">Enter credentials to proceed to your workstation.</CardDescription>
+                            <CardTitle className="text-neutral-900 dark:text-white text-3xl font-black tracking-tight mb-2 drop-shadow-sm transition-colors duration-500">Sign In</CardTitle>
+                            <CardDescription className="text-neutral-500 dark:text-white/40 text-sm font-medium leading-relaxed max-w-[280px] mx-auto transition-colors duration-500">
+                                Enter your email and password to continue</CardDescription>
                         </CardHeader>
 
                         <CardContent className="p-10 md:p-12 pt-8 relative z-20">
@@ -110,7 +111,7 @@ export default function LoginPage() {
                                     {/* Email */}
                                     <motion.div variants={itemVariants} className="space-y-2.5">
                                         <Label className="text-neutral-500 dark:text-white/40 text-[9px] font-black uppercase tracking-[.2em] px-3 flex justify-between items-center bg-neutral-900/5 dark:bg-white/5 py-1 rounded-full w-fit border border-neutral-900/5 dark:border-white/5 transition-colors duration-500">
-                                            <span className="px-1 text-primary">Identity Email</span>
+                                            <span className="px-1 text-primary">Email Address</span>
                                         </Label>
                                         <div className="group relative">
                                             <div className="absolute left-6 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-white/20 group-focus-within:text-primary transition-all z-10">
@@ -129,7 +130,7 @@ export default function LoginPage() {
                                     {/* Password */}
                                     <motion.div variants={itemVariants} className="space-y-2.5">
                                         <Label className="text-neutral-500 dark:text-white/40 text-[9px] font-black uppercase tracking-[.2em] px-3 flex justify-between items-center bg-neutral-900/5 dark:bg-white/5 py-1 rounded-full w-fit border border-neutral-900/5 dark:border-white/5 transition-colors duration-500">
-                                            <span className="px-1 text-primary">Vault Key</span>
+                                            <span className="px-1 text-primary">Password</span>
                                         </Label>
                                         <div className="relative group">
                                             <div className="absolute left-6 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-white/20 group-focus-within:text-primary transition-all z-10">
@@ -177,7 +178,7 @@ export default function LoginPage() {
                                             {isSubmitting ? (
                                                 <><Loader2 className="animate-spin" size={24} /> Processing...</>
                                             ) : (
-                                                <>Authorize Entry <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform duration-500" /></>
+                                                <>Sign In<ArrowRight size={24} className="group-hover:translate-x-2 transition-transform duration-500" /></>
                                             )}
                                         </span>
                                         <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer" />
@@ -189,7 +190,7 @@ export default function LoginPage() {
                         <CardFooter className="p-10 md:p-12 pt-0 flex flex-col items-center relative z-20">
                             <div className="w-full h-px bg-neutral-900/5 dark:bg-white/10 mb-8 transition-colors duration-500" />
                             <Link to="/forgot-password" title="Recover account" className="text-neutral-400 dark:text-white/30 hover:text-primary dark:hover:text-primary text-[10px] font-black uppercase tracking-[0.4em] transition-all flex items-center gap-4 hover:gap-6 px-5 py-2.5 rounded-full hover:bg-neutral-900/5 dark:hover:bg-white/10 border border-neutral-200 dark:border-white/5 hover:border-neutral-900/10 dark:hover:border-white/20 shadow-sm">
-                                <ShieldCheck size={16} className="opacity-50" /> System Recovery
+                                <ShieldCheck size={16} className="opacity-50" /> Forgot Password?
                             </Link>
                         </CardFooter>
                     </Card>

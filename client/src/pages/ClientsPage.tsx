@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Phone, Building2, CheckCircle, XCircle, Users, MapPin, ArrowUpRight, Edit2, Trash2, LayoutGrid, List, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Phone, Building2, XCircle, Users, MapPin, ArrowUpRight, Edit2, Trash2, LayoutGrid, List, ArrowUpDown } from 'lucide-react';
 import { useClients, useDeleteClientPermanent } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { Input } from '@/components/ui/input';
@@ -66,11 +66,11 @@ export default function ClientsPage() {
                 className="flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
                 <div>
-                    <h1 className="text-foreground text-3xl font-black tracking-tight mb-2">Clients Directory</h1>
+                    <h1 className="text-foreground text-3xl font-black tracking-tight mb-2">Clients</h1>
                     <div className="flex items-center gap-3">
                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
                         <p className="text-muted-foreground text-sm font-semibold tracking-wide uppercase opacity-70">
-                            {pagination.total ?? 0} Enrolled Entities
+                            {pagination.total ?? 0} Clients Added
                         </p>
                     </div>
                 </div>
@@ -99,8 +99,8 @@ export default function ClientsPage() {
 
                     {canCreate && (
                         <Link to="/clients/new">
-                            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs uppercase tracking-[0.15em] h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                                <Plus size={18} strokeWidth={3} /> Add New Client
+                            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-black text-xs tracking-[0.15em] h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                                <Plus size={18} strokeWidth={3} /> Add Client
                             </Button>
                         </Link>
                     )}
@@ -119,7 +119,8 @@ export default function ClientsPage() {
                     <Input
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                        placeholder="Search by name, phone, firm name, or GSTIN..."
+                        placeholder="Search by name, phone, company, or GST number"
+                        disableTitleCase={true}
                         className="pl-12 bg-card border-border/80 text-foreground h-14 rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/40 shadow-sm backdrop-blur-md w-full"
                     />
                 </div>
@@ -130,7 +131,7 @@ export default function ClientsPage() {
                             <SelectValue placeholder="FILTER BY TYPE" />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl shadow-2xl border-border/50">
-                            <SelectItem value="all" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">All Categories</SelectItem>
+                            <SelectItem value="all" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">All Client Types</SelectItem>
                             <SelectItem value="direct_client" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Direct Clients</SelectItem>
                             <SelectItem value="architect" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Architects</SelectItem>
                             <SelectItem value="project_designer" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Project Designers</SelectItem>
@@ -148,10 +149,10 @@ export default function ClientsPage() {
                             </div>
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl shadow-2xl border-border/50">
-                            <SelectItem value="createdAt:desc" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Newest First</SelectItem>
-                            <SelectItem value="name:asc" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Name (A-Z)</SelectItem>
-                            <SelectItem value="name:desc" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Name (Z-A)</SelectItem>
-                            <SelectItem value="firmName:asc" className="rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] py-3">Firm (A-Z)</SelectItem>
+                            <SelectItem value="createdAt:desc" className="rounded-xl font-bold text-[12px] tracking-[0.15em] py-3">Newest First</SelectItem>
+                            <SelectItem value="name:asc" className="rounded-xl font-bold text-[12px] tracking-[0.15em] py-3">Name (A-Z)</SelectItem>
+                            <SelectItem value="name:desc" className="rounded-xl font-bold text-[12px] tracking-[0.15em] py-3">Name (Z-A)</SelectItem>
+                            <SelectItem value="firmName:asc" className="rounded-xl font-bold text-[12px] tracking-[0.15em] py-3">Firm (A-Z)</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -209,22 +210,62 @@ export default function ClientsPage() {
                                     onClick={() => navigate(`/clients/${c._id}`)} 
                                     className="group block h-full cursor-pointer"
                                 >
-                                    <div className="bg-card border border-border/60 rounded-[32px] p-6 h-full flex flex-col transition-all hover:bg-card/80 hover:shadow-2xl hover:shadow-primary/5 hover:border-primary/20 hover:-translate-y-1 relative overflow-hidden group">
+                                    <div className="bg-card border border-border/60 rounded-[32px] p-5 h-full flex flex-row items-center gap-5 transition-all hover:bg-card/80 hover:shadow-2xl hover:shadow-primary/5 hover:border-primary/20 hover:-translate-y-1 relative overflow-hidden group">
                                         
                                         {/* Background Accent */}
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-bl from-primary/5 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-bl from-primary/5 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                                        {/* Quick Actions Overlay */}
+                                        {/* Avatar Section */}
+                                        <div className="shrink-0 relative z-10">
+                                            <div className="w-16 h-16 rounded-[24px] bg-linear-to-br from-primary/10 to-indigo-500/10 text-primary flex items-center justify-center font-black text-2xl shadow-inner group-hover:scale-110 transition-transform">
+                                                {c.name?.charAt(0) ?? '?'}
+                                            </div>
+                                        </div>
+
+                                        {/* Info Section */}
+                                        <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5 relative z-10">
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-foreground font-black tracking-tight text-[16px] group-hover:text-primary transition-colors truncate pr-8">
+                                                    {c.name}
+                                                </h3>
+                                            </div>
+                                            
+                                            {c.firmName && (
+                                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 font-bold -mt-0.5">
+                                                    <Building2 size={11} className="shrink-0" />
+                                                    <span className="truncate">{c.firmName}</span>
+                                                </div>
+                                            )}
+
+                                            <div className="flex flex-row items-center gap-4 mt-2">
+                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground/80">
+                                                    <Phone size={10} className="text-blue-500" />
+                                                    <span className="truncate">{c.phone || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground/80">
+                                                    <MapPin size={10} className="text-rose-500" />
+                                                    <span className="truncate">{c.address?.city || 'Location is not added'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Action Icon (Floating) */}
+                                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
+                                            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                                                <ArrowUpRight size={14} strokeWidth={3} />
+                                            </div>
+                                        </div>
+
+                                        {/* Quick Actions (Hover state) */}
                                         {(canEdit || canDelete) && (
-                                            <div className="absolute top-4 right-4 flex flex-col gap-2 translate-x-12 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300 z-20">
+                                            <div className="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 z-20">
                                                 {canEdit && (
-                                                    <Link 
-                                                        to={`/clients/${c._id}/edit`}
-                                                        className="size-10 rounded-xl bg-white/80 dark:bg-card/50 border border-border flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm"
-                                                        onClick={(e) => e.stopPropagation()}
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); navigate(`/clients/${c._id}/edit`); }}
+                                                        className="size-8 rounded-lg bg-card border border-border flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white hover:border-primary transition-all"
                                                     >
-                                                        <Edit2 size={16} />
-                                                    </Link>
+                                                        <Edit2 size={12} />
+                                                    </button>
                                                 )}
                                                 {canDelete && (
                                                     <button 
@@ -233,74 +274,13 @@ export default function ClientsPage() {
                                                             e.stopPropagation();
                                                             setDeleteId(c._id);
                                                         }}
-                                                        className="size-10 rounded-xl bg-white/80 dark:bg-card/50 border border-border flex items-center justify-center text-muted-foreground hover:bg-red-500 hover:text-white hover:border-red-500 transition-all shadow-sm"
+                                                        className="size-8 rounded-lg bg-card border border-border flex items-center justify-center text-muted-foreground hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all"
                                                     >
-                                                        <Trash2 size={16} />
+                                                        <Trash2 size={12} />
                                                     </button>
                                                 )}
                                             </div>
                                         )}
-
-                                        {/* Card Header: Avatar & Type */}
-                                        <div className="flex items-start justify-between mb-6 pr-10">
-                                            <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-primary/10 to-indigo-500/10 text-primary flex items-center justify-center font-black text-2xl shadow-inner group-hover:scale-110 transition-transform shrink-0">
-                                                {c.name?.charAt(0) ?? '?'}
-                                            </div>
-                                            <div className={cn(
-                                                "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.15em] border shadow-xs transition-colors shrink-0",
-                                                "bg-primary/5 text-primary/80 border-primary/20"
-                                            )}>
-                                                {CLIENT_TYPE_LABELS[c.clientType] ?? 'Direct Client'}
-                                            </div>
-                                        </div>
-
-                                        {/* Client Identity */}
-                                        <div className="mb-4 flex-1">
-                                            <h3 className="text-foreground font-black tracking-tight text-[17px] mb-1 leading-tight group-hover:text-primary transition-colors line-clamp-2">
-                                                {c.name}
-                                            </h3>
-                                            {c.firmName && (
-                                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60 font-semibold mb-3">
-                                                    <Building2 size={12} className="shrink-0" />
-                                                    <span className="truncate">{c.firmName}</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Contact & Meta */}
-                                        <div className="space-y-3 pt-4 border-t border-border/40">
-                                            <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground/80">
-                                                <div className="size-6 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
-                                                    <Phone size={12} />
-                                                </div>
-                                                {c.phone || 'No phone'}
-                                            </div>
-                                            <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground/80">
-                                                <div className="size-6 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
-                                                    <MapPin size={12} />
-                                                </div>
-                                                <span className="truncate">{c.city || 'Global'}</span>
-                                            </div>
-
-                                            {c.gstin && (
-                                                <div className={cn(
-                                                    "mt-4 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-[0.15em] border",
-                                                    c.gstVerified 
-                                                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
-                                                        : "bg-muted text-muted-foreground/50 border-border"
-                                                )}>
-                                                    {c.gstVerified ? <CheckCircle size={10} /> : <XCircle size={10} />}
-                                                    {c.gstin}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Action Icon */}
-                                        <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-                                            <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/30">
-                                                <ArrowUpRight size={16} strokeWidth={3} />
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </motion.div>
@@ -319,7 +299,6 @@ export default function ClientsPage() {
                                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Client Name</th>
                                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Firm Name</th>
                                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Contact</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Type</th>
                                 {(canEdit || canDelete) && <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Actions</th>}
                             </tr>
                         </thead>
@@ -346,11 +325,6 @@ export default function ClientsPage() {
                                             <span className="text-foreground text-sm font-bold">{c.phone}</span>
                                             {c.email && <span className="text-muted-foreground text-[10px]">{c.email}</span>}
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-3 py-1 rounded-full bg-primary/5 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20">
-                                            {CLIENT_TYPE_LABELS[c.clientType] || 'Direct Client'}
-                                        </span>
                                     </td>
                                     {(canEdit || canDelete) && (
                                         <td className="px-6 py-4 text-right">

@@ -61,10 +61,10 @@ export default function ForgotPasswordPage() {
                         </div>
                         <h1 className="text-neutral-900 dark:text-white text-3xl font-black tracking-tight mb-4 transition-colors duration-500">Request Processed</h1>
                         <p className="text-neutral-500 dark:text-white/50 text-base font-medium mb-10 leading-relaxed transition-colors duration-500">
-                            Check your inbox for instructions to restore your workstation access.
+                            Check your inbox for instructions to restore your account.
                         </p>
                         <Link to="/login" className="inline-flex items-center gap-3 text-primary hover:text-primary/80 transition-all font-black uppercase text-xs tracking-[0.3em] bg-neutral-900/5 dark:bg-white/5 px-6 py-3 rounded-full border border-neutral-200 dark:border-white/5 hover:border-neutral-900/10 dark:hover:border-white/10 shadow-sm">
-                            <ArrowLeft size={16} /> Secure Sign In
+                            <ArrowLeft size={16} /> Back to Sign In
                         </Link>
                     </Card>
                 </motion.div>
@@ -99,8 +99,8 @@ export default function ForgotPasswordPage() {
                         <div className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-linear-to-br from-neutral-400/5 via-transparent to-transparent dark:from-white/10 pointer-events-none rotate-12 transition-transform duration-1000 group-hover/card:scale-110" />
                         
                         <CardHeader className="p-10 md:p-12 pb-0 text-center relative z-20">
-                            <CardTitle className="text-neutral-900 dark:text-white text-3xl font-black tracking-tight mb-2 drop-shadow-sm transition-colors duration-500">Account Recovery</CardTitle>
-                            <CardDescription className="text-neutral-500 dark:text-white/40 text-sm font-medium leading-relaxed max-w-[280px] mx-auto transition-colors duration-500">Enter your identity email to receive a vault reset link.</CardDescription>
+                            <CardTitle className="text-neutral-900 dark:text-white text-3xl font-black tracking-tight mb-2 drop-shadow-sm transition-colors duration-500">Reset Password</CardTitle>
+                            <CardDescription className="text-neutral-500 dark:text-white/40 text-sm font-medium leading-relaxed max-w-[280px] mx-auto transition-colors duration-500">Enter your email to receive a password reset link</CardDescription>
                         </CardHeader>
 
                         <CardContent className="p-10 md:p-12 pt-8 relative z-20">
@@ -108,7 +108,7 @@ export default function ForgotPasswordPage() {
                                 <div className="space-y-5">
                                     <motion.div variants={itemVariants} className="space-y-2.5">
                                         <Label className="text-neutral-500 dark:text-white/40 text-[9px] font-black uppercase tracking-[.2em] px-3 flex justify-between items-center bg-neutral-900/5 dark:bg-white/5 py-1 rounded-full w-fit border border-neutral-900/5 dark:border-white/5 transition-colors duration-500">
-                                            <span className="px-1 text-primary">Identity Email</span>
+                                            <span className="px-1 text-primary">Email Address</span>
                                         </Label>
                                         <div className="group relative">
                                             <div className="absolute left-6 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-white/20 group-focus-within:text-primary transition-all z-10">
@@ -174,11 +174,6 @@ export default function ForgotPasswordPage() {
                     transition={{ delay: 1.5 }}
                     className="mt-12 flex items-center gap-5 text-[10px] font-black text-neutral-400 dark:text-white/40 uppercase tracking-[0.6em] transition-colors duration-500"
                 >
-                    <div className="h-px w-10 bg-linear-to-r from-transparent to-neutral-900/10 dark:to-white/20 transition-colors duration-500" />
-                    <span className="flex items-center gap-2 drop-shadow-lg animate-pulse transition-all">
-                        <ShieldCheck size={10} /> Secure Recovery Channel
-                    </span>
-                    <div className="h-px w-10 bg-linear-to-l from-transparent to-neutral-900/10 dark:to-white/20 transition-colors duration-500" />
                 </motion.div>
             </motion.div>
 

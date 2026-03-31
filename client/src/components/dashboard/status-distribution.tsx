@@ -25,7 +25,7 @@ export function StatusDistribution({ data }: StatusDistributionProps) {
                     </div>
                     <div>
                         <CardTitle className="text-base font-bold">Job Card Status</CardTitle>
-                        <p className="text-xs text-muted-foreground mt-0.5">{total} total jobs</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Total Job Cards: {total}</p>
                     </div>
                 </div>
             </CardHeader>
@@ -127,15 +127,6 @@ export function StatusDistribution({ data }: StatusDistributionProps) {
                     })}
                 </div>
 
-                {topStage && (
-                    <div className="mt-4 p-3 rounded-xl bg-muted/40 border border-border/60">
-                        <div className="text-xs text-muted-foreground">Largest stage</div>
-                        <div className="font-bold text-sm text-foreground mt-0.5 uppercase tracking-tighter">
-                            {topStage.status.replace(/_/g, ' ')} 
-                            <span className="text-muted-foreground font-normal normal-case tracking-normal">— {topStage.count} jobs</span>
-                        </div>
-                    </div>
-                )}
             </CardContent>
         </Card>
     )

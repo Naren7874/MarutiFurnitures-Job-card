@@ -51,8 +51,8 @@ export function PriorityQueue({ items }: PriorityQueueProps) {
                         <Layers className="size-4 text-primary" />
                     </div>
                     <div>
-                        <CardTitle className="text-base font-bold">Priority Pipeline</CardTitle>
-                        <p className="text-xs text-muted-foreground mt-0.5">{items.length} active job{items.length !== 1 ? 's' : ''} requiring attention</p>
+                        <CardTitle className="text-base font-bold">Priority Jobs</CardTitle>
+                        <p className="text-xs text-muted-foreground mt-0.5">{items.length} active job{items.length !== 1 ? 's' : ''} need attention right now</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -77,7 +77,7 @@ export function PriorityQueue({ items }: PriorityQueueProps) {
                 {items.length === 0 ? (
                     <div className="h-48 flex flex-col items-center justify-center border-2 border-dashed border-muted rounded-xl">
                         <Clock className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                        <span className="text-sm text-muted-foreground font-medium">All clear — no urgent items</span>
+                        <span className="text-sm text-muted-foreground font-medium">All clear. No urgent jobs</span>
                     </div>
                 ) : (
                     <ScrollArea className="h-[330px]">

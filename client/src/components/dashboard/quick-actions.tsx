@@ -7,12 +7,12 @@ import {
 import { motion } from "motion/react"
 
 const actions = [
-    { label: 'New Job Card', icon: Plus, color: '#1315E5', bg: '#1315E515', path: '/jobcards/new' },
-    { label: 'New Quotation', icon: FileText, color: '#8B5CF6', bg: '#8B5CF615', path: '/quotations/new' },
+    { label: 'Create Job Card', icon: Plus, color: '#1315E5', bg: '#1315E515', path: '/jobcards/new' },
+    { label: 'Create Quotation', icon: FileText, color: '#8B5CF6', bg: '#8B5CF615', path: '/quotations/new' },
     { label: 'Add Client', icon: Users, color: '#10B981', bg: '#10B98115', path: '/clients/new' },
-    { label: 'Purchase Order', icon: Package, color: '#F59E0B', bg: '#F59E0B15', path: '/purchase-orders/new' },
+    { label: 'Create Purchase Order', icon: Package, color: '#F59E0B', bg: '#F59E0B15', path: '/purchase-orders/new' },
     { label: 'Schedule Delivery', icon: Truck, color: '#8ffb03', bg: '#8ffb0315', path: '/jobcards' },
-    { label: 'WhatsApp Blast', icon: MessageCircle, color: '#25D366', bg: '#25D36615', path: '/projects' },
+    { label: 'Send WhatsApp Message', icon: MessageCircle, color: '#25D366', bg: '#25D36615', path: '/projects' },
     { label: 'Reports', icon: BarChart3, color: '#767A8C', bg: '#767A8C15', path: '/reports' },
     { label: 'Settings', icon: Settings, color: '#485666', bg: '#48566615', path: '/settings' },
 ]

@@ -33,7 +33,7 @@ export function UpcomingDeliveries({ deliveries }: UpcomingDeliveriesProps) {
                     </div>
                     <div>
                         <CardTitle className="text-base font-bold">Deliveries</CardTitle>
-                        <p className="text-xs text-muted-foreground mt-0.5">Upcoming & recent</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Upcoming Deliveries</p>
                     </div>
                 </div>
                 <Badge variant="outline" className="text-xs font-semibold border-primary/20 text-primary dark:text-primary bg-primary/5">
@@ -45,7 +45,7 @@ export function UpcomingDeliveries({ deliveries }: UpcomingDeliveriesProps) {
                 {deliveries.length === 0 ? (
                     <div className="h-28 flex flex-col items-center justify-center">
                         <Truck className="size-8 text-muted-foreground/30 mb-2" />
-                        <p className="text-xs text-muted-foreground font-medium">No deliveries scheduled</p>
+                        <p className="text-xs text-muted-foreground font-medium"> No deliveries scheduled yet</p>
                     </div>
                 ) : (
                     <div className="space-y-2">

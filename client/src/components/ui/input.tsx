@@ -6,9 +6,9 @@ function toTitleCase(str: string) {
   return str.replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+function Input({ className, type, disableTitleCase = false, ...props }: React.ComponentProps<"input"> & { disableTitleCase?: boolean }) {
   // Check if we should apply title case (only for text-like inputs, not email, password, etc.)
-  const shouldApplyTitleCase = !type || ["text", "search", "url"].includes(type);
+  const shouldApplyTitleCase = !disableTitleCase && (!type || ["text", "search", "url"].includes(type));
 
   // If title case should be applied, we intercept the value if it's passed
   // However, it's better to let the user type and transform it, or use CSS

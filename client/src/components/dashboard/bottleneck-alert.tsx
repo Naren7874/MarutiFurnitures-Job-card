@@ -29,9 +29,9 @@ export function BottleneckAlert({ items }: BottleneckAlertProps) {
                         <AlertTriangle className="size-4 text-red-500" />
                     </div>
                     <div>
-                        <CardTitle className="text-base font-bold">Bottlenecks</CardTitle>
+                        <CardTitle className="text-base font-bold">Delayed Jobs</CardTitle>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                            {items.length} stalled job{items.length !== 1 ? 's' : ''}
+                            {items.length} job{items.length !== 1 ? 's' : ''} delayed
                         </p>
                     </div>
                 </div>
@@ -44,7 +44,7 @@ export function BottleneckAlert({ items }: BottleneckAlertProps) {
                 {items.length === 0 ? (
                     <div className="h-28 flex flex-col items-center justify-center">
                         <div className="text-2xl mb-1">✓</div>
-                        <p className="text-xs text-muted-foreground font-medium">No bottlenecks detected</p>
+                        <p className="text-xs text-muted-foreground font-medium"> No delays at the moment</p>
                     </div>
                 ) : (
                     <div className="space-y-2">

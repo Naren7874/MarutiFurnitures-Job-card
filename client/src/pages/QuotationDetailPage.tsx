@@ -22,7 +22,7 @@ import { Users } from 'lucide-react';
 // ── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-    draft:     { label: 'Draft',     color: 'text-slate-500',  bg: 'bg-slate-500/10',  border: 'border-slate-500/20'  },
+    draft:     { label: 'Pending',   color: 'text-slate-500',  bg: 'bg-slate-500/10',  border: 'border-slate-500/20'  },
     sent:      { label: 'Sent',      color: 'text-blue-500',   bg: 'bg-blue-500/10',  border: 'border-blue-500/20'   },
     approved:  { label: 'Approved',  color: 'text-emerald-500',bg: 'bg-emerald-500/10',border: 'border-emerald-500/20'},
     rejected:  { label: 'Rejected',  color: 'text-rose-500',   bg: 'bg-rose-500/10',  border: 'border-rose-500/20'   },
@@ -143,6 +143,16 @@ export default function QuotationDetailPage() {
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-3">
+                    {/* 1. Edit */}
+                    {canEditNow && (
+                        <Link to={`/quotations/${id}/edit`}>
+                            <Button variant="outline" className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-border/60">
+                                <FileText size={14} /> Edit
+                            </Button>
+                        </Link>
+                    )}
+
+                    {/* 2. Download PDF */}
                     <Button
                         variant="outline"
                         onClick={handleDownloadPDF}
@@ -156,27 +166,7 @@ export default function QuotationDetailPage() {
                         )}
                     </Button>
 
-                    {/* Edit button — visible for draft, sent, AND approved */}
-                    {canEditNow && (
-                        <Link to={`/quotations/${id}/edit`}>
-                            <Button variant="outline" className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-border/60">
-                                <FileText size={14} /> Edit
-                            </Button>
-                        </Link>
-                    )}
-
-                    {status === 'approved' && (
-                        <Button 
-                            variant="outline"
-                            onClick={() => setIsManageTeamsOpen(true)}
-                            className="h-10 px-6 rounded-xl text-xs font-black gap-2 border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary transition-all shadow-lg shadow-primary/5"
-                        >
-                            <Users size={14} className="animate-pulse" /> Manage Teams
-                        </Button>
-                    )}
-
-
-                    {/* Send to Client — only for draft */}
+                    {/* 3. Send to Client */}
                     {status === 'draft' && canSend && (
                         <Button
                             onClick={() => setConfirmAction('send')}
@@ -188,9 +178,17 @@ export default function QuotationDetailPage() {
                         </Button>
                     )}
 
-                    {/* Approve / Reject — for draft or sent */}
+                    {/* 4. Mark as Approved & 5. Reject */}
                     {(status === 'sent' || status === 'draft') && canApprove && (
                         <>
+                            <Button
+                                onClick={() => setConfirmAction('approve')}
+                                disabled={isBusy}
+                                className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-emerald-500 text-white hover:bg-emerald-600"
+                            >
+                                {approveMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                                Mark as Approved
+                            </Button>
                             <Button
                                 variant="outline"
                                 onClick={() => setConfirmAction('reject')}
@@ -199,18 +197,21 @@ export default function QuotationDetailPage() {
                             >
                                 <XCircle size={13} /> Reject
                             </Button>
-                            <Button
-                                onClick={() => setConfirmAction('approve')}
-                                disabled={isBusy}
-                                className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-emerald-500 text-white hover:bg-emerald-600"
-                            >
-                                {approveMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
-                                Mark Approved
-                            </Button>
                         </>
                     )}
 
-                    {/* Create Revision — for sent or rejected */}
+                    {/* Manage Teams (only for approved) */}
+                    {status === 'approved' && (
+                        <Button 
+                            variant="outline"
+                            onClick={() => setIsManageTeamsOpen(true)}
+                            className="h-10 px-6 rounded-xl text-xs font-black gap-2 border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary transition-all shadow-lg shadow-primary/5"
+                        >
+                            <Users size={14} className="animate-pulse" /> Manage Teams
+                        </Button>
+                    )}
+
+                    {/* Create Revision (only for sent or rejected) */}
                     {(status === 'sent' || status === 'rejected') && canEdit && (
                         <Button
                             variant="outline"
@@ -223,7 +224,7 @@ export default function QuotationDetailPage() {
                         </Button>
                     )}
 
-                    {/* Delete — visible for all if permitted */}
+                    {/* 6. Delete */}
                     {canDelete && (
                         <Button
                             variant="outline"
@@ -235,7 +236,6 @@ export default function QuotationDetailPage() {
                             Delete
                         </Button>
                     )}
-
                 </div>
             </div>
 
@@ -289,12 +289,12 @@ export default function QuotationDetailPage() {
                 {/* === Left — Client & Project Info === */}
                 <div className="space-y-5">
                     {/* Client */}
-                    <InfoCard title="Client" icon={User2}>
+                    <InfoCard title="Client Details" icon={User2}>
                         <div className="space-y-2">
                             <p className="font-black text-foreground text-sm">{client?.name || '—'}</p>
                             {client?.firmName && <p className="text-muted-foreground/60 text-xs font-medium">{client.firmName}</p>}
                             <div className="pt-1 space-y-1">
-                                {client?.phone && <p className="text-xs text-muted-foreground/60 font-medium flex items-center gap-1.5"><span className="text-[9px] uppercase tracking-wider text-muted-foreground/30">Phone</span> {client.phone}</p>}
+                                {client?.phone && <p className="text-xs text-muted-foreground/60 font-medium flex items-center gap-1.5"><span className="text-[9px] uppercase tracking-wider text-muted-foreground/30">Phone:</span> {client.phone}</p>}
                                 {client?.email && <p className="text-xs text-muted-foreground/60 font-medium flex items-center gap-1.5"><span className="text-[9px] uppercase tracking-wider text-muted-foreground/30">Email</span> {client.email}</p>}
                                 {client?.gstin && <p className="text-xs text-muted-foreground/60 font-mono tracking-widest flex items-center gap-1.5"><span className="text-[9px] uppercase tracking-wider text-muted-foreground/30">GSTIN</span> {client.gstin}</p>}
                             </div>
@@ -302,13 +302,13 @@ export default function QuotationDetailPage() {
                     </InfoCard>
 
                     {/* Project */}
-                    <InfoCard title="Project" icon={Building2}>
+                    <InfoCard title="Project Details" icon={Building2}>
                         <div className="space-y-2">
                             <p className="font-black text-foreground text-sm">{q.projectName}</p>
                             
                             {(q.architect || q.architectContact) && (
                                 <div className="space-y-0.5">
-                                    {q.architect && <p className="text-xs text-muted-foreground/60 font-medium">Ar. {q.architect}</p>}
+                                    {q.architect && <p className="text-xs text-muted-foreground/60 font-medium">Architect Firm : {q.architect}</p>}
                                     {q.architectContact && <p className="text-[10px] text-muted-foreground/40 font-medium flex items-center gap-1.5"><Phone size={10} className="opacity-50" /> {q.architectContact}</p>}
                                 </div>
                             )}
@@ -329,11 +329,11 @@ export default function QuotationDetailPage() {
                     </InfoCard>
 
                     {/* Delivery */}
-                    <InfoCard title="Timeline" icon={CalendarDays}>
+                    <InfoCard title="Quotation Timeline" icon={CalendarDays}>
                         <div className="space-y-2">
-                            {q.deliveryDays && <InfoRow label="Delivery" value={q.deliveryDays} />}
+                            {q.deliveryDays && <InfoRow label="Estimated Delivery" value={q.deliveryDays} />}
                             {q.validUntil && <InfoRow label="Valid Until" value={fmtDate(q.validUntil)} />}
-                            <InfoRow label="Revision" value={`Rev. ${q.revisionNumber || 1}`} />
+                            <InfoRow label="Version" value={`Version ${q.revisionNumber || 1}`} />
                         </div>
                     </InfoCard>
 
@@ -359,14 +359,14 @@ export default function QuotationDetailPage() {
                     <div className="bg-card border border-border/60 rounded-3xl overflow-hidden shadow-sm">
                         <div className="px-6 py-4 border-b border-border/30 flex items-center gap-3">
                             <div className="p-2 rounded-xl bg-primary/10 text-primary"><Package size={14} /></div>
-                            <p className="font-black text-sm uppercase tracking-wider text-foreground">Items ({q.items?.length || 0})</p>
+                            <p className="font-black text-sm tracking-wider text-foreground">Items ({q.items?.length || 0})</p>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
                                     <tr className="bg-muted/20 border-b border-border/20">
-                                        {['#', 'Description', 'Qty', 'Rate', 'Total'].map(h => (
-                                            <th key={h} className="text-left px-5 py-3 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">{h}</th>
+                                        {['#', 'Item Description', 'Qty', 'Rate', 'Total Amount'].map(h => (
+                                            <th key={h} className="text-left px-5 py-3 text-[9px] font-black tracking-widest text-muted-foreground/40">{h}</th>
                                         ))}
                                     </tr>
                                 </thead>
@@ -441,7 +441,7 @@ export default function QuotationDetailPage() {
                     <div className="bg-card border border-border/60 rounded-3xl p-6 space-y-4 shadow-sm">
                         <div className="flex items-center gap-3 pb-3 border-b border-border/30">
                             <div className="p-2 rounded-xl bg-primary/10 text-primary"><ReceiptText size={14} /></div>
-                            <p className="font-black text-sm uppercase tracking-wider text-foreground">Financial Breakdown</p>
+                            <p className="font-black text-sm uppercase tracking-wider text-foreground">Price Summary</p>
                         </div>
                         <div className="space-y-3 max-w-sm ml-auto">
                             {q.discount > 0 && (
@@ -451,7 +451,7 @@ export default function QuotationDetailPage() {
                                 </>
                             )}
                             <div className={cn("flex justify-between items-center", q.discount > 0 ? "pt-3 border-t border-border/40" : "")}>
-                                <p className="font-black text-foreground text-base">Grand Total</p>
+                                <p className="font-black text-foreground text-base">Total Amount</p>
                                 <p className="font-black text-primary text-xl">{fmt(q.subtotal - (q.discount || 0))}</p>
                             </div>
                         </div>

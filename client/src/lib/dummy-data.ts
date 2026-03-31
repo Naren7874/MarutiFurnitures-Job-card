@@ -260,12 +260,12 @@ export const DUMMY_WHATSAPP_LOGS: WhatsAppLogEntry[] = [
 // DUMMY ACTIVITY FEED
 // ============================================================
 export const DUMMY_ACTIVITIES: ActivityEntry[] = [
-    { id: 'a1', jobNumber: 'JC-24-102', action: 'Stage changed to PRODUCTION', actor: 'Rajesh Patel', actorRole: 'ADMIN', timestamp: '2024-02-26 14:32', details: 'Assigned to Marcus Miller' },
-    { id: 'a2', jobNumber: 'JC-24-112', action: 'QC Passed', actor: 'Priya Sharma', actorRole: 'QC', timestamp: '2024-02-27 10:15', details: 'All 24 checklist items passed' },
-    { id: 'a3', jobNumber: 'JC-24-105', action: 'Design uploaded', actor: 'Sarah Chen', actorRole: 'DESIGN', timestamp: '2024-02-25 16:45', details: 'CAD drawings + 3D render uploaded' },
-    { id: 'a4', jobNumber: 'JC-24-088', action: 'Delivery scheduled', actor: 'Suresh Kumar', actorRole: 'DISPATCH', timestamp: '2024-02-27 09:00', details: 'Tomorrow 10am–12pm slot confirmed' },
-    { id: 'a5', jobNumber: 'PO-24-008', action: 'Purchase Order raised', actor: 'Vikram Joshi', actorRole: 'STORE', timestamp: '2024-02-25 11:20', details: '50 Sheets Plywood 18mm from Greenply' },
-    { id: 'a6', jobNumber: 'JC-24-118', action: 'New enquiry created', actor: 'Alex Thompson', actorRole: 'SALES', timestamp: '2024-02-25 09:45', details: 'Client: Dluxe Office Spaces' },
+    { id: 'a1', jobNumber: 'JC-24-102', action: 'Moved to Production', actor: 'Rajesh Patel', actorRole: 'ADMIN', timestamp: '2024-02-26 14:32', details: 'Assigned to Marcus Miller' },
+    { id: 'a2', jobNumber: 'JC-24-112', action: 'Quality Check Completed', actor: 'Priya Sharma', actorRole: 'QC', timestamp: '2024-02-27 10:15', details: 'All 24 checklist items passed' },
+    { id: 'a3', jobNumber: 'JC-24-105', action: 'Design Uploaded', actor: 'Sarah Chen', actorRole: 'DESIGN', timestamp: '2024-02-25 16:45', details: 'CAD drawings + 3D render uploaded' },
+    { id: 'a4', jobNumber: 'JC-24-088', action: 'Delivery Scheduled', actor: 'Suresh Kumar', actorRole: 'DISPATCH', timestamp: '2024-02-27 09:00', details: 'Tomorrow 10am–12pm slot confirmed' },
+    { id: 'a5', jobNumber: 'PO-24-008', action: 'Purchase Order Created', actor: 'Vikram Joshi', actorRole: 'STORE', timestamp: '2024-02-25 11:20', details: '50 Sheets Plywood 18mm from Greenply' },
+    { id: 'a6', jobNumber: 'JC-24-118', action: 'New Enquiry Created', actor: 'Alex Thompson', actorRole: 'SALES', timestamp: '2024-02-25 09:45', details: 'Client: Dluxe Office Spaces' },
 ];
 
 // ============================================================
