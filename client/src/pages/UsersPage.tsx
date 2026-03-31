@@ -20,7 +20,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import api from '@/lib/axios'
 import { useAuthStore } from '@/stores/authStore'
-import { SearchableSelect } from '@/components/ui/searchable-select'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -33,7 +32,6 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type UserRole = string
-type Dept = 'sales' | 'design' | 'store' | 'production' | 'qc' | 'dispatch' | 'accounts' | 'management'
 
 interface AppUser {
     _id: string
@@ -43,7 +41,6 @@ interface AppUser {
     name: string
     email: string
     role: UserRole
-    department?: Dept
     phone?: string
     whatsappNumber?: string
     isActive: boolean
@@ -61,7 +58,6 @@ interface UserFormData {
     email: string
     password: string
     role: UserRole | ''
-    department: Dept | ''
     phone: string
     whatsappNumber: string
     firmName: string
@@ -93,10 +89,10 @@ const IS_ARCHITECT = (role: string | undefined) => ['architect', 'Architecture',
 const IS_FACTORY_MGR = (role: string | undefined) => ['factory_manager', 'Factory Manager'].some(r => r.toLowerCase() === role?.toLowerCase());
 
 
-const DEPARTMENTS: Dept[] = ['sales', 'design', 'store', 'production', 'qc', 'dispatch', 'accounts', 'management']
+
 
 const EMPTY_FORM: UserFormData = {
-    firstName: '', middleName: '', lastName: '', email: '', password: '', role: '', department: '', phone: '', whatsappNumber: '',
+    firstName: '', middleName: '', lastName: '', email: '', password: '', role: '', phone: '', whatsappNumber: '',
     firmName: '', factoryName: '', factoryLocation: ''
 }
 
@@ -107,7 +103,7 @@ const fetchUsers = async (): Promise<AppUser[]> => {
     return data.data
 }
 
-const createUser = async (body: Omit<UserFormData, 'department'> & { department?: string }) => {
+const createUser = async (body: UserFormData) => {
     const { data } = await api.post('/users', body)
     return data.data
 }
@@ -189,7 +185,6 @@ function UserDrawer({
                 email: editUser.email,
                 password: '',
                 role: editUser.role,
-                department: editUser.department || '',
                 phone: editUser.phone || '',
                 whatsappNumber: editUser.whatsappNumber || '',
                 firmName: editUser.firmName || '',
@@ -229,7 +224,6 @@ function UserDrawer({
                 middleName: form.middleName,
                 lastName: form.lastName,
                 role: form.role,
-                department: form.department || undefined,
                 phone: form.phone || undefined,
                 whatsappNumber: form.whatsappNumber || undefined,
                 firmName: form.firmName || undefined,
@@ -238,7 +232,7 @@ function UserDrawer({
             }
             updateMut.mutate({ id: editUser._id, body })
         } else {
-            createMut.mutate({ ...form, department: form.department || undefined })
+            createMut.mutate(form)
         }
     }
 
@@ -479,24 +473,6 @@ function UserDrawer({
                                     )}
                                 </AnimatePresence>
 
-                                {/* Department */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Department</Label>
-                                    <SearchableSelect
-                                        options={[
-                                            { value: '', label: '— No department —' },
-                                            ...DEPARTMENTS.map(d => ({
-                                                value: d,
-                                                label: d.charAt(0).toUpperCase() + d.slice(1)
-                                            }))
-                                        ]}
-                                        value={form.department}
-                                        onChange={(val: string) => setForm(f => ({ ...f, department: val as Dept | '' }))}
-                                        placeholder="— No department —"
-                                        searchPlaceholder="Search departments…"
-                                    />
-                                </div>
-
                                 <Separator />
 
                                 {/* Phone */}
@@ -701,8 +677,7 @@ export default function UsersPage() {
     const filtered = users.filter(u => {
         const matchesSearch = !search ||
             u.name.toLowerCase().includes(search.toLowerCase()) ||
-            u.email.toLowerCase().includes(search.toLowerCase()) ||
-            (u.department || '').toLowerCase().includes(search.toLowerCase())
+            u.email.toLowerCase().includes(search.toLowerCase())
         const matchesRole = roleFilter === 'all' || u.role === roleFilter
         return matchesSearch && matchesRole
     })
@@ -896,12 +871,6 @@ export default function UsersPage() {
                                                         <span className="flex items-center gap-1.5">
                                                             <Phone className="size-3.5" />
                                                             {user.phone}
-                                                        </span>
-                                                    )}
-                                                    {user.department && (
-                                                        <span className="flex items-center gap-1.5">
-                                                            <Building2 className="size-3.5" />
-                                                            <span className="capitalize">{user.department}</span>
                                                         </span>
                                                     )}
                                                     {user.lastLogin && (
