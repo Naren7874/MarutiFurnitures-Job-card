@@ -61,7 +61,9 @@ const quotationSchema = new mongoose.Schema(
 
     // Site / project info captured at quotation stage
     projectName: { type: String, required: true },       // "GMP Office"
-    architect:   { type: String },                       // "Ar. Dreamscape"
+    architect:   { type: String },                       // Firm Name
+    architectName: { type: String },                     // Person's Name
+    architectId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     architectContact: { type: String },                  // architect's phone/email
     projectDesigner: { type: String },
     projectDesignerContact: { type: String },            // designer's phone/email

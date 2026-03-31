@@ -306,8 +306,9 @@ export default function QuotationDetailPage() {
                         <div className="space-y-2">
                             <p className="font-black text-foreground text-sm">{q.projectName}</p>
                             
-                            {(q.architect || q.architectContact) && (
+                            {(q.architectName || q.architect || q.architectContact) && (
                                 <div className="space-y-0.5">
+                                    {q.architectName && <p className="text-xs text-muted-foreground font-black">Architect: {q.architectName}</p>}
                                     {q.architect && <p className="text-xs text-muted-foreground/60 font-medium">Architect Firm : {q.architect}</p>}
                                     {q.architectContact && <p className="text-[10px] text-muted-foreground/40 font-medium flex items-center gap-1.5"><Phone size={10} className="opacity-50" /> {q.architectContact}</p>}
                                 </div>

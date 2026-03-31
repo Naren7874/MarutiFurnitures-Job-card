@@ -10,12 +10,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft, Plus, Trash2, Save, Loader2,
     User2, ReceiptText, Search, X, ImagePlus, List, Check,
-    Users, GripVertical
+    GripVertical
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '../../lib/axios';
-import { StaffMultiSelect } from '../shared/StaffMultiSelect';
 import {
     useCreateQuotation, useUpdateQuotation,
     useClients, useQuotation, useClient,
@@ -25,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { PhotoUploadZone } from '@/components/ui/photo-upload-zone';
 import { DatePicker } from '@/components/ui/date-picker';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -141,6 +141,8 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         deliveryDays: '',
         validUntil: '',
         siteAddress: { line1: '', location: '', pincode: '' },
+        architectName: '',
+        architectId: '',
     });
 
     // ── Items ─────────────────────────────────────────────────────────────────
@@ -159,6 +161,20 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     });
     const allUsers: any[] = (usersRaw as any)?.data ?? [];
 
+    const architectOptions = useMemo(() => {
+        return allUsers
+            .filter(u => {
+                const role = u.role?.toLowerCase() || '';
+                return ['architect', 'architecture', 'project designer', 'project_designer'].includes(role);
+            })
+            .map(u => ({
+                value: u._id,
+                label: u.name,
+                firmName: u.firmName,
+                contact: u.phone || u.email || ''
+            }));
+    }, [allUsers]);
+
     // ── Populate form in edit mode ────────────────────────────────────────────
     const [loaded, setLoaded] = useState(false);
     useEffect(() => {
@@ -175,6 +191,8 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                     ? new Date(existingQ.validUntil).toISOString().slice(0, 10)
                     : '',
                 siteAddress: existingQ.siteAddress || { line1: '', location: '', pincode: '' },
+                architectName: existingQ.architectName || '',
+                architectId: existingQ.architectId || '',
             });
             setDiscount(existingQ.discount || 0);
             setGstType(existingQ.gstType || 'cgst_sgst');
@@ -380,7 +398,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
                 {/* === Section 1: Client & Project === */}
                 <FormSection title="Client & Project" icon={User2}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                         {/* Client */}
                         <div className="md:col-span-2">
                             <label className={labelCls}>Client *</label>
@@ -475,26 +493,79 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                             <label className={labelCls}>Project Name *</label>
                             <Input required value={project.projectName} onChange={e => setProject(p => ({ ...p, projectName: e.target.value }))} placeholder="e.g. GMP Office — 3rd Floor" className={inputCls} />
                         </div>
+
                         <div>
-                            <label className={labelCls}>Architect firm name </label>
-                            <Input value={project.architect} onChange={e => setProject(p => ({ ...p, architect: e.target.value }))} placeholder="e.g. Ar. Dreamscape" className={inputCls} />
+                            <label className={labelCls}>Architect Search</label>
+                            <SearchableSelect
+                                options={architectOptions}
+                                value={project.architectId}
+                                placeholder="Search Existing Architect…"
+                                searchPlaceholder="Type name to search…"
+                                onChange={(userId) => {
+                                    const arch = architectOptions.find(o => o.value === userId);
+                                    if (arch) {
+                                        setProject(p => ({
+                                            ...p,
+                                            architectId: userId,
+                                            architectName: arch.label,
+                                            architect: arch.firmName || arch.label,
+                                            architectContact: arch.contact
+                                        }));
+                                    } else {
+                                        setProject(p => ({
+                                            ...p,
+                                            architectId: '',
+                                            architectName: '',
+                                            architect: '',
+                                            architectContact: ''
+                                        }));
+                                    }
+                                }}
+                                clearable
+                                className="h-12 rounded-2xl border-primary/20 bg-primary/10 hover:border-primary/40 transition-all font-bold"
+                            />
                         </div>
+
+                        <div>
+                            <label className={labelCls}>Architect Name</label>
+                            <Input 
+                                value={project.architectName} 
+                                onChange={e => setProject(p => ({ ...p, architectName: e.target.value }))} 
+                                placeholder="Person Name" 
+                                className={inputCls} 
+                            />
+                        </div>
+
+                        <div>
+                            <label className={labelCls}>Architect Firm Name</label>
+                            <Input 
+                                value={project.architect} 
+                                onChange={e => setProject(p => ({ ...p, architect: e.target.value }))} 
+                                placeholder="Firm Name" 
+                                className={inputCls} 
+                            />
+                        </div>
+
                         <div>
                             <label className={labelCls}>Architect Contact Details </label>
                             <Input value={project.architectContact} onChange={e => setProject(p => ({ ...p, architectContact: e.target.value }))} placeholder="Phone or Email" className={inputCls} />
                         </div>
+
                         <div>
                             <label className={labelCls}>Project Designer Name </label>
                             <Input value={project.projectDesigner} onChange={e => setProject(p => ({ ...p, projectDesigner: e.target.value }))} placeholder="e.g. Rahul Sharma" className={inputCls} />
                         </div>
+
                         <div>
                             <label className={labelCls}>Project Designer Contact </label>
                             <Input value={project.projectDesignerContact} onChange={e => setProject(p => ({ ...p, projectDesignerContact: e.target.value }))} placeholder="Phone or Email" className={inputCls} />
                         </div>
+
                         <div>
                             <label className={labelCls}>Delivery Period</label>
                             <Input value={project.deliveryDays} onChange={e => setProject(p => ({ ...p, deliveryDays: e.target.value }))} placeholder="e.g. 75 to 90 days" className={inputCls} />
                         </div>
+
                         <div>
                             <label className={labelCls}>Valid Until</label>
                             <DatePicker 
@@ -504,26 +575,12 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                 className={cn(inputCls, "h-12")}
                             />
                         </div>
-                        <div className="md:col-span-2">
+
+                        <div>
+                            <label className={labelCls}>Site Location</label>
                             <Input value={project.siteAddress.location} onChange={e => setProject(p => ({ ...p, siteAddress: { ...p.siteAddress, location: e.target.value } }))} placeholder="e.g. Ahmedabad, Gujarat" className={inputCls} />
                         </div>
 
-                        {/* Staff Assignment */}
-                        <div className="md:col-span-2">
-                            <StaffMultiSelect 
-                                label="Default Assigned Team" 
-                                icon={Users} 
-                                selectedIds={assignedStaff}
-                                onToggle={(id) => setAssignedStaff(prev => 
-                                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-                                )}
-                                allUsers={allUsers}
-                                placeholder="Assign staff who will handle this quotation (Design, Production, etc.)..."
-                            />
-                             <p className="text-[11px] font-black uppercase tracking-[0.15em] text-muted-foreground/50 italic mt-3">
-                                * These staff members will be automatically assigned to all Job Cards created from this quotation.
-                            </p>
-                        </div>
                     </div>
                 </FormSection>
 
