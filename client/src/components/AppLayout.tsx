@@ -4,7 +4,7 @@ import {
     LayoutDashboard, Users, FileText, Folder, ClipboardList,
     Receipt, Package, ShoppingCart, Settings, LogOut, Bell,
     ChevronLeft, ChevronRight, Building2, Check,
-    ShieldCheck, BarChart3
+    ShieldCheck, BarChart3, PanelLeft
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
@@ -223,9 +223,6 @@ export default function AppLayout() {
                             <LogOut size={14} />
                             {!sidebarCollapsed && 'Logout'}
                         </button>
-                        <button onClick={toggleSidebar} className="flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-muted transition">
-                            {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-                        </button>
                     </div>
                 </div>
             </aside>
@@ -234,9 +231,17 @@ export default function AppLayout() {
             <div className="flex-1 flex flex-col overflow-hidden">
 
                 {/* Top bar */}
-                <header className="flex items-center justify-between px-4 py-2 border-b border-border bg-background">
-                    {/* LEFT: Company Switcher */}
-                    <CompanySwitcher />
+                <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={toggleSidebar}
+                            className="group size-10 flex items-center justify-center rounded-xl bg-muted/40 border border-border text-muted-foreground hover:text-foreground hover:bg-muted hover:border-primary/30 transition-all duration-300"
+                            title={sidebarCollapsed ? "Open Sidebar" : "Close Sidebar"}
+                        >
+                            <PanelLeft size={18} className={cn("transition-all duration-500", !sidebarCollapsed ? "rotate-0 text-primary" : "opacity-70")} />
+                        </button>
+                        <CompanySwitcher />
+                    </div>
 
                     {/* RIGHT: Tools */}
                     <div className="flex items-center gap-2">

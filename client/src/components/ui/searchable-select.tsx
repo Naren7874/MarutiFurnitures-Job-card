@@ -42,6 +42,10 @@ export interface SearchableSelectProps {
     maxHeight?: number;
     /** If true, the dropdown opens upward */
     side?: 'top' | 'bottom' | 'auto';
+    /** Allow typing a custom value not in the list */
+    creatable?: boolean;
+    /** Called when a custom value is entered/selected (if creatable) */
+    onCreate?: (value: string) => void;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -67,6 +71,8 @@ export function SearchableSelect({
     emptyText = 'No results found',
     maxHeight = 280,
     side = 'auto',
+    creatable = false,
+    onCreate,
 }: SearchableSelectProps) {
     const uid = useId();
     const [open, setOpen] = useState(false);
@@ -82,9 +88,23 @@ export function SearchableSelect({
     const selectedOption = options.find(o => o.value === value);
 
     // ── Filtering ──────────────────────────────────────────────────────────────
-    const filtered = query.trim()
-        ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
-        : options;
+    const filtered = React.useMemo(() => {
+        let list = query.trim()
+            ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
+            : options;
+        
+        if (creatable && query.trim() && !options.find(o => o.label.toLowerCase() === query.trim().toLowerCase())) {
+            list = [{ value: '__create__', label: `Add "${query.trim()}"` }, ...list];
+        }
+        return list;
+    }, [options, query, creatable]);
+
+    const handleCreate = useCallback(() => {
+        if (!onCreate || !query.trim()) return;
+        onCreate(query.trim());
+        setOpen(false);
+        setQuery('');
+    }, [onCreate, query]);
 
     // ── Auto-detect side ────────────────────────────────────────────────────────
     useEffect(() => {
@@ -137,7 +157,15 @@ export function SearchableSelect({
         if (e.key === 'Enter') {
             e.preventDefault();
             const opt = filtered[activeIdx];
-            if (opt && !opt.disabled) { select(opt.value); }
+            if (opt && !opt.disabled) {
+                if (opt.value === '__create__') {
+                    handleCreate();
+                } else {
+                    select(opt.value);
+                }
+            } else if (creatable && query.trim()) {
+                handleCreate();
+            }
             return;
         }
         if (e.key === 'Tab') { setOpen(false); }
@@ -204,9 +232,9 @@ export function SearchableSelect({
                     )}
                     <span className={cn(
                         'truncate text-left',
-                        !selectedOption ? 'text-muted-foreground/60' : 'text-foreground font-medium'
+                        !selectedOption && !value ? 'text-muted-foreground/60' : 'text-foreground font-medium'
                     )}>
-                        {selectedOption ? selectedOption.label : placeholder}
+                        {selectedOption ? selectedOption.label : (value || placeholder)}
                     </span>
                 </div>
 
