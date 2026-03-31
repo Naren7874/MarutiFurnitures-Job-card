@@ -7,10 +7,12 @@ import {
 } from 'lucide-react';
 import {
     useQuotation, useSendQuotation, useApproveQuotation,
-    useRejectQuotation, useReviseQuotation, useJobCards, useDeleteQuotation
+    useRejectQuotation, useReviseQuotation, useJobCards, useDeleteQuotation,
+    useUpdateCommissionPaid
 } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ImagePreview } from '@/components/ui/image-preview';
@@ -44,6 +46,7 @@ export default function QuotationDetailPage() {
     const rejectMutation  = useRejectQuotation(id!);
     const reviseMutation  = useReviseQuotation(id!);
     const deleteMutation  = useDeleteQuotation(id!);
+    const commissionPaidMutation = useUpdateCommissionPaid(id!);
     const [confirmAction, setConfirmAction] = useState<null | 'send' | 'approve' | 'reject' | 'revise' | 'delete'>(null);
     const [pdfLoading, setPdfLoading] = useState(false);
     const [showApproveModal, setShowApproveModal] = useState(false);
@@ -328,6 +331,72 @@ export default function QuotationDetailPage() {
                             )}
                         </div>
                     </InfoCard>
+
+                    {/* Architect & Commission */}
+                    {(q.architectId || q.architectName) && (
+                        <InfoCard title="Architect & Commission" icon={Users}>
+                            <div className="space-y-3">
+                                <div>
+                                    <p className="font-black text-foreground text-sm">{q.architectName || q.architect || '—'}</p>
+                                    <p className="text-muted-foreground/60 text-[10px] font-medium tracking-tight">
+                                        Architect {q.architectId ? '(Registered)' : '(Manual Entry)'}
+                                    </p>
+                                </div>
+
+                                <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 space-y-2 text-primary">
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">Status</p>
+                                        <Badge className={cn(
+                                            "text-[10px] font-black uppercase px-2 py-0.5 rounded-lg border",
+                                            q.architectCommissionPaid 
+                                                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                                : (status === 'approved' || status === 'converted')
+                                                    ? "bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-sm"
+                                                    : "bg-slate-500/10 text-slate-400 border-slate-500/10"
+                                        )}>
+                                            {q.architectCommissionPaid ? 'Paid' : (status === 'approved' || status === 'converted' ? 'Pending Clearance' : 'Pending Approval')}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">Commission</p>
+                                            <p className="font-black text-inherit text-base">{fmt(q.architectCommissionAmount)}</p>
+                                        </div>
+                                        <p className="text-[10px] font-bold text-muted-foreground/40">{q.architectCommissionPercent}% of {fmt(q.subtotal)}</p>
+                                    </div>
+                                </div>
+
+                                {status === 'approved' || status === 'converted' ? (
+                                    !q.architectCommissionPaid ? (
+                                        <Button 
+                                            size="sm"
+                                            className="w-full h-9 rounded-xl text-xs font-black gap-2 bg-emerald-500 text-white hover:bg-emerald-600 shadow-md shadow-emerald-500/10"
+                                            onClick={() => commissionPaidMutation.mutate(true)}
+                                            disabled={commissionPaidMutation.isPending}
+                                        >
+                                            {commissionPaidMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                                            Mark as Paid
+                                        </Button>
+                                    ) : (
+                                        <Button 
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full h-9 rounded-xl text-xs font-bold gap-2 border-slate-200 text-slate-400"
+                                            onClick={() => commissionPaidMutation.mutate(false)}
+                                            disabled={commissionPaidMutation.isPending}
+                                        >
+                                            {commissionPaidMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
+                                            Undo Payment
+                                        </Button>
+                                    )
+                                ) : (
+                                    <p className="text-[10px] text-muted-foreground/40 font-medium italic text-center px-2">
+                                        Commission will be clearable once quotation is approved.
+                                    </p>
+                                )}
+                            </div>
+                        </InfoCard>
+                    )}
 
                     {/* Delivery */}
                     <InfoCard title="Quotation Timeline" icon={CalendarDays}>

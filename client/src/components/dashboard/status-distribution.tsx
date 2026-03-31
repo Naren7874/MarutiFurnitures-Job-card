@@ -13,7 +13,6 @@ const STATUS_COLORS = ['#3B82F6', '#F59E0B', '#F97316', '#8B5CF6', '#10B981', '#
 
 export function StatusDistribution({ data }: StatusDistributionProps) {
     const total = data.reduce((acc, curr) => acc + curr.count, 0)
-    const topStage = data.reduce((prev, curr) => (curr.count > prev.count ? curr : prev), data[0] || { status: '', count: 0 })
     const [activeItem, setActiveItem] = useState<{ status: string, count: number } | null>(null)
 
     return (

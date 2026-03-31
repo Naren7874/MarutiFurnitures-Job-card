@@ -80,6 +80,56 @@ export const authenticateJWT = async (req, res, next) => {
 };
 
 /**
+ * authenticateArchitect
+ *
+ * Lightweight auth for cross-company architect API routes.
+ * Does NOT require a UserPermission record — architects are cross-company.
+ * Attaches req.user = { userId, role, name }
+ */
+export const authenticateArchitect = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, message: 'No token provided' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, message: 'Token expired' });
+    }
+    return res.status(401).json({ success: false, message: 'Invalid token' });
+  }
+
+  try {
+    const user = await User.findById(decoded.userId)
+      .select('isActive tokenVersion name role profilePhoto')
+      .lean();
+
+    if (!user) return res.status(401).json({ success: false, message: 'User not found' });
+    if (!user.isActive) return res.status(401).json({ success: false, message: 'Account is deactivated.' });
+    if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion) {
+      return res.status(401).json({ success: false, message: 'Session expired. Please log in again.' });
+    }
+
+    req.user = {
+      userId:       user._id,
+      role:         user.role,
+      name:         user.name,
+      profilePhoto: user.profilePhoto,
+    };
+
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * requireSuperAdmin
  * Must be used AFTER authenticateJWT
  */

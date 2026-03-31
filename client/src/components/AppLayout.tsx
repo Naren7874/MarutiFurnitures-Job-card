@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Users, FileText, Folder, ClipboardList,
     Receipt, Package, ShoppingCart, Settings, LogOut, Bell,
-    ChevronLeft, ChevronRight, Building2, Check,
+    Building2, Check,
     ShieldCheck, BarChart3, PanelLeft
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';

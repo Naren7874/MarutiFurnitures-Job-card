@@ -925,3 +925,32 @@ export const deleteQuotation = async (req, res, next) => {
     next(err);
   }
 };
+
+// ── PATCH /api/quotations/:id/commission-paid ────────────────────────────────
+
+export const updateCommissionPaid = async (req, res, next) => {
+  try {
+    const { paid } = req.body;
+    const quotation = await Quotation.findOneAndUpdate(
+      { _id: req.params.id, ...req.companyFilter },
+      { architectCommissionPaid: !!paid },
+      { new: true }
+    );
+
+    if (!quotation) {
+      return res.status(404).json({ success: false, message: 'Quotation not found' });
+    }
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'Quotation',
+      resourceId: quotation._id,
+      resourceLabel: quotation.quotationNumber,
+      metadata: { field: 'architectCommissionPaid', value: !!paid },
+    });
+
+    res.status(200).json({ success: true, data: quotation });
+  } catch (err) {
+    next(err);
+  }
+};

@@ -1,12 +1,19 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { SocketProvider } from './context/SocketContext';
-import { ProtectedRoute, PublicRoute, PermissionRoute } from './components/ProtectedRoute';
+import { ProtectedRoute, PublicRoute, PermissionRoute, ArchitectRoute } from './components/ProtectedRoute';
 import AppLayout from './components/AppLayout';
+import ArchitectLayout from './components/ArchitectLayout';
 import { ThemeProvider } from './components/theme-provider';
-
+// useAuthStore imported by ArchitectLayout directly — not needed here
 
 // ── Lazy page imports (code splitting) ────────────────────────────────────────
+
+// Architect Portal
+const ArchitectDashboardPage  = lazy(() => import('./pages/architect/ArchitectDashboardPage'));
+const ArchitectQuotationsPage = lazy(() => import('./pages/architect/ArchitectQuotationsPage'));
+const ArchitectClientsPage    = lazy(() => import('./pages/architect/ArchitectClientsPage'));
+const ArchitectQuotationDetailPage = lazy(() => import('./pages/architect/ArchitectQuotationDetailPage'));
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
@@ -187,6 +194,17 @@ export default function App() {
 
                     {/* 404 */}
                     <Route path="*" element={<div className="p-8 text-muted-foreground/30 text-center font-bold italic">Page not found</div>} />
+                  </Route>
+                </Route>
+
+                {/* ── Architect Portal ─────────────────────────── */}
+                {/* ArchitectRoute ensures ONLY architect-role users can access /architect/* */}
+                <Route element={<ArchitectRoute />}>
+                  <Route path="/architect" element={<ArchitectLayout />}>
+                    <Route index element={<ArchitectDashboardPage />} />
+                    <Route path="quotations" element={<ArchitectQuotationsPage />} />
+                    <Route path="quotations/:id" element={<ArchitectQuotationDetailPage />} />
+                    <Route path="clients" element={<ArchitectClientsPage />} />
                   </Route>
                 </Route>
 

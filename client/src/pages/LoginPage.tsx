@@ -121,6 +121,9 @@ export default function LoginPage() {
                                                 {...register('email')}
                                                 type="email"
                                                 placeholder="executive@maruti.com"
+                                                autoCapitalize="none"
+                                                autoCorrect="off"
+                                                spellCheck="false"
                                                 className="bg-neutral-900/5 dark:bg-white/5 border-neutral-200 dark:border-white/10 text-neutral-950 dark:text-white h-14 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all font-semibold pl-14 pr-4 placeholder:text-neutral-400 dark:placeholder:text-white/10 text-base group-focus-within:bg-neutral-900/8 dark:group-focus-within:bg-white/10"
                                             />
                                         </div>
@@ -140,6 +143,10 @@ export default function LoginPage() {
                                                 {...register('password')}
                                                 type={showPass ? 'text' : 'password'}
                                                 placeholder="••••••••"
+                                                disableTitleCase
+                                                autoCapitalize="none"
+                                                autoCorrect="off"
+                                                spellCheck="false"
                                                 className="bg-neutral-900/5 dark:bg-white/5 border-neutral-200 dark:border-white/10 text-neutral-950 dark:text-white h-14 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all font-semibold pl-14 pr-14 placeholder:text-neutral-400 dark:placeholder:text-white/10 text-base group-focus-within:bg-neutral-900/8 dark:group-focus-within:bg-white/10"
                                             />
                                             <button

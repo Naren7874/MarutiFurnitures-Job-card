@@ -107,6 +107,11 @@ const quotationSchema = new mongoose.Schema(
     advancePercent: { type: Number, default: 50 },
     advanceAmount:  { type: Number, default: 0 },
 
+    // Architect Commission
+    architectCommissionPercent: { type: Number, default: 0, min: 0, max: 100 },
+    architectCommissionAmount:  { type: Number, default: 0 }, // auto-computed on save
+    architectCommissionPaid:    { type: Boolean, default: false },
+
     // Terms & Conditions — array of lines like your real quotation
     termsAndConditions: [{ type: String }],
     additionalTerms: [{ type: String }],
@@ -192,6 +197,10 @@ quotationSchema.pre("save", function () {
   
   const advPercent = Number(this.advancePercent) || 0;
   this.advanceAmount = +(this.grandTotal * (advPercent / 100)).toFixed(2);
+
+  // 6. Architect commission
+  const commPercent = Number(this.architectCommissionPercent) || 0;
+  this.architectCommissionAmount = +(this.subtotal * (commPercent / 100)).toFixed(2);
 });
 
 quotationSchema.index({ companyId: 1, status: 1 });

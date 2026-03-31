@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, MailCheck, ShieldCheck, Mail, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Loader2, MailCheck, Mail, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiPost } from '../lib/axios';
 import { Input } from '../components/ui/input';

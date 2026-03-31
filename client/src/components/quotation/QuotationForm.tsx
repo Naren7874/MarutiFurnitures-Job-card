@@ -143,6 +143,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         siteAddress: { line1: '', location: '', pincode: '' },
         architectName: '',
         architectId: '',
+        architectCommissionPercent: 0,
     });
 
     // ── Items ─────────────────────────────────────────────────────────────────
@@ -193,6 +194,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                 siteAddress: existingQ.siteAddress || { line1: '', location: '', pincode: '' },
                 architectName: existingQ.architectName || '',
                 architectId: existingQ.architectId || '',
+                architectCommissionPercent: existingQ.architectCommissionPercent || 0,
             });
             setDiscount(existingQ.discount || 0);
             setGstType(existingQ.gstType || 'cgst_sgst');
@@ -824,6 +826,54 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                             <p className="font-black text-foreground text-base">Final Amt</p>
                             <p className="font-black text-primary text-xl">₹{finalAmt.toLocaleString('en-IN')}</p>
                         </div>
+
+                        {/* Architect Commission — shown only when architect is set */}
+                        {(project.architectId || project.architectName) && (
+                            <div className="mt-4 pt-4 border-t border-primary/20 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-foreground text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
+                                            <span className="w-2 h-2 rounded-full bg-primary inline-block" />
+                                            Architect Commission
+                                        </p>
+                                        <p className="text-muted-foreground text-[10px] mt-0.5">
+                                            For: <span className="text-foreground font-bold">{project.architectName || 'Architect'}</span> · Paid on approval
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-primary text-xl font-black">
+                                            ₹{((subtotal || 0) * ((project.architectCommissionPercent || 0) / 100)).toLocaleString('en-IN')}
+                                        </p>
+                                        <p className="text-muted-foreground text-[9px]">{project.architectCommissionPercent || 0}% of ₹{subtotal.toLocaleString('en-IN')}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs text-muted-foreground shrink-0 w-8 text-right">0%</span>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="20"
+                                        step="0.5"
+                                        value={project.architectCommissionPercent}
+                                        onChange={e => setProject(p => ({ ...p, architectCommissionPercent: parseFloat(e.target.value) }))}
+                                        className="flex-1 accent-primary cursor-pointer h-2"
+                                    />
+                                    <span className="text-xs text-muted-foreground shrink-0">20%</span>
+                                    <div className="relative flex items-center ml-2">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            step="0.5"
+                                            value={project.architectCommissionPercent}
+                                            onChange={e => setProject(p => ({ ...p, architectCommissionPercent: parseFloat(e.target.value) || 0 }))}
+                                            className="w-20 h-9 rounded-xl border border-primary/30 bg-background text-foreground font-bold text-center text-sm pr-6 focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                                        />
+                                        <span className="absolute right-3 text-muted-foreground text-sm font-bold pointer-events-none">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </FormSection>
 

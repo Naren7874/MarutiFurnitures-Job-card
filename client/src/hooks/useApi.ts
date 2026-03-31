@@ -31,6 +31,11 @@ export const QK = {
     reports: (cid: string, type: string, params?: object) => ['reports', cid, type, params],
     users: (cid: string, params?: object) => ['users', cid, params],
     user: (cid: string, id: string) => ['user', cid, id],
+    // Architect portal — cross-company, keyed by userId not companyId
+    architectDashboard: (uid: string) => ['architect', uid, 'dashboard'],
+    architectQuotations: (uid: string, params?: object) => ['architect', uid, 'quotations', params],
+    architectClients: (uid: string) => ['architect', uid, 'clients'],
+    architectQuotation: (uid: string, id: string) => ['architect', uid, 'quotations', id],
 };
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -252,6 +257,20 @@ export const useAssignQuotationStaff = (id: string) => {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: QK.quotation(cid, id) });
             qc.invalidateQueries({ queryKey: ['jobcards', cid] });
+        },
+    });
+};
+
+export const useUpdateCommissionPaid = (id: string) => {
+    const qc = useQueryClient();
+    const { company } = useAuthStore();
+    const cid = company?.id || '';
+    return useMutation({
+        mutationFn: (paid: boolean) => apiPatch(`/quotations/${id}/commission-paid`, { paid }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: QK.quotation(cid, id) });
+            // Invalidate architect dashboard to reflect paid status
+            qc.invalidateQueries({ queryKey: ['architect-dashboard'] });
         },
     });
 };
@@ -859,5 +878,48 @@ export const useMarkAllNotificationsRead = () => {
     return useMutation({
         mutationFn: () => apiPatch('/notifications/read-all'),
         onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications', cid] }),
+    });
+};
+
+// ─── Architect Portal ─────────────────────────────────────────────────────────
+// Cross-company: keyed by userId. No company scope needed.
+
+export const useArchitectDashboard = () => {
+    const { user } = useAuthStore();
+    const uid = (user as any)?._id || (user as any)?.id || '';
+    return useQuery({
+        queryKey: QK.architectDashboard(uid),
+        queryFn: () => apiGet('/architect/dashboard'),
+        enabled: !!uid,
+    });
+};
+
+export const useArchitectQuotations = (params: object = {}) => {
+    const { user } = useAuthStore();
+    const uid = (user as any)?._id || (user as any)?.id || '';
+    return useQuery({
+        queryKey: QK.architectQuotations(uid, params),
+        queryFn: () => apiGet('/architect/quotations', params),
+        enabled: !!uid,
+    });
+};
+
+export const useArchitectClients = () => {
+    const { user } = useAuthStore();
+    const uid = (user as any)?._id || (user as any)?.id || '';
+    return useQuery({
+        queryKey: QK.architectClients(uid),
+        queryFn: () => apiGet('/architect/clients'),
+        enabled: !!uid,
+    });
+};
+
+export const useArchitectQuotationById = (id: string) => {
+    const { user } = useAuthStore();
+    const uid = (user as any)?._id || (user as any)?.id || '';
+    return useQuery({
+        queryKey: QK.architectQuotation(uid, id),
+        queryFn: () => apiGet(`/architect/quotations/${id}`),
+        enabled: !!uid && !!id,
     });
 };

@@ -1,24 +1,44 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 
-/** Redirects to /login if not authenticated */
+const isArchitectRole = (role?: string | null) =>
+    !!(role && role.toLowerCase().includes('architect'));
+
+/** Redirects to /login if not authenticated.
+ *  Redirects architects away from non-architect routes → /architect */
 export const ProtectedRoute = () => {
-    const { isLoggedIn } = useAuthStore();
-    return isLoggedIn ? <Outlet /> : <Navigate to="/login" replace />;
+    const { isLoggedIn, user } = useAuthStore();
+    const { pathname } = useLocation();
+
+    if (!isLoggedIn) return <Navigate to="/login" replace />;
+
+    // Architects must stay inside /architect/*
+    if (isArchitectRole(user?.role) && !pathname.startsWith('/architect')) {
+        return <Navigate to="/architect" replace />;
+    }
+
+    return <Outlet />;
 };
 
 /** Redirects logged-in users away from /login */
 export const PublicRoute = () => {
-    const { isLoggedIn } = useAuthStore();
-    return isLoggedIn ? <Navigate to="/" replace /> : <Outlet />;
+    const { isLoggedIn, user } = useAuthStore();
+    if (!isLoggedIn) return <Outlet />;
+    // Architects go directly to their portal
+    return <Navigate to={isArchitectRole(user?.role) ? '/architect' : '/'} replace />;
+};
+
+/** Guards architect-only routes — redirects non-architects away */
+export const ArchitectRoute = () => {
+    const { isLoggedIn, user } = useAuthStore();
+    if (!isLoggedIn) return <Navigate to="/login" replace />;
+    if (!isArchitectRole(user?.role)) return <Navigate to="/" replace />;
+    return <Outlet />;
 };
 
 /**
  * Route-level permission guard.
  * Wrap a <Route> with this as the element to redirect to / if user lacks the permission.
- * Usage: <Route element={<PermissionRoute permission="invoice.view" />}>
- *          <Route path="invoices" element={<InvoicesPage />} />
- *        </Route>
  */
 export const PermissionRoute = ({ permission }: { permission: string }) => {
     const hasPermission = useAuthStore((s) => s.hasPermission);
@@ -47,4 +67,3 @@ export const RequireRole = ({ roles, children }: { roles: string[]; children: Re
     if (!user || !roles.includes(user.role)) return null;
     return <>{children}</>;
 };
-
