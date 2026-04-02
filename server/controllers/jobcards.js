@@ -393,6 +393,21 @@ export const closeJobCard = async (req, res, next) => {
     jobCard.actualDelivery = jobCard.actualDelivery || new Date();
     await jobCard.save();
 
+    // Auto-complete project if ALL associated job cards are now closed
+    const projectJobCards = await JobCard.find({ 
+      projectId: jobCard.projectId, 
+      companyId: jobCard.companyId 
+    });
+    
+    const allClosed = projectJobCards.every(jc => jc.status === 'closed');
+    if (allClosed) {
+      await Project.findByIdAndUpdate(jobCard.projectId, { 
+        status: 'completed',
+        actualDelivery: new Date()
+      });
+      // Optional: auditLog or notification for project completion could be added here
+    }
+
     await addActivityLog(jobCard._id, {
       action: 'closed',
       doneBy: req.user.userId,
