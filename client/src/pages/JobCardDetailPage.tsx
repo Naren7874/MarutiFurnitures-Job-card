@@ -1564,11 +1564,6 @@ function ClosureTab({ id, jc, qcClient }: { id: string; jc: any; qcClient: any }
         onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to close job card'),
     });
 
-    const templateMut = useMutation({
-        mutationFn: (name: string) => apiPatch(`/jobcards/${id}`, { isTemplate: true, templateName: name }),
-        onSuccess: () => toast.success('Saved as template!'),
-    });
-
     const isClosed = jc.status === 'closed';
     const canClose = jc.status === 'delivered' && allPaid;
 
@@ -1621,18 +1616,18 @@ function ClosureTab({ id, jc, qcClient }: { id: string; jc: any; qcClient: any }
                                     )}
                                 </div>
 
-                                {!isClosed && (
+                                {!allPaid && hasInvoices && !isClosed && (
                                     <Button
-                                        onClick={() => {
-                                            const name = prompt('Enter template name:');
-                                            if (name) templateMut.mutate(name);
-                                        }}
+                                        asChild
                                         variant="outline"
-                                        className="rounded-xl font-black gap-2 h-11 border-border/60 hover:bg-muted"
+                                        className="rounded-xl font-black gap-2 h-11 border-amber-500/30 text-amber-600 hover:bg-amber-500/5 shadow-sm"
                                     >
-                                        <Copy size={14} /> Save Template
+                                        <Link to={`/invoices/${pendingInvoices[0]._id}`}>
+                                            <FileText size={14} /> Complete Invoice
+                                        </Link>
                                     </Button>
                                 )}
+
                                 <Button
                                     onClick={() => closeMut.mutate()}
                                     disabled={closeMut.isPending || isClosed || !canClose}
@@ -1657,9 +1652,14 @@ function ClosureTab({ id, jc, qcClient }: { id: string; jc: any; qcClient: any }
                                     </p>
                                 )}
                                 {!allPaid && hasInvoices && (
-                                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-1.5 bg-amber-500/5 p-2 rounded-lg border border-amber-500/10">
-                                        <AlertCircle size={10} /> Account check failed: One or more invoices have outstanding balances.
-                                    </p>
+                                    <div className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-500/5 p-3 rounded-xl border border-amber-500/10 transition-all hover:bg-amber-500/10">
+                                        <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-2">
+                                            <AlertCircle size={12} /> Account check failed: One or more invoices have outstanding balances.
+                                        </p>
+                                        <Link to={`/invoices/${pendingInvoices[0]._id}`} className="text-[10px] font-black bg-amber-500 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm hover:scale-105 transition-transform">
+                                            PAY NOW <ArrowLeft className="rotate-180" size={10} />
+                                        </Link>
+                                    </div>
                                 )}
                                 {!hasInvoices && (
                                     <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1.5 bg-rose-500/5 p-2 rounded-lg border border-rose-500/10">
