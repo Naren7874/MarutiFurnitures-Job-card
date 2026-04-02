@@ -10,7 +10,7 @@ import {
     Truck, Shield, Wrench, TriangleAlert, User,
     CalendarCheck, MapPin, Camera, FileText, Users, MessageSquare, Download,
     ShieldCheck, Zap, Maximize2, Fingerprint, Wind, EyeOff, History,
-    Archive, Copy, ArchiveRestore, AlertCircle, Sparkles, PackageCheck, X
+    Archive, ArchiveRestore, AlertCircle, Sparkles, PackageCheck, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -296,11 +296,11 @@ export default function JobCardDetailPage() {
 
             {/* Stage Tabs — filtered by role permissions */}
             <Tabs defaultValue="overview">
-                <TabsList className="flex flex-wrap sm:flex-nowrap bg-muted/50 border border-border/30 p-1 rounded-2xl w-full gap-1 h-auto">
+                <TabsList className="flex flex-wrap sm:flex-nowrap bg-muted/20 border border-border/40 p-1.5 rounded-3xl w-full gap-1.5 h-14 mb-2 shadow-sm">
                     {visibleTabs.map(t => (
                         <TabsTrigger key={t.value} value={t.value}
-                            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl font-bold text-[11px] sm:text-xs data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm py-2 sm:px-3 px-1">
-                            <t.icon size={14} className="shrink-0" />
+                            className="flex-1 h-full flex items-center justify-center gap-2 rounded-2xl font-black text-[12px] sm:text-xs data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md transition-all active:scale-95 px-2 sm:px-4">
+                            <t.icon size={16} className="shrink-0" />
                             <span className="hidden sm:inline">{t.label}</span>
                             <span className="sm:hidden">{t.label.slice(0, 3)}</span>
                         </TabsTrigger>
