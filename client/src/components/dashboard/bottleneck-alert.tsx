@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AlertTriangle, ExternalLink, Clock } from "lucide-react"
 import { motion } from "motion/react"
+import { useNavigate } from "react-router-dom"
 
 interface BottleneckItem {
     id: string
@@ -21,6 +22,8 @@ function getSeverity(days: number): { label: string; color: string; bg: string }
 }
 
 export function BottleneckAlert({ items }: BottleneckAlertProps) {
+    const navigate = useNavigate()
+    
     return (
         <Card className="flex flex-col border-border bg-card shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between shrink-0 pb-3 pt-5 px-6">
@@ -35,7 +38,12 @@ export function BottleneckAlert({ items }: BottleneckAlertProps) {
                         </p>
                     </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground">
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => navigate('/jobcards')}
+                >
                     All <ExternalLink className="ml-1 size-3" />
                 </Button>
             </CardHeader>
@@ -56,7 +64,8 @@ export function BottleneckAlert({ items }: BottleneckAlertProps) {
                                     initial={{ opacity: 0, x: -8 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: index * 0.1 }}
-                                    className="flex items-center justify-between p-3 rounded-xl border cursor-pointer hover:shadow-sm transition-all"
+                                    onClick={() => navigate(`/jobcards/${item.id}`)}
+                                    className="flex items-center justify-between p-3 rounded-xl border cursor-pointer hover:shadow-md transition-all hover:border-primary/20"
                                     style={{ borderColor: `${severity.color}30`, backgroundColor: severity.bg }}
                                 >
                                     <div className="flex items-center gap-3">

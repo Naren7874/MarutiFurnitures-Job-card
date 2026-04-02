@@ -361,12 +361,28 @@ export const closeJobCard = async (req, res, next) => {
       });
     }
 
-    // Stage 8 Guard: Check if fully paid
-    const invoice = await Invoice.findOne({ projectId: jobCard.projectId, companyId: req.user.companyId });
-    if (invoice && invoice.balanceDue > 0) {
+    // Stage 8 Guard: Comprehensive Financial Check
+    // Check all invoices linked to this Job Card specifically, or the parent project
+    const invoices = await Invoice.find({ 
+      $or: [
+        { jobCardIds: jobCard._id },
+        { projectId: jobCard.projectId }
+      ],
+      companyId: req.user.companyId 
+    });
+
+    if (invoices.length === 0) {
       return res.status(400).json({
         success: false,
-        message: `Cannot close: Invoice balance of ₹${invoice.balanceDue} is still pending.`,
+        message: 'Cannot close: No invoice found for this job card. Please generate an invoice first.',
+      });
+    }
+
+    const pendingInvoices = invoices.filter(inv => inv.balanceDue > 0);
+    if (pendingInvoices.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot close: There are ${pendingInvoices.length} invoices with pending payments (Total Due: ₹${pendingInvoices.reduce((acc, inv) => acc + inv.balanceDue, 0)}).`,
       });
     }
 

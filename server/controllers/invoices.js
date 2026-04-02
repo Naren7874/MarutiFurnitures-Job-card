@@ -54,10 +54,12 @@ export const createInvoice = async (req, res, next) => {
 
 export const getInvoices = async (req, res, next) => {
   try {
-    const { status, clientId, page = 1, limit = 20 } = req.query;
+    const { status, clientId, jobCardId, projectId, page = 1, limit = 20 } = req.query;
     const filter = { ...req.companyFilter };
-    if (status)   filter.status   = status;
-    if (clientId) filter.clientId = clientId;
+    if (status)    filter.status    = status;
+    if (clientId)  filter.clientId  = clientId;
+    if (jobCardId) filter.jobCardIds = jobCardId;
+    if (projectId) filter.projectId   = projectId;
 
     const [invoices, total] = await Promise.all([
       Invoice.find(filter)

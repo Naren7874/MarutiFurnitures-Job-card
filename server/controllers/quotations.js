@@ -562,6 +562,7 @@ export const approveQuotation = async (req, res, next) => {
       clientId:             clientData._id || clientData,
       projectId:            project._id,
       quotationId:          prev._id,
+      jobCardIds:           jobCards.map(jc => jc._id),
       gstType:             'cgst_sgst',
       placeOfSupply:        company.address?.state || '',
       clientGstinSnapshot:  clientData?.gstin || '',

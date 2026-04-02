@@ -142,8 +142,11 @@ export default function JobCardDetailPage() {
         if (role === 'dispatch') {
             return ['overview', 'dispatch'].includes(t.value);
         }
+        if (role === 'accountant') {
+            return ['overview', 'closure'].includes(t.value);
+        }
 
-        return true; // fallback for other roles (sales, design, etc. who might have view-only access)
+        return true; // fallback for other roles (sales, design, admin etc)
     });
 
     if (isLoading) {
@@ -1545,6 +1548,16 @@ function ClosureTab({ id, jc, qcClient }: { id: string; jc: any; qcClient: any }
     const [warrantyNotes, setWarrantyNotes] = useState(jc.warrantyNotes || '');
     const [punchList, setPunchList] = useState(jc.punchListItems?.join('\n') || '');
 
+    const { data: invRaw } = useQuery({
+        queryKey: ['invoices-jc', id],
+        queryFn: () => apiGet(`/invoices?jobCardId=${id}`),
+        staleTime: 30000,
+    });
+    const invoices: any[] = (invRaw as any)?.data ?? [];
+    const pendingInvoices = invoices.filter(i => i.balanceDue > 0);
+    const hasInvoices = invoices.length > 0;
+    const allPaid = hasInvoices && pendingInvoices.length === 0;
+
     const closeMut = useMutation({
         mutationFn: () => apiPatch(`/jobcards/${id}/close`, { warrantyNotes, punchListItems: punchList.split('\n').filter(Boolean) }),
         onSuccess: () => qcClient.invalidateQueries({ queryKey: ['jobcard', id] }),
@@ -1557,6 +1570,7 @@ function ClosureTab({ id, jc, qcClient }: { id: string; jc: any; qcClient: any }
     });
 
     const isClosed = jc.status === 'closed';
+    const canClose = jc.status === 'delivered' && allPaid;
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 mt-2">
@@ -1585,13 +1599,28 @@ function ClosureTab({ id, jc, qcClient }: { id: string; jc: any; qcClient: any }
                         </div>
                     </div>
 
-                    <div className="bg-muted/10 rounded-2xl p-6 border border-border/40 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h4 className="font-black text-sm text-foreground">Final Stage Actions</h4>
-                                <p className="text-xs text-muted-foreground/60 font-medium">Verify payment status and document before archiving.</p>
+                    <div className="bg-muted/10 rounded-3xl p-6 border border-border/40 space-y-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            <div className="space-y-1.5">
+                                <h4 className="font-black text-sm text-foreground flex items-center gap-2">
+                                    Final Stage Actions
+                                    {isClosed && <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] h-5">Archived</Badge>}
+                                </h4>
+                                <p className="text-xs text-muted-foreground/60 font-medium">Verify financial status and documentation before archiving.</p>
                             </div>
-                            <div className="flex gap-3">
+                            
+                            <div className="flex flex-wrap items-center gap-3">
+                                <div className="flex items-center gap-2 px-4 py-2 bg-background/50 rounded-2xl border border-border/50">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Invoice Status</p>
+                                    {!hasInvoices ? (
+                                        <Badge variant="outline" className="bg-rose-500/10 text-rose-500 border-rose-500/20 text-[9px] font-black uppercase">Missing Invoice</Badge>
+                                    ) : !allPaid ? (
+                                        <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[9px] font-black uppercase">{pendingInvoices.length} Pending Payment</Badge>
+                                    ) : (
+                                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] font-black uppercase">Fully Paid</Badge>
+                                    )}
+                                </div>
+
                                 {!isClosed && (
                                     <Button
                                         onClick={() => {
@@ -1599,17 +1628,19 @@ function ClosureTab({ id, jc, qcClient }: { id: string; jc: any; qcClient: any }
                                             if (name) templateMut.mutate(name);
                                         }}
                                         variant="outline"
-                                        className="rounded-xl font-black gap-2 h-11 border-border/60"
+                                        className="rounded-xl font-black gap-2 h-11 border-border/60 hover:bg-muted"
                                     >
-                                        <Copy size={14} /> Save as Template
+                                        <Copy size={14} /> Save Template
                                     </Button>
                                 )}
                                 <Button
                                     onClick={() => closeMut.mutate()}
-                                    disabled={closeMut.isPending || isClosed || jc.status !== 'delivered'}
+                                    disabled={closeMut.isPending || isClosed || !canClose}
                                     className={cn(
                                         "rounded-xl font-black gap-2 h-11 px-8 shadow-lg transition-all",
-                                        isClosed ? "bg-muted text-muted-foreground/30 shadow-none" : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20"
+                                        isClosed ? "bg-muted text-muted-foreground/30 shadow-none" : 
+                                        !canClose ? "bg-muted text-muted-foreground/40 cursor-not-allowed" : 
+                                        "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
                                     )}
                                 >
                                     {isClosed ? <ArchiveRestore size={14} /> : <CheckCircle2 size={14} />}
@@ -1617,10 +1648,25 @@ function ClosureTab({ id, jc, qcClient }: { id: string; jc: any; qcClient: any }
                                 </Button>
                             </div>
                         </div>
-                        {jc.status !== 'delivered' && !isClosed && (
-                            <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1.5 animate-pulse">
-                                <AlertCircle size={10} /> Job must be marked as 'Delivered' before it can be closed.
-                            </p>
+
+                        {!isClosed && (
+                            <div className="space-y-2">
+                                {jc.status !== 'delivered' && (
+                                    <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1.5 bg-rose-500/5 p-2 rounded-lg border border-rose-500/10">
+                                        <AlertCircle size={10} /> Job must be marked as 'Delivered' before closure.
+                                    </p>
+                                )}
+                                {!allPaid && hasInvoices && (
+                                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-1.5 bg-amber-500/5 p-2 rounded-lg border border-amber-500/10">
+                                        <AlertCircle size={10} /> Account check failed: One or more invoices have outstanding balances.
+                                    </p>
+                                )}
+                                {!hasInvoices && (
+                                    <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1.5 bg-rose-500/5 p-2 rounded-lg border border-rose-500/10">
+                                        <AlertCircle size={10} /> Financial violation: No invoices detected. Job cannot be closed without billing.
+                                    </p>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>

@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Truck, MapPin, Calendar, CheckCircle2 } from "lucide-react"
 import { motion } from "motion/react"
 import { cn } from "@/lib/utils"
+import { Link } from "react-router-dom"
 
 interface DeliveryItem {
     id: string
@@ -53,46 +54,47 @@ export function UpcomingDeliveries({ deliveries }: UpcomingDeliveriesProps) {
                             const isDelivered = delivery.status === 'DELIVERED'
                             const cfg = statusConfig[delivery.status || 'SCHEDULED']
                             return (
-                                <motion.div
-                                    key={delivery.id}
-                                    initial={{ opacity: 0, y: 6 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.08 }}
-                                    className={cn(
-                                        "p-3 rounded-xl border transition-all hover:shadow-sm cursor-pointer",
-                                        isDelivered ? "border-border/40 bg-muted/20" : "border-border bg-background hover:border-primary/30"
-                                    )}
-                                >
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="flex items-start gap-3 min-w-0">
-                                            <div className={cn(
-                                                "mt-0.5 p-1.5 rounded-lg shrink-0",
-                                                isDelivered ? "bg-emerald-500/10" : "bg-primary/10"
-                                            )}>
-                                                {isDelivered
-                                                    ? <CheckCircle2 className="size-3.5 text-emerald-500" />
-                                                    : <Calendar className="size-3.5 text-primary" />
-                                                }
-                                            </div>
-                                            <div className="min-w-0">
-                                                <div className="flex items-center gap-2 mb-0.5">
-                                                    <span className="font-bold text-sm text-foreground">{delivery.date}</span>
-                                                    {delivery.timeSlot && (
-                                                        <span className="text-[10px] text-muted-foreground">{delivery.timeSlot}</span>
-                                                    )}
+                                <Link key={delivery.id} to={`/jobcards/${delivery.id}`}>
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 6 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.08 }}
+                                        className={cn(
+                                            "p-3 rounded-xl border transition-all hover:shadow-sm cursor-pointer mb-2",
+                                            isDelivered ? "border-border/40 bg-muted/20" : "border-border bg-background hover:border-primary/30"
+                                        )}
+                                    >
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="flex items-start gap-3 min-w-0">
+                                                <div className={cn(
+                                                    "mt-0.5 p-1.5 rounded-lg shrink-0",
+                                                    isDelivered ? "bg-emerald-500/10" : "bg-primary/10"
+                                                )}>
+                                                    {isDelivered
+                                                        ? <CheckCircle2 className="size-3.5 text-emerald-500" />
+                                                        : <Calendar className="size-3.5 text-primary" />
+                                                    }
                                                 </div>
-                                                <div className="font-semibold text-xs text-foreground/80 truncate">{delivery.client}</div>
-                                                <div className="flex items-center gap-1 mt-0.5">
-                                                    <MapPin className="size-2.5 text-muted-foreground shrink-0" />
-                                                    <span className="text-[10px] text-muted-foreground truncate">{delivery.address}</span>
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-2 mb-0.5">
+                                                        <span className="font-bold text-sm text-foreground">{delivery.date}</span>
+                                                        {delivery.timeSlot && (
+                                                            <span className="text-[10px] text-muted-foreground">{delivery.timeSlot}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="font-semibold text-xs text-foreground/80 truncate">{delivery.client}</div>
+                                                    <div className="flex items-center gap-1 mt-0.5">
+                                                        <MapPin className="size-2.5 text-muted-foreground shrink-0" />
+                                                        <span className="text-[10px] text-muted-foreground truncate">{delivery.address}</span>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <Badge className={cn("text-[10px] shrink-0 font-semibold border", cfg.className)}>
+                                                {cfg.label}
+                                            </Badge>
                                         </div>
-                                        <Badge className={cn("text-[10px] shrink-0 font-semibold border", cfg.className)}>
-                                            {cfg.label}
-                                        </Badge>
-                                    </div>
-                                </motion.div>
+                                    </motion.div>
+                                </Link>
                             )
                         })}
                     </div>
