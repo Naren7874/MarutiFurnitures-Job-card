@@ -35,7 +35,7 @@ export function StatusDistribution({ data }: StatusDistributionProps) {
                     {/* Center text */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 transition-all duration-300">
                         {activeItem ? (
-                            <motion.div 
+                            <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 className="flex flex-col items-center"
@@ -51,7 +51,7 @@ export function StatusDistribution({ data }: StatusDistributionProps) {
                                 </div>
                             </motion.div>
                         ) : (
-                            <motion.div 
+                            <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 className="flex flex-col items-center"
@@ -111,7 +111,7 @@ export function StatusDistribution({ data }: StatusDistributionProps) {
                             >
                                 <div className="flex items-center gap-2 min-w-0">
                                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                                    <span className="text-xs text-muted-foreground font-semibold truncate uppercase tracking-tighter">
+                                    <span className="text-xs text-muted-foreground font-semibold truncate uppercase ">
                                         {item.status.replace(/_/g, ' ')}
                                     </span>
                                 </div>

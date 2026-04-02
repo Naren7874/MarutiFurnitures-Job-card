@@ -63,8 +63,8 @@ export default function NewInvoicePage() {
             if (inv.discountPct !== undefined || inv.discount) {
                 // If the quotation has a fixed discount, we might need to convert it to pct if our UI only supports pct
                 // For now, let's assume we match types or just pull what we can
-                setForm(f => ({ 
-                    ...f, 
+                setForm(f => ({
+                    ...f,
                     discountPct: inv.discountPct || 0,
                     gstRate: inv.gstRate || 18,
                     gstType: inv.gstType === 'igst' ? 'igst' : 'cgst_sgst'
@@ -73,7 +73,7 @@ export default function NewInvoicePage() {
         }
     }, [qData]);
 
-    const filteredProjects = form.clientId 
+    const filteredProjects = form.clientId
         ? projects.filter((p: any) => {
             const pClientId = typeof p.clientId === 'object' ? p.clientId?._id : (p.clientId || p.client?._id || p.client);
             return pClientId === form.clientId;
@@ -126,7 +126,7 @@ export default function NewInvoicePage() {
                     <ArrowLeft size={16} />
                 </button>
                 <div>
-                    <h1 className="text-3xl font-black tracking-tighter text-foreground flex items-center gap-3.5">
+                    <h1 className="text-3xl font-black  text-foreground flex items-center gap-3.5">
                         <span className="p-2.5 rounded-xl bg-primary/10 text-primary shadow-inner"><Receipt size={20} /></span>
                         New Invoice
                     </h1>
@@ -342,8 +342,8 @@ export default function NewInvoicePage() {
 
                         <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground/60">Due Date</Label>
-                            <DatePicker 
-                                date={form.dueDate ? parseISO(form.dueDate) : undefined} 
+                            <DatePicker
+                                date={form.dueDate ? parseISO(form.dueDate) : undefined}
                                 setDate={(date) => setForm(f => ({ ...f, dueDate: date ? format(date, 'yyyy-MM-dd') : '' }))}
                                 className="h-10 border-border/60 font-bold text-xs"
                             />

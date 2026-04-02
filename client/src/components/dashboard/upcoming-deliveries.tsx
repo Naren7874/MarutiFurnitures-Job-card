@@ -33,7 +33,7 @@ export function UpcomingDeliveries({ deliveries }: UpcomingDeliveriesProps) {
                     </div>
                     <div>
                         <CardTitle className="text-base font-bold">Deliveries</CardTitle>
-                        <p className="text-xs text-muted-foreground mt-0.5">Upcoming Deliveries</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Recent & Upcoming</p>
                     </div>
                 </div>
                 <Badge variant="outline" className="text-xs font-semibold border-primary/20 text-primary dark:text-primary bg-primary/5">

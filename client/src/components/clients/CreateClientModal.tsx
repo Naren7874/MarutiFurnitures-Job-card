@@ -35,7 +35,7 @@ export default function CreateClientModal({
                 <div className="flex flex-col max-h-[90vh]">
                     <div className="p-8 pb-4 border-b border-border/10">
                         <DialogHeader>
-                            <DialogTitle className="text-3xl font-black tracking-tighter text-foreground">Register New Client</DialogTitle>
+                            <DialogTitle className="text-3xl font-black  text-foreground">Register New Client</DialogTitle>
                             <DialogDescription className="text-muted-foreground text-sm font-semibold opacity-60">
                                 Fill in all the details to register a new client for this quotation.
                             </DialogDescription>

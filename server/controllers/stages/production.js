@@ -12,6 +12,80 @@ export const getProduction = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+/** POST /api/jobcards/:id/production/start — Transition from active to in_production */
+export const startProduction = async (req, res, next) => {
+  try {
+    const jobCard = await JobCard.findOne({ _id: req.params.id, companyId: req.user.companyId });
+    
+    if (!jobCard) {
+      return res.status(404).json({ success: false, message: 'Job Card not found' });
+    }
+
+    // IDEMPOTENCY CHECK: If production stage already exists, don't error, just fix the JC and return it
+    const existingStage = await ProductionStage.findOne({ jobCardId: jobCard._id });
+    if (existingStage) {
+      if (jobCard.status === 'active') {
+        jobCard.status = 'in_production';
+        jobCard.productionStageId = existingStage._id;
+        await jobCard.save();
+      }
+      return res.status(200).json({ success: true, data: existingStage, message: 'Production already started' });
+    }
+    
+    if (jobCard.status !== 'active') {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Only active Job Cards can start production. Current status: ${jobCard.status}` 
+      });
+    }
+
+    // Default 8 sub-stages (must match ProductionStage.js enum names EXACTLY)
+    const defaultSubstages = [
+      { name: 'cutting',           status: 'pending' },
+      { name: 'edge_banding',      status: 'pending' },
+      { name: 'cnc_drilling',      status: 'pending' },
+      { name: 'assembly',          status: 'pending' },
+      { name: 'polishing',         status: 'pending' },
+      { name: 'finishing',         status: 'pending' },
+      { name: 'hardware_fitting',  status: 'pending' },
+      { name: 'packing',           status: 'pending' },
+    ];
+
+    const prodStage = await ProductionStage.create({
+      companyId: req.user.companyId,
+      jobCardId: jobCard._id,
+      projectId: jobCard.projectId,
+      substages: defaultSubstages,
+    });
+
+    jobCard.status = 'in_production';
+    jobCard.productionStageId = prodStage._id;
+    jobCard.activityLog.push({
+      action: 'production_started',
+      doneBy: req.user.userId,
+      prevStatus: 'active',
+      newStatus: 'in_production',
+      note: 'Started production phase directly from active stage',
+      timestamp: new Date(),
+    });
+
+    await jobCard.save();
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'JobCard',
+      resourceId: jobCard._id,
+      resourceLabel: jobCard.jobCardNumber,
+      changes: { status: { from: 'active', to: 'in_production' } },
+      metadata: { action: 'production_started', productionStageId: prodStage._id },
+    });
+
+    res.status(200).json({ success: true, data: prodStage, message: 'Production started successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
 /** PATCH /api/jobcards/:id/production/substage — Mark a substage done */
 export const updateSubstage = async (req, res, next) => {
   try {
@@ -103,19 +177,30 @@ export const markProductionDone = async (req, res, next) => {
     );
     if (!stage) return res.status(404).json({ success: false, message: 'Production stage not found' });
 
-    // Auto-create QC Stage
-    const qcStage = await QcStage.create({
-      companyId: stage.companyId,
-      jobCardId: stage.jobCardId,
-      projectId: stage.projectId,
-      checklist: [
-        { parameter: 'Dimensions',           passed: null },
-        { parameter: 'Finish Quality',        passed: null },
-        { parameter: 'Hardware Fitting',      passed: null },
-        { parameter: 'Structural Integrity',  passed: null },
-        { parameter: 'Laminate / Polish',     passed: null },
-      ],
-    });
+    // Auto-create or recycle QC Stage
+    let qcStage = await QcStage.findOne({ jobCardId: stage.jobCardId });
+    if (!qcStage) {
+      qcStage = await QcStage.create({
+        companyId: stage.companyId,
+        jobCardId: stage.jobCardId,
+        projectId: stage.projectId,
+        checklist: [
+          { parameter: 'Dimensions',           passed: null },
+          { parameter: 'Finish Quality',        passed: null },
+          { parameter: 'Hardware Fitting',      passed: null },
+          { parameter: 'Structural Integrity',  passed: null },
+          { parameter: 'Laminate / Polish',     passed: null },
+        ],
+      });
+    } else {
+      // Reset for the new review cycle
+      qcStage.verdict = undefined;
+      qcStage.checklist.forEach(c => {
+        c.passed = null;
+        c.notes = '';
+      });
+      await qcStage.save();
+    }
 
     const jobCard = await JobCard.findById(stage.jobCardId);
     jobCard.status    = 'qc_pending';

@@ -37,8 +37,6 @@ const RESOURCE_ENUM = [
   'Inventory',
   'PurchaseOrder',
   // Stage documents
-  'DesignRequest',
-  'StoreStage',
   'ProductionStage',
   'QcStage',
   'DispatchStage',

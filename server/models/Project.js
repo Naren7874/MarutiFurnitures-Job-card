@@ -33,7 +33,7 @@ const projectSchema = new mongoose.Schema(
       pincode:  String,
     },
     contactPerson: { type: String },
-    salesPerson: {
+    salesperson: {
       id:   { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       name: String,
     },

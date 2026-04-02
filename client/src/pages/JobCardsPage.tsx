@@ -15,12 +15,11 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     Plus, Search, LayoutGrid, List, Clock, FilterX,
-    Package, Home, Factory, FlaskConical, CheckCircle, Truck, Archive, PauseCircle, XCircle
+    Package, Factory, FlaskConical, CheckCircle, Truck, Archive, PauseCircle, XCircle
 } from 'lucide-react';
 
 const STATUS_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; border: string }> = {
     active: { label: 'Active', icon: Package, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-    in_store: { label: 'In Store', icon: Home, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
     in_production: { label: 'In Production', icon: Factory, color: 'text-primary dark:text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
     qc_pending: { label: 'QC Pending', icon: FlaskConical, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
     qc_passed: { label: 'QC Passed', icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
@@ -32,11 +31,10 @@ const STATUS_CONFIG: Record<string, { label: string; icon: any; color: string; b
     ENQUIRY: { label: 'Enquiry', icon: Clock, color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20' }, // Default/Fallback
 };
 
-const ALL_STATUSES = ['active', 'in_store', 'in_production', 'qc_pending', 'qc_passed', 'dispatched', 'delivered', 'on_hold', 'closed', 'cancelled'];
+const ALL_STATUSES = ['active', 'in_production', 'qc_pending', 'qc_passed', 'dispatched', 'delivered', 'on_hold', 'closed', 'cancelled'];
 
 const KANBAN_COLS = [
     { key: 'active', label: 'Active', color: 'bg-blue-500' },
-    { key: 'in_store', label: 'Store', color: 'bg-amber-500' },
     { key: 'in_production', label: 'Production', color: 'bg-primary' },
     { key: 'qc_pending', label: 'QC Audit', color: 'bg-purple-500' },
     { key: 'dispatched', label: 'Transit', color: 'bg-cyan-500' },
@@ -62,16 +60,17 @@ export default function JobCardsPage() {
     const { user } = useAuthStore();
     const userId = user?.id;
     const isSuperAdmin = user?.role === 'super_admin';
+    const isManager = user?.role === 'admin' || user?.role === 'management';
 
-    // Filter job cards if not super_admin
-    const filteredJobCards = isSuperAdmin
+    // Filter job cards if not super_admin or manager
+    const filteredJobCards = (isSuperAdmin || isManager)
         ? rawJobCards
         : rawJobCards.filter(jc => {
             // Check if user is assigned in ANY department array
-            const isAssignedToAnyDept = jc.assignedTo && Object.values(jc.assignedTo).some((dept: any) => 
+            const isAssignedToAnyDept = jc.assignedTo && Object.values(jc.assignedTo).some((dept: any) =>
                 Array.isArray(dept) && dept.some((u: any) => (u._id || u.id || u) === userId)
             );
-            
+
             // Check if user is the salesperson
             const isSalesperson = (jc.salesperson?.id || jc.salesperson?._id || jc.salesperson) === userId;
 
@@ -96,7 +95,7 @@ export default function JobCardsPage() {
                 className="flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">Operations Pipeline</h1>
+                    <h1 className="text-4xl font-black  text-foreground mb-3 leading-none">Operations Pipeline</h1>
                     <div className="flex items-center gap-3.5">
                         <div className="h-2 w-2 rounded-full bg-primary animate-pulse shadow-[0_0_12px_rgba(var(--primary),0.4)]" />
                         <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
@@ -242,9 +241,9 @@ export default function JobCardsPage() {
                                                             </div>
                                                             <div>
                                                                 <p className="text-foreground font-black text-base tracking-tight">{jc.jobCardNumber}</p>
-                                                                <p className="text-muted-foreground/60 text-xs font-black uppercase tracking-tighter truncate max-w-[200px]">
-                                                                    {jc.items?.[0]?.category && !jc.title?.startsWith(jc.items[0].category) 
-                                                                        ? `${jc.items[0].category} - ${jc.title}` 
+                                                                <p className="text-muted-foreground/60 text-xs font-black uppercase  truncate max-w-[200px]">
+                                                                    {jc.items?.[0]?.category && !jc.title?.startsWith(jc.items[0].category)
+                                                                        ? `${jc.items[0].category} - ${jc.title}`
                                                                         : jc.title}
                                                                 </p>
                                                             </div>
@@ -405,8 +404,8 @@ export default function JobCardsPage() {
                                                                     </div>
 
                                                                     <p className="text-foreground font-black text-sm tracking-tight mb-2 line-clamp-1 group-hover:text-primary transition-colors">
-                                                                        {jc.items?.[0]?.category && !jc.title?.startsWith(jc.items[0].category) 
-                                                                            ? `${jc.items[0].category} - ${jc.title}` 
+                                                                        {jc.items?.[0]?.category && !jc.title?.startsWith(jc.items[0].category)
+                                                                            ? `${jc.items[0].category} - ${jc.title}`
                                                                             : jc.title}
                                                                     </p>
 

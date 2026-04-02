@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { format } from 'date-fns';
 import { useAuthStore } from '../stores/authStore';
 import { useJobCards, useDashboardStats } from '../hooks/useApi';
 import { FileX, LayoutGrid, ClipboardCheck, FileText, ShieldCheck, CheckCircle2 as CheckCircleIcon, Package, History } from 'lucide-react';
@@ -23,7 +24,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions";
 import { DashboardCalendar } from "@/components/dashboard/dashboard-calendar";
 import { DUMMY_ACTIVITIES, DUMMY_USERS } from "@/lib/dummy-data";
 
-const STAFF_ROLES = ['design', 'store', 'production', 'qc', 'dispatch', 'sales', 'accountant'];
+const STAFF_ROLES = ['production', 'qc', 'dispatch', 'sales', 'accountant'];
 
 const StatCard = ({ icon: Icon, label, value, sub, colorClass, delay = 0 }: any) => (
     <motion.div
@@ -57,7 +58,7 @@ const StatCard = ({ icon: Icon, label, value, sub, colorClass, delay = 0 }: any)
                         {label}
                     </p>
                     <div className="flex items-baseline gap-2">
-                        <span className="text-foreground text-3xl font-black tracking-tighter tabular-nums drop-shadow-sm">
+                        <span className="text-foreground text-3xl font-black  tabular-nums drop-shadow-sm">
                             {value ?? '0'}
                         </span>
                         <motion.div
@@ -76,8 +77,7 @@ const StatCard = ({ icon: Icon, label, value, sub, colorClass, delay = 0 }: any)
 );
 
 const roleColors: Record<string, string> = {
-    ADMIN: '#1315E5', SALES: '#10B981', DESIGN: '#8B5CF6',
-    STORE: '#F59E0B', PRODUCTION: '#8ffb03', QC: '#06B6D4',
+    ADMIN: '#1315E5', SALES: '#10B981', PRODUCTION: '#8ffb03', QC: '#06B6D4',
     DISPATCH: '#6366F1', ACCOUNTANT: '#EC4899',
 };
 
@@ -159,17 +159,45 @@ function AdminDashboard() {
     });
 
     const { data: deliveries } = useQuery({
-        queryKey: ["upcoming-deliveries", company?.id || user?.companyId],
-        queryFn: async () => allJobCards
-            .filter((jc: any) => jc.status === 'dispatch_pending' || jc.status === 'out_for_delivery')
-            .map((jc: any) => ({
-                id: jc._id,
-                date: jc.expectedDelivery,
-                clientName: jc.clientId?.name || 'Unknown',
-                address: jc.clientId?.city || '',
-                timeSlot: 'Morning',
-                status: jc.status === 'out_for_delivery' ? 'IN_TRANSIT' : 'SCHEDULED'
-            }))
+        queryKey: ["upcoming-deliveries", company?.id || user?.companyId, allJobCards.length],
+        queryFn: async () => {
+            const filtered = allJobCards.filter((jc: any) => ['qc_passed', 'dispatched', 'delivered'].includes(jc.status));
+            
+            return filtered
+                .map((jc: any) => {
+                    const scheduledDate = jc.dispatchStageId?.scheduledDate || jc.expectedDelivery;
+                    const deliveredAt = jc.dispatchStageId?.deliveredAt;
+                    
+                    return {
+                        id: jc._id,
+                        rawDate: scheduledDate ? new Date(scheduledDate) : new Date(0),
+                        rawDeliveredDate: deliveredAt ? new Date(deliveredAt) : new Date(0),
+                        date: jc.status === 'delivered' && deliveredAt
+                            ? format(new Date(deliveredAt), 'eee, dd MMM')
+                            : (scheduledDate ? format(new Date(scheduledDate), 'eee, dd MMM') : 'Not Set'),
+                        clientName: jc.projectId?.projectName 
+                            ? `${jc.clientId?.name || 'Unknown'} — ${jc.projectId.projectName}`
+                            : (jc.clientId?.name || 'Unknown'),
+                        address: jc.clientId?.address?.city || jc.clientId?.address?.line1 || 'N/A',
+                        timeSlot: jc.dispatchStageId?.timeSlot || 'Pending',
+                        status: jc.status === 'delivered' ? 'DELIVERED' : (jc.status === 'dispatched' ? 'IN_TRANSIT' : 'SCHEDULED')
+                    };
+                })
+                .sort((a: any, b: any) => {
+                    // Upcoming (SCHEDULED/IN_TRANSIT) at the top
+                    if (a.status !== 'DELIVERED' && b.status === 'DELIVERED') return -1;
+                    if (a.status === 'DELIVERED' && b.status !== 'DELIVERED') return 1;
+                    
+                    // Same status group
+                    if (a.status === 'DELIVERED') {
+                        // Most recent completions first
+                        return b.rawDeliveredDate.getTime() - a.rawDeliveredDate.getTime();
+                    }
+                    // Scheduled items: earliest first
+                    return a.rawDate.getTime() - b.rawDate.getTime();
+                })
+                .slice(0, 10);
+        }
     });
 
     const whatsappLogs = (notificationsRaw?.data || [])
@@ -301,7 +329,6 @@ function AdminDashboard() {
                             {[
                                 { label: 'Production', status: 'in_production', color: '#3B82F6' },
                                 { label: 'QC Pending', status: 'qc_pending', color: '#F59E0B' },
-                                { label: 'Store', status: 'in_store', color: '#6366F1' },
                                 { label: 'Dispatch', status: 'dispatched', color: '#8B5CF6' },
                             ].map(s => {
                                 const count = stats?.jobCards.byStage?.[s.status] || 0;
@@ -381,7 +408,7 @@ function AdminDashboard() {
                                                         </div>
                                                         <div className="text-[11px] text-muted-foreground font-medium leading-relaxed italic">"{activity.action}"</div>
                                                     </div>
-                                                    <div className="text-[9px] text-muted-foreground/30 font-black tracking-tighter">
+                                                    <div className="text-[9px] text-muted-foreground/30 font-black ">
                                                         {activity.timestamp.split(' ')[1]}
                                                     </div>
                                                 </div>

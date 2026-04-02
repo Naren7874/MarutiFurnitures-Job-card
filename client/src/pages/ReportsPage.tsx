@@ -71,7 +71,6 @@ export default function ReportsPage() {
 
     const stageData = [
         { label: 'Active', value: stats.jobCards?.byStage?.active || 0, color: 'bg-blue-500' },
-        { label: 'Store', value: stats.jobCards?.byStage?.in_store || 0, color: 'bg-amber-500' },
         { label: 'Production', value: (stats.jobCards?.byStage?.in_production || 0) + (stats.jobCards?.byStage?.material_ready || 0), color: 'bg-primary' },
         { label: 'QC', value: (stats.jobCards?.byStage?.qc_pending || 0) + (stats.jobCards?.byStage?.qc_passed || 0), color: 'bg-purple-500' },
         { label: 'Dispatch', value: stats.jobCards?.byStage?.dispatched || 0, color: 'bg-cyan-500' },
@@ -101,7 +100,7 @@ export default function ReportsPage() {
             {/* Header */}
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter text-foreground flex items-center gap-3">
+                    <h1 className="text-4xl font-black  text-foreground flex items-center gap-3">
                         <span className="p-2 rounded-xl bg-primary/10 text-primary"><BarChart3 size={24} strokeWidth={3} /></span>
                         Reports & Analytics
                     </h1>

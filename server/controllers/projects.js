@@ -1,6 +1,11 @@
 import Project from '../models/Project.js';
 import Quotation from '../models/Quotation.js';
 import Company from '../models/Company.js';
+import JobCard from '../models/JobCard.js';
+import { Invoice } from '../models/Invoice.js';
+import { ProductionStage } from '../models/ProductionStage.js';
+import { QcStage } from '../models/QcStage.js';
+import { DispatchStage } from '../models/DispatchStage.js';
 import { generateProjectNumber } from '../utils/autoNumber.js';
 import { auditLog } from '../utils/auditLogger.js';
 
@@ -205,6 +210,64 @@ export const updateProject = async (req, res, next) => {
     });
 
     res.status(200).json({ success: true, data: project });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ── DELETE /api/projects/:id ───────────────────────────────────────────────
+export const deleteProject = async (req, res, next) => {
+  try {
+    const projectId = req.params.id;
+    const project = await Project.findOne({ _id: projectId, ...req.companyFilter }).lean();
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    // 1. Identify all Job Cards linked to this project
+    const jobCards = await JobCard.find({ projectId, companyId: req.user.companyId }).select('_id').lean();
+    const jobCardIds = jobCards.map(jc => jc._id);
+
+    // 2. Cascade delete all related records in stages
+    await Promise.all([
+      ProductionStage.deleteMany({ jobCardId: { $in: jobCardIds } }),
+      QcStage.deleteMany({ jobCardId: { $in: jobCardIds } }),
+      DispatchStage.deleteMany({ jobCardId: { $in: jobCardIds } })
+    ]);
+
+    // 3. Delete Job Cards
+    await JobCard.deleteMany({ projectId, companyId: req.user.companyId });
+
+    // 4. Delete Invoices
+    await Invoice.deleteMany({ projectId, companyId: req.user.companyId });
+
+    // 5. Update associated Quotation (mark as no longer converted)
+    if (project.quotationId) {
+      await Quotation.findByIdAndUpdate(project.quotationId, { 
+        status: 'approved', 
+        $unset: { projectId: 1 } 
+      });
+    }
+
+    // 6. Delete the Project itself
+    await Project.deleteOne({ _id: projectId, companyId: req.user.companyId });
+
+    auditLog(req, {
+      action: 'delete',
+      resourceType: 'Project',
+      resourceId: projectId,
+      resourceLabel: project.projectNumber,
+      metadata: { 
+        projectName: project.projectName,
+        jobCardsDeletedCount: jobCardIds.length 
+      },
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Project and all associated records deleted successfully' 
+    });
   } catch (err) {
     next(err);
   }

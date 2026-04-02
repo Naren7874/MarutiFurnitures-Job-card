@@ -2,7 +2,6 @@ import JobCard from '../models/JobCard.js';
 import Project from '../models/Project.js';
 import Company from '../models/Company.js';
 import Notification from '../models/Notification.js';
-import DesignRequest from '../models/DesignRequest.js'; 
 import { Invoice } from '../models/Invoice.js';
 import mongoose from 'mongoose';
 import { generateJobCardNumber } from '../utils/autoNumber.js';
@@ -63,20 +62,6 @@ export const createJobCard = async (req, res, next) => {
       createdBy: req.user.userId,
     });
 
-    // SRS §3.5: Auto-create DesignRequest
-    const designRequest = await DesignRequest.create({
-      companyId: req.user.companyId,
-      jobCardId: jobCard._id,
-      projectId: project._id,
-      clientId: project.clientId,
-      status: 'pending',
-      createdBy: req.user.userId,
-    });
-
-    // Link DesignRequest back to JobCard
-    jobCard.designRequestId = designRequest._id;
-    await jobCard.save();
-
     // Send WhatsApp notification to the group
     if (project.whatsapp?.groupId) {
       // In practice, you'd send to all assigned staff phones
@@ -136,20 +121,21 @@ export const getJobCards = async (req, res, next) => {
     // IMPORTANT: req.user.userId is a string from JWT. MongoDB stores ObjectIds in
     // assignedTo arrays. We must cast to ObjectId or the $in comparison will NEVER match.
     if (!req.user.isSuperAdmin && req.user.role !== 'sales') {
-      const dept = req.user.department; // set directly from DB by auth.js middleware
-      const VALID_DEPTS = ['design', 'store', 'production', 'qc', 'dispatch', 'accounts'];
-      if (dept && VALID_DEPTS.includes(dept)) {
+      const role = req.user.role; // Now using role exclusively
+      const RELEVANT_ROLES = ['production', 'qc', 'dispatch', 'accounts'];
+      if (role && RELEVANT_ROLES.includes(role)) {
         const userOid = new mongoose.Types.ObjectId(req.user.userId);
-        filter[`assignedTo.${dept}`] = { $in: [userOid] };
+        filter[`assignedTo.${role}`] = { $in: [userOid] };
       }
     }
 
 
     const [jobCards, total] = await Promise.all([
       JobCard.find(filter)
-        .populate('clientId', 'name firmName city')
+        .populate('clientId', 'name firmName address')
         .populate('projectId', 'projectName projectNumber')
         .populate('quotationId', 'grandTotal')
+        .populate('dispatchStageId')
         .select('-activityLog') // Don't return full log on list
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
@@ -176,8 +162,6 @@ export const getJobCardById = async (req, res, next) => {
       .populate('clientId')
       .populate('projectId', 'projectName projectNumber whatsapp')
       .populate('quotationId', 'quotationNumber grandTotal')
-      .populate('assignedTo.design', 'name role')
-      .populate('assignedTo.store', 'name role')
       .populate('assignedTo.production', 'name role')
       .populate('assignedTo.qc', 'name role')
       .populate('assignedTo.dispatch', 'name role')
@@ -454,8 +438,8 @@ export const getJobCardPDF = async (req, res, next) => {
 
 export const assignJobCard = async (req, res, next) => {
   try {
-    const { stage, userIds } = req.body; // stage: 'design' | 'store' | 'production' | etc.
-    const VALID_STAGES = ['design', 'store', 'production', 'qc', 'dispatch', 'accounts'];
+    const { stage, userIds } = req.body; // stage: 'production' | 'qc' | etc.
+    const VALID_STAGES = ['production', 'qc', 'dispatch', 'accounts'];
 
     if (!VALID_STAGES.includes(stage)) {
       return res.status(400).json({ success: false, message: 'Invalid stage for assignment' });
@@ -467,15 +451,6 @@ export const assignJobCard = async (req, res, next) => {
     const prevAssigned = jobCard.assignedTo[stage] || [];
     jobCard.assignedTo[stage] = userIds;
     await jobCard.save();
-
-    // If design stage is assigned, sync with DesignRequest if it exists
-    if (stage === 'design' && jobCard.designRequestId) {
-      // Lazy import to avoid circular dependency
-      const DesignRequest = mongoose.model('DesignRequest');
-      await DesignRequest.findByIdAndUpdate(jobCard.designRequestId, {
-        assignedTo: userIds,
-      });
-    }
 
     await addActivityLog(jobCard._id, {
       action: 'staff_assigned',

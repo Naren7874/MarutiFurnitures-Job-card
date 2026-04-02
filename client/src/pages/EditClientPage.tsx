@@ -44,11 +44,11 @@ export default function EditClientPage() {
             </motion.div>
 
             <div>
-                <h1 className="text-foreground text-4xl font-black tracking-tighter mb-2">Edit Client</h1>
+                <h1 className="text-foreground text-4xl font-black  mb-2">Edit Client</h1>
                 <p className="text-muted-foreground text-sm font-semibold opacity-60">Update contact information and details.</p>
             </div>
 
-            <ClientForm 
+            <ClientForm
                 initialData={existing}
                 onSuccess={handleSubmit}
                 onCancel={() => navigate(`/clients/${id}`)}

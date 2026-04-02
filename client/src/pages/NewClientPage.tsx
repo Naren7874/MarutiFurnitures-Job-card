@@ -44,15 +44,15 @@ export default function NewClientPage() {
             </motion.div>
 
             <div>
-                <h1 className="text-foreground text-4xl font-black tracking-tighter mb-2">Register New Client</h1>
+                <h1 className="text-foreground text-4xl font-black  mb-2">Register New Client</h1>
                 <p className="text-muted-foreground text-sm font-semibold opacity-60">
                     Add an external client — this is separate from your internal staff.
                 </p>
             </div>
 
-            <ClientForm 
-                onSuccess={handleSubmit} 
-                onCancel={() => navigate('/clients')} 
+            <ClientForm
+                onSuccess={handleSubmit}
+                onCancel={() => navigate('/clients')}
                 isSubmitting={create.isPending}
                 submitLabel="Create Client"
             />

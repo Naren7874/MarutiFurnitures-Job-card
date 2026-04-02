@@ -7,10 +7,11 @@ export function ImagePreview({ src, alt }: { src: string; alt?: string }) {
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <div className="relative group cursor-zoom-in rounded-xl overflow-hidden border border-border/40 bg-muted/20 shadow-sm hover:shadow-md transition-all">
+                <div className="relative group cursor-zoom-in rounded-xl overflow-hidden border border-border/40 bg-muted/20 shadow-sm hover:shadow-md transition-all w-full h-full">
                     <img src={src} alt={alt || "Preview"} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Maximize2 size={16} className="text-white drop-shadow-lg" />
+
                     </div>
                 </div>
             </DialogTrigger>

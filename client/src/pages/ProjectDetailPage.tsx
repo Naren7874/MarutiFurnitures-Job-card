@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import {
-    ArrowLeft, FolderOpen, Building2, MapPin, Calendar, Users,
-    ChevronRight, AlertTriangle, CheckCircle2, Clock,
-    Loader2, Package, Activity, Phone, Mail
-} from 'lucide-react';
-import { useProject, useUpdateProjectStatus, useUpdateWhatsApp } from '../hooks/useApi';
+import { Trash2, ArrowLeft, FolderOpen, Building2, MapPin, Calendar, Users, ChevronRight, AlertTriangle, CheckCircle2, Clock, Loader2, Package, Activity, Phone, Mail } from 'lucide-react';
+import { useProject, useUpdateProjectStatus, useUpdateWhatsApp, useDeleteProject } from '../hooks/useApi';
 import { Button } from '@/components/ui/button';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,7 +21,6 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; bor
 
 const JC_STATUS: Record<string, { label: string; color: string }> = {
     active: { label: 'Active', color: 'text-blue-500' },
-    in_store: { label: 'In Store', color: 'text-yellow-600' },
     in_production: { label: 'Production', color: 'text-primary' },
     qc_pending: { label: 'QC Pending', color: 'text-purple-500' },
     qc_passed: { label: 'QC Passed', color: 'text-emerald-500' },
@@ -44,8 +40,10 @@ export default function ProjectDetailPage() {
 
     const statusMut = useUpdateProjectStatus(id!);
     const whatsappMut = useUpdateWhatsApp(id!);
+    const deleteMut = useDeleteProject(id!);
 
     const [statusChanging, setStatusChanging] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
     const { user } = useAuthStore();
     const isSuperAdmin = user?.role === 'super_admin';
     const userId = user?.id;
@@ -78,7 +76,7 @@ export default function ProjectDetailPage() {
 
     // Access check for staff
     const isAssigned = project.assignedStaff?.some((u: any) => (u._id || u.id || u) === userId) ||
-                       (project.salesPerson?.id || project.salesPerson?._id || project.salesPerson) === userId;
+                       (project.salesperson?.id || project.salesperson?._id || project.salesperson) === userId;
 
     if (!isSuperAdmin && !isAssigned) {
         return (
@@ -114,16 +112,27 @@ export default function ProjectDetailPage() {
                     </div>
                 </div>
 
-                {/* Status Changer */}
+                {/* Status Changer & Delete */}
                 <div className="flex items-center gap-3">
+                    {isSuperAdmin && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={deleteMut.isPending}
+                            onClick={() => setDeleteOpen(true)}
+                            className="h-10 w-10 shrink-0 rounded-xl border border-rose-500/20 text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all shadow-sm"
+                        >
+                            <Trash2 size={16} />
+                        </Button>
+                    )}
                     <Select value={project.status} onValueChange={handleStatusChange} disabled={statusChanging}>
-                        <SelectTrigger className="h-10 w-44 rounded-xl font-bold text-xs border-border/60">
+                        <SelectTrigger className="h-10 w-44 rounded-xl font-bold text-xs border-border/60 shadow-sm bg-card">
                             {statusChanging ? <Loader2 size={13} className="animate-spin mr-2" /> : null}
                             <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl">
+                        <SelectContent className="rounded-2xl border-border/40 shadow-xl">
                             {Object.entries(STATUS_CFG).map(([v, c]) => (
-                                <SelectItem key={v} value={v} className={cn('font-bold text-xs', c.color)}>{c.label}</SelectItem>
+                                <SelectItem key={v} value={v} className={cn('font-bold text-xs py-2.5', c.color)}>{c.label}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -356,6 +365,20 @@ export default function ProjectDetailPage() {
                     </div>
                 </div>
             )}
+
+            <ConfirmationDialog
+                open={deleteOpen}
+                onOpenChange={setDeleteOpen}
+                title="Delete Project?"
+                description={`This will permanently delete ${project.projectName} (${project.projectNumber}) and all associated job cards and stages. This action cannot be undone.`}
+                variant="destructive"
+                confirmText="Delete Permanently"
+                isPending={deleteMut.isPending}
+                onConfirm={async () => {
+                    await deleteMut.mutateAsync();
+                    navigate('/projects');
+                }}
+            />
         </motion.div>
     );
 }

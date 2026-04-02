@@ -3,9 +3,7 @@ import Company from '../models/Company.js';
 import Client from '../models/Client.js';
 import Project from '../models/Project.js';
 import JobCard from '../models/JobCard.js';
-import DesignRequest from '../models/DesignRequest.js';
 import { Invoice } from '../models/Invoice.js';
-import { StoreStage } from '../models/StoreStage.js';
 import { ProductionStage } from '../models/ProductionStage.js';
 import { QcStage } from '../models/QcStage.js';
 import { DispatchStage } from '../models/DispatchStage.js';
@@ -180,8 +178,8 @@ export const updateQuotation = async (req, res, next) => {
           // UPDATE EXISTING
           matchingJC.title = quoItem.category ? `${quoItem.category} - ${quoItem.description}` : (quoItem.description || matchingJC.title);
           matchingJC.salesperson = {
-            id:   quotation.salesPerson?.id || quotation.salesPerson,
-            name: (typeof quotation.salesPerson === 'object' && quotation.salesPerson?.name) ? quotation.salesPerson.name : (quotation.salesPerson?.name || '')
+            id:   quotation.salesperson?.id || quotation.salesperson,
+            name: (typeof quotation.salesperson === 'object' && quotation.salesperson?.name) ? quotation.salesperson.name : (quotation.salesperson?.name || '')
           };
           matchingJC.contactPerson = quotation.contactPerson || '';
           
@@ -234,22 +232,8 @@ export const updateQuotation = async (req, res, next) => {
               action:    'created',
               doneBy:    req.user.userId,
               newStatus: 'active',
-              note:      `Created via quotation update sync: ${quotation.quotationNumber}`,
-              timestamp: new Date(),
             }],
           });
-
-          // Also create DesignRequest for new Job Card
-          const dr = await DesignRequest.create({
-            companyId: req.user.companyId,
-            jobCardId: newJC._id,
-            projectId: quotation.projectId,
-            clientId:  quotation.clientId,
-            status:    'pending',
-            createdBy: req.user.userId,
-          });
-          newJC.designRequestId = dr._id;
-          await newJC.save();
         }
       }
 
@@ -438,7 +422,7 @@ export const approveQuotation = async (req, res, next) => {
       siteAddress:  prev.siteAddress,
       clientGstin:  prev.clientId?.gstin,
       contactPerson: firstConfig.contactPerson || prev.contactPerson,
-      salesPerson:   firstConfig.salesPerson,
+      salesperson:   firstConfig.salesperson || firstConfig.salesPerson,
       priority:     'medium',
       assignedStaff: prev.assignedStaff || [],
       status:       'active',
@@ -458,12 +442,18 @@ export const approveQuotation = async (req, res, next) => {
 
       // Use assignedTo from config if provided, otherwise fallback to quotation defaults
       const assignedTo = config.assignedTo || {
-        design:     prev.assignedStaff || [],
-        store:      [],
         production: prev.assignedStaff || [],
         qc:         [],
         dispatch:   [],
         accounts:   [],
+      };
+
+      // Ensure all IDs are strings, handle populated objects safely
+      const cleanAssignedTo = {
+        production: (assignedTo.production || []).map(s => (s?._id || s)?.toString()),
+        qc:         (assignedTo.qc || []).map(s => (s?._id || s)?.toString()),
+        dispatch:   (assignedTo.dispatch || []).map(s => (s?._id || s)?.toString()),
+        accounts:   (assignedTo.accounts || []).map(s => (s?._id || s)?.toString()),
       };
 
       const jobCard = await JobCard.create({
@@ -484,13 +474,13 @@ export const approveQuotation = async (req, res, next) => {
           qty:            item.qty,
           unit:           item.unit || 'pcs',
         }],
-        salesperson: config.salesPerson,
+        salesperson: config.salesperson || config.salesPerson, // Handle both for safety during transition
         // contactPerson is stored as String in JobCard model — extract name from object if needed
         contactPerson: (typeof config.contactPerson === 'object' && config.contactPerson?.name)
           ? config.contactPerson.name
           : (config.contactPerson || prev.contactPerson || ''),
         expectedDelivery: config.expectedDelivery,
-        assignedTo,
+        assignedTo: cleanAssignedTo,
         priority:    item.specifications?.priority || 'medium',
         orderDate:   new Date(),
         status:      'active',
@@ -503,19 +493,6 @@ export const approveQuotation = async (req, res, next) => {
         }],
         createdBy: req.user.userId,
       });
-
-      // Auto-create DesignRequest for each job card
-      const designRequest = await DesignRequest.create({
-        companyId:  req.user.companyId,
-        jobCardId:  jobCard._id,
-        projectId:  project._id,
-        clientId:   prev.clientId._id || prev.clientId,
-        status:     'pending',
-        createdBy:  req.user.userId,
-      });
-
-      jobCard.designRequestId = designRequest._id;
-      await jobCard.save();
 
       jobCards.push(jobCard);
 
@@ -757,7 +734,6 @@ export const assignStaffToQuotation = async (req, res, next) => {
         { projectId: quotation.projectId, companyId: req.user.companyId },
         {
           $set: {
-            'assignedTo.design':     staffIds,
             'assignedTo.production': staffIds,
           },
         }
@@ -808,8 +784,21 @@ export const updateQuotationJobCardTeams = async (req, res, next) => {
       });
 
       if (jobCard) {
-        if (assignedTo) jobCard.assignedTo = assignedTo;
-        if (salesperson) jobCard.salesperson = salesperson;
+        // Correctly handle incoming field naming (frontend might send salesPerson or salesperson)
+        const incomingSalesperson = config.salesperson || config.salesPerson;
+        const incomingAssignedTo = config.assignedTo;
+
+        if (incomingAssignedTo) {
+          // Defensive mapping: extract IDs from potentially populated objects
+          jobCard.assignedTo = {
+            production: (incomingAssignedTo.production || []).map(s => (s?._id || s)?.toString()),
+            qc:         (incomingAssignedTo.qc || []).map(s => (s?._id || s)?.toString()),
+            dispatch:   (incomingAssignedTo.dispatch || []).map(s => (s?._id || s)?.toString()),
+            accounts:   (incomingAssignedTo.accounts || []).map(s => (s?._id || s)?.toString()),
+          };
+        }
+
+        if (incomingSalesperson) jobCard.salesperson = incomingSalesperson;
         if (contactPerson) jobCard.contactPerson = contactPerson;
         if (expectedDelivery) jobCard.expectedDelivery = expectedDelivery;
 
@@ -881,11 +870,9 @@ export const deleteQuotation = async (req, res, next) => {
     const jobCards = await JobCard.find({ quotationId, companyId: req.user.companyId }).select('_id').lean();
     const jobCardIds = jobCards.map(jc => jc._id);
 
-    // 3. Delete all related records in stages/design requests
+    // 3. Delete all related records in stages
     // We use deleteMany for efficiency
     await Promise.all([
-      DesignRequest.deleteMany({ jobCardId: { $in: jobCardIds } }),
-      StoreStage.deleteMany({ jobCardId: { $in: jobCardIds } }),
       ProductionStage.deleteMany({ jobCardId: { $in: jobCardIds } }),
       QcStage.deleteMany({ jobCardId: { $in: jobCardIds } }),
       DispatchStage.deleteMany({ jobCardId: { $in: jobCardIds } })

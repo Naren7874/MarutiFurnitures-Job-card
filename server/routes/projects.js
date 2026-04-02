@@ -6,6 +6,7 @@ import {
   saveWhatsAppGroup,
   updateProjectStatus,
   updateProject,
+  deleteProject,
 } from '../controllers/projects.js';
 import { authenticateJWT }    from '../middleware/auth.js';
 import { injectCompanyScope } from '../middleware/scope.js';
@@ -20,5 +21,6 @@ router.get('/:id',                checkPermission('project.view'),   getProjectB
 router.put('/:id',                checkPermission('project.edit'),   updateProject);
 router.patch('/:id/whatsapp',     checkPermission('project.edit'),   saveWhatsAppGroup);
 router.patch('/:id/status',       checkPermission('project.edit'),   updateProjectStatus);
+router.delete('/:id',              checkPermission('project.delete'), deleteProject);
 
 export default router;

@@ -24,7 +24,7 @@ export default function ClientDetailPage() {
     const { hasPermission } = useAuthStore();
     const { data: raw, isLoading } = useClient(id ?? '');
     const client: any = (raw as any)?.data ?? {};
-    
+
     // Scoped Data Hooks
     const { data: quotesData } = useQuotations({ clientId: id, limit: 100 }) as any;
     const { data: jobCardsData } = useJobCards({ clientId: id, limit: 100 }) as any;
@@ -134,7 +134,7 @@ export default function ClientDetailPage() {
                     <div className="flex-1 space-y-6">
                         <div>
                             <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start mb-2">
-                                <h1 className="text-foreground text-3xl md:text-5xl font-black tracking-tighter leading-none">{client.name}</h1>
+                                <h1 className="text-foreground text-3xl md:text-5xl font-black  leading-none">{client.name}</h1>
                                 {client.gstin && (
                                     <div className={cn(
                                         "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] border flex items-center gap-1.5",
@@ -250,9 +250,9 @@ export default function ClientDetailPage() {
                                             <span className="text-emerald-500">Collected: {Math.round((totalPaid / totalInvoiced) * 100)}%</span>
                                         </div>
                                         <div className="h-1 bg-muted rounded-full overflow-hidden">
-                                            <div 
-                                                className="h-full bg-emerald-500 transition-all duration-1000" 
-                                                style={{ width: `${Math.min(100, (totalPaid / totalInvoiced) * 100)}%` }} 
+                                            <div
+                                                className="h-full bg-emerald-500 transition-all duration-1000"
+                                                style={{ width: `${Math.min(100, (totalPaid / totalInvoiced) * 100)}%` }}
                                             />
                                         </div>
                                     </div>

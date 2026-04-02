@@ -13,10 +13,15 @@ cloudinary.config({
  * @param {string} resourceType - 'image' | 'raw' | 'video' (default: auto)
  * @returns {Promise<{url: string, publicId: string}>}
  */
-export const uploadToCloudinary = (buffer, folder, resourceType = 'auto') => {
+export const uploadToCloudinary = (buffer, folder, resourceType = 'auto', publicId = undefined) => {
   return new Promise((resolve, reject) => {
+    const options = { folder, resource_type: resourceType };
+    if (publicId) {
+      // Avoid duplicate folder prefix if using publicId
+      options.public_id = publicId;
+    }
     const stream = cloudinary.uploader.upload_stream(
-      { folder, resource_type: resourceType },
+      options,
       (error, result) => {
         if (error) return reject(error);
         resolve({ url: result.secure_url, publicId: result.public_id });

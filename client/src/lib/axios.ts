@@ -118,9 +118,13 @@ export const apiPut = <T>(url: string, data?: object) => api.put<T>(url, data).t
 export const apiPatch = <T>(url: string, data?: object) => api.patch<T>(url, data).then(r => r.data);
 export const apiDelete = <T>(url: string) => api.delete<T>(url).then(r => r.data);
 
-/** Upload multipart form data */
+/** Upload multipart form data with POST */
 export const apiUpload = <T>(url: string, formData: FormData) =>
     api.post<T>(url, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
+
+/** Upload multipart form data with PATCH */
+export const apiPatchUpload = <T>(url: string, formData: FormData) =>
+    api.patch<T>(url, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
 
 /** Download PDF — fetches from backend with auth and triggers browser download */
 export const downloadPdf = async (apiPath: string, filename: string = 'document.pdf') => {
@@ -144,6 +148,38 @@ export const downloadPdf = async (apiPath: string, filename: string = 'document.
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }, 100);
+};
+
+/** Download External PDF — fetches without auth headers to avoid CORS, and triggers browser download */
+export const downloadExternalPdf = async (url: string, filename: string = 'document.pdf') => {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Network response was not ok');
+        const blob = await res.blob();
+        
+        // Convert any fetched blob to application/pdf type if necessary (though usually works as is)
+        const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+        const blobUrl = URL.createObjectURL(pdfBlob);
+
+        let finalName = filename || 'document.pdf';
+        if (!finalName.endsWith('.pdf')) finalName += '.pdf';
+
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = blobUrl;
+        a.download = finalName;
+        document.body.appendChild(a);
+        a.click();
+
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+        }, 100);
+    } catch (err) {
+        console.error('Failed to download external PDF:', err);
+        // Fallback: open in new tab
+        window.open(url, '_blank');
+    }
 };
 
 export default api;

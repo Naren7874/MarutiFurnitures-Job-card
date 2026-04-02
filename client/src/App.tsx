@@ -63,7 +63,7 @@ const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 
 // Public (no auth)
-const ClientSignoffPage = lazy(() => import('./pages/ClientSignoffPage'));
+
 
 // Users & Roles
 const UsersPage = lazy(() => import('./pages/UsersPage'));
@@ -102,9 +102,6 @@ export default function App() {
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                   <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
                 </Route>
-
-                {/* Public sign-off page (no auth needed) */}
-                <Route path="/signoff/:token" element={<ClientSignoffPage />} />
 
                 {/* Protected */}
                 <Route element={<ProtectedRoute />}>

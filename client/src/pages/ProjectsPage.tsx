@@ -35,7 +35,7 @@ const StatCard = ({ icon: Icon, label, value, colorClass, delay = 0 }: any) => (
         </div>
         <div>
             <p className="text-muted-foreground/50 text-[11px] font-black uppercase tracking-[0.15em] mb-1">{label}</p>
-            <p className="text-foreground text-2xl font-black tracking-tighter leading-tight">{value}</p>
+            <p className="text-foreground text-2xl font-black  leading-tight">{value}</p>
         </div>
     </motion.div>
 );
@@ -87,13 +87,13 @@ export default function ProjectsPage() {
 
     const resp: any = raw;
     const rawProjects: any[] = resp?.data ?? [];
-    
+
     // Filter projects if not super_admin
-    const projects = isSuperAdmin 
-        ? rawProjects 
-        : rawProjects.filter(p => 
+    const projects = isSuperAdmin
+        ? rawProjects
+        : rawProjects.filter(p =>
             p.assignedStaff?.some((u: any) => (u._id || u.id || u) === userId) ||
-            (p.salesPerson?.id || p.salesPerson?._id || p.salesPerson) === userId
+            (p.salesperson?.id || p.salesperson?._id || p.salesperson) === userId
         );
 
     const pagination: any = resp?.pagination ?? {};
@@ -113,7 +113,7 @@ export default function ProjectsPage() {
                 className="flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">Project Portfolio</h1>
+                    <h1 className="text-4xl font-black  text-foreground mb-3 leading-none">Project Portfolio</h1>
                     <div className="flex items-center gap-3.5">
                         <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.5)]" />
                         <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
@@ -396,8 +396,8 @@ export default function ProjectsPage() {
                             {/* Expected Delivery */}
                             <div className="space-y-2">
                                 <label className="text-xs font-black uppercase tracking-widest text-muted-foreground/50">Expected Delivery</label>
-                                <DatePicker 
-                                    date={expectedDelivery ? parseISO(expectedDelivery) : undefined} 
+                                <DatePicker
+                                    date={expectedDelivery ? parseISO(expectedDelivery) : undefined}
                                     setDate={(date) => setExpectedDelivery(date ? format(date, 'yyyy-MM-dd') : '')}
                                     className="h-11 border-border/50 bg-muted/20 font-bold"
                                 />

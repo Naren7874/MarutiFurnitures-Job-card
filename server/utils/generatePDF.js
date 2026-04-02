@@ -211,6 +211,7 @@ export const renderPDF = async (templateName, data = {}, options = {}) => {
  */
 export const generateAndUploadPDF = async (templateName, data, folder, filename) => {
   const buffer = await renderPDF(templateName, data);
-  const { url } = await uploadToCloudinary(buffer, folder, 'raw');
+  const finalName = filename ? (filename.endsWith('.pdf') ? filename : `${filename}.pdf`) : undefined;
+  const { url } = await uploadToCloudinary(buffer, folder, 'raw', finalName);
   return url;
 };

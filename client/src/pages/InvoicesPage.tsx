@@ -66,7 +66,7 @@ export default function InvoicesPage() {
                 className="flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">Proforma Invoice Ledger</h1>
+                    <h1 className="text-4xl font-black  text-foreground mb-3 leading-none">Proforma Invoice Ledger</h1>
                     <div className="flex items-center gap-3.5">
                         <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                         <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
@@ -224,7 +224,7 @@ export default function InvoicesPage() {
                                                 </td>
                                                 <td className="px-8 py-5 text-right hidden md:table-cell">
                                                     <span className={cn(
-                                                        "text-xs font-black tracking-tighter",
+                                                        "text-xs font-black ",
                                                         inv.balanceDue > 0 ? 'text-rose-600' : 'text-emerald-600'
                                                     )}>
                                                         ₹{inv.balanceDue?.toLocaleString('en-IN') ?? '0'}

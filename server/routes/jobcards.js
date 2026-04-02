@@ -18,8 +18,6 @@ import { uploadSingle, handleUploadError } from '../middleware/upload.js';
 import { uploadToCloudinary } from '../config/cloudinary.js';
 
 // Stage-specific route modules
-import designRoutes from './stages/design.js';
-import storeRoutes from './stages/store.js';
 import productionRoutes from './stages/production.js';
 import qcRoutes from './stages/qc.js';
 import dispatchRoutes from './stages/dispatch.js';
@@ -45,8 +43,6 @@ router.patch('/:id/assign', checkPermission('jobcard.edit'), assignJobCard);
 
 // ── Department Stage Routes (nested) ────────────────────────────────────────
 
-router.use('/:id/design', designRoutes);
-router.use('/:id/store', storeRoutes);
 router.use('/:id/production', productionRoutes);
 router.use('/:id/qc', qcRoutes);
 router.use('/:id/dispatch', dispatchRoutes);
@@ -61,6 +57,22 @@ router.post(
     try {
       if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
       const result = await uploadToCloudinary(req.file.buffer, 'maruti/jobcard-items');
+      res.json({ success: true, url: result.url, publicId: result.publicId });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.post(
+  '/upload-pod-photo',
+  checkPermission('dispatchStage.deliver'),
+  uploadSingle,
+  handleUploadError,
+  async (req, res, next) => {
+    try {
+      if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+      const result = await uploadToCloudinary(req.file.buffer, `${req.user.companyId}/pod`);
       res.json({ success: true, url: result.url, publicId: result.publicId });
     } catch (err) {
       next(err);

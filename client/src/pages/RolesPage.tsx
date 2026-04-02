@@ -66,18 +66,6 @@ const PERMISSION_GROUPS = [
         perms: ['project.view', 'project.create', 'project.edit'],
     },
     {
-        group: 'Design',
-        prefix: 'designrequest',
-        icon: '✏️',
-        perms: ['designrequest.view', 'designrequest.create', 'designrequest.edit', 'designrequest.upload', 'designrequest.signoff', 'designrequest.ready'],
-    },
-    {
-        group: 'Store Stage',
-        prefix: 'storeStage',
-        icon: '🏪',
-        perms: ['storeStage.view', 'storeStage.edit', 'storeStage.issue'],
-    },
-    {
         group: 'Production Stage',
         prefix: 'productionStage',
         icon: '🏭',

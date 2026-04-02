@@ -29,12 +29,12 @@ export default function QuotationsPage() {
     const { hasPermission } = useAuthStore();
     const canCreate = hasPermission('quotation.create');
 
-    const { data: raw, isLoading } = useQuotations({ 
-        search, 
-        status, 
-        page, 
+    const { data: raw, isLoading } = useQuotations({
+        search,
+        status,
+        page,
         clientId: urlClientId || undefined,
-        limit: 20 
+        limit: 20
     });
     const resp: any = raw;
     const quotations: any[] = resp?.data ?? [];
@@ -49,7 +49,7 @@ export default function QuotationsPage() {
                 className="flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">Quotations</h1>
+                    <h1 className="text-4xl font-black  text-foreground mb-3 leading-none">Quotations</h1>
                     <div className="flex items-center gap-3.5">
                         <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                         <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
@@ -82,18 +82,18 @@ export default function QuotationsPage() {
                     />
                 </div>
                 <div>
-                <Select value={status || 'all'} onValueChange={(v: string) => { setStatus(v === 'all' ? '' : v); setPage(1); }}>
-                    <SelectTrigger className="h-[60px]! bg-card border-border/80 text-foreground rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] px-8 shadow-xs focus:ring-4 focus:ring-primary/10 transition-all">
-                        <SelectValue placeholder="STATUS FILTER" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-3xl shadow-2xl border-border/50">
-                        <SelectItem value="all" className="rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-2.5">All Quotations</SelectItem>
-                        <SelectItem value="draft" className="rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-2.5">Pending</SelectItem>
-                        <SelectItem value="sent" className="rounded-xl font-black text-[9px] uppercase tracking-widest text-blue-500 hover:bg-blue-500/10 transition-colors py-2.5">Sent to Client</SelectItem>
-                        <SelectItem value="approved" className="rounded-xl font-black text-[9px] uppercase tracking-widest text-emerald-500 hover:bg-emerald-500/10 transition-colors py-2.5">Approved</SelectItem>
-                        <SelectItem value="rejected" className="rounded-xl font-black text-[9px] uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 transition-colors py-2.5">Rejected</SelectItem>
-                    </SelectContent>
-                </Select>
+                    <Select value={status || 'all'} onValueChange={(v: string) => { setStatus(v === 'all' ? '' : v); setPage(1); }}>
+                        <SelectTrigger className="h-[60px]! bg-card border-border/80 text-foreground rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] px-8 shadow-xs focus:ring-4 focus:ring-primary/10 transition-all">
+                            <SelectValue placeholder="STATUS FILTER" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-3xl shadow-2xl border-border/50">
+                            <SelectItem value="all" className="rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-2.5">All Quotations</SelectItem>
+                            <SelectItem value="draft" className="rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 transition-colors py-2.5">Pending</SelectItem>
+                            <SelectItem value="sent" className="rounded-xl font-black text-[9px] uppercase tracking-widest text-blue-500 hover:bg-blue-500/10 transition-colors py-2.5">Sent to Client</SelectItem>
+                            <SelectItem value="approved" className="rounded-xl font-black text-[9px] uppercase tracking-widest text-emerald-500 hover:bg-emerald-500/10 transition-colors py-2.5">Approved</SelectItem>
+                            <SelectItem value="rejected" className="rounded-xl font-black text-[9px] uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 transition-colors py-2.5">Rejected</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
                 {urlClientId && (
                     <div className="flex items-center gap-2 px-6 py-2 bg-primary/10 border border-primary/20 rounded-full w-fit">
@@ -150,9 +150,9 @@ export default function QuotationsPage() {
                                                             <p className="text-foreground font-black text-[15px] tracking-tight">{q.quotationNumber}</p>
                                                             <div className="flex items-center gap-2 mt-1">
                                                                 <Clock size={12} className="text-muted-foreground/40" />
-                                                                 <p className="text-muted-foreground/60 text-[11px] font-black uppercase tracking-tight">
-                                                                     {new Date(q.createdAt).toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata' })}
-                                                                 </p>
+                                                                <p className="text-muted-foreground/60 text-[11px] font-black uppercase tracking-tight">
+                                                                    {new Date(q.createdAt).toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata' })}
+                                                                </p>
                                                             </div>
                                                         </div>
                                                     </Link>

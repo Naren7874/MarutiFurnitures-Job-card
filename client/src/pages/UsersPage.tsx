@@ -632,7 +632,7 @@ export default function UsersPage() {
     const { hasPermission } = useAuthStore()
 
     const canCreate = hasPermission('user.create')
-    const canEdit   = hasPermission('user.edit')
+    const canEdit = hasPermission('user.edit')
     const canDeactivate = hasPermission('user.deactivate')
     const canDelete = hasPermission('user.delete')
     const canManagePrivs = hasPermission('privilege.view')
@@ -661,8 +661,8 @@ export default function UsersPage() {
 
     const deleteMut = useMutation({
         mutationFn: deleteUser,
-        onSuccess: () => { 
-            qc.invalidateQueries({ queryKey: ['users'] }); 
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['users'] });
             showToast('User permanently deleted');
             setDeleteTarget(null);
         },
@@ -693,7 +693,7 @@ export default function UsersPage() {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none truncate">User Management</h1>
+                        <h1 className="text-4xl font-black  text-foreground mb-3 leading-none truncate">User Management</h1>
                         <div className="flex items-center gap-3.5">
                             <span className="text-[13px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">
                                 {filtered.length} {roleFilter !== 'all' ? `${getRoleCfg(roleFilter).label} Members` : 'Team Members'}
@@ -945,8 +945,8 @@ export default function UsersPage() {
                                                         )}
                                                         {canDelete && user.role !== 'super_admin' && <DropdownMenuSeparator />}
                                                         {canDelete && user.role !== 'super_admin' && (
-                                                            <DropdownMenuItem 
-                                                                onClick={e => { e.stopPropagation(); setDeleteTarget(user) }} 
+                                                            <DropdownMenuItem
+                                                                onClick={e => { e.stopPropagation(); setDeleteTarget(user) }}
                                                                 className="rounded-lg gap-2 cursor-pointer text-rose-500 focus:text-rose-500 focus:bg-rose-500/5"
                                                             >
                                                                 <Trash2 className="size-3.5" />

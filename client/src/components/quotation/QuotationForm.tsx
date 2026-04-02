@@ -182,13 +182,13 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         if (isEditMode && existingQ && !loaded) {
             setSelectedClient(existingQ.clientId ?? null);
             setProject({
-                projectName:  existingQ.projectName  || '',
-                architect:    existingQ.architect     || '',
+                projectName: existingQ.projectName || '',
+                architect: existingQ.architect || '',
                 architectContact: existingQ.architectContact || '',
                 projectDesigner: existingQ.projectDesigner || '',
                 projectDesignerContact: existingQ.projectDesignerContact || '',
-                deliveryDays: existingQ.deliveryDays  || '',
-                validUntil:   existingQ.validUntil
+                deliveryDays: existingQ.deliveryDays || '',
+                validUntil: existingQ.validUntil
                     ? new Date(existingQ.validUntil).toISOString().slice(0, 10)
                     : '',
                 siteAddress: existingQ.siteAddress || { line1: '', location: '', pincode: '' },
@@ -227,7 +227,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         }));
     }, []);
 
-    const addItem    = () => setItems(prev => [...prev, blankItem(prev.length + 1)]);
+    const addItem = () => setItems(prev => [...prev, blankItem(prev.length + 1)]);
     const removeItem = (id: string) => setItems(prev =>
         prev.filter(i => i.id !== id).map((i, idx) => ({ ...i, srNo: idx + 1 }))
     );
@@ -235,7 +235,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     // ── Photo upload ──────────────────────────────────────────────────────────
     const handlePhotoUpload = useCallback(async (itemId: string, file: File, type: 'photo' | 'fabricPhoto' = 'photo') => {
         const uploadKey = type === 'photo' ? 'uploading' : 'uploadingFabric';
-        const pubKey    = type === 'photo' ? 'photoPublicId' : 'fabricPhotoPublicId';
+        const pubKey = type === 'photo' ? 'photoPublicId' : 'fabricPhotoPublicId';
         updateItem(itemId, uploadKey, true);
         try {
             const fd = new FormData();
@@ -386,7 +386,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
             </div>
 
             <div>
-                <h1 className="text-foreground text-2xl md:text-4xl font-black tracking-tighter mb-2">
+                <h1 className="text-foreground text-2xl md:text-4xl font-black  mb-2">
                     {isEditMode ? `Edit ${existingQ?.quotationNumber || 'Quotation'}` : 'Create Quotation'}
                 </h1>
                 <p className="text-muted-foreground text-sm font-semibold opacity-60">
@@ -540,11 +540,11 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
                         <div>
                             <label className={labelCls}>Architect Firm Name</label>
-                            <Input 
-                                value={project.architect} 
-                                onChange={e => setProject(p => ({ ...p, architect: e.target.value }))} 
-                                placeholder="Firm Name" 
-                                className={inputCls} 
+                            <Input
+                                value={project.architect}
+                                onChange={e => setProject(p => ({ ...p, architect: e.target.value }))}
+                                placeholder="Firm Name"
+                                className={inputCls}
                             />
                         </div>
 
@@ -570,7 +570,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
                         <div>
                             <label className={labelCls}>Valid Until</label>
-                            <DatePicker 
+                            <DatePicker
                                 date={project.validUntil ? new Date(project.validUntil) : undefined}
                                 setDate={(d) => setProject(p => ({ ...p, validUntil: d ? format(d, 'yyyy-MM-dd') : '' }))}
                                 placeholder="DD-MM-YYYY"
@@ -588,9 +588,9 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
                 {/* === Section 2: Items === */}
                 <FormSection title={`Quotation Items (${items.length})`} icon={List}>
-                    <Reorder.Group 
-                        axis="y" 
-                        values={items} 
+                    <Reorder.Group
+                        axis="y"
+                        values={items}
                         onReorder={(newItems) => {
                             setItems(newItems.map((item, idx) => ({ ...item, srNo: idx + 1 })));
                         }}
@@ -622,7 +622,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                                 disabled={savingItemId === item.id}
                                                 className={cn(
                                                     "h-7 px-3 text-xs font-bold rounded-lg transition-all",
-                                                    savedItemId === item.id 
+                                                    savedItemId === item.id
                                                         ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:text-emerald-600"
                                                         : "bg-primary/5 text-primary hover:bg-primary/10"
                                                 )}
@@ -687,10 +687,10 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                                     </div>
                                                 </div>
                                             )}
-                                            <ExtraPhotoPasteZone 
-                                                itemId={item.id} 
-                                                onUpload={handleExtraUpload} 
-                                                uploading={item.uploadingExtra} 
+                                            <ExtraPhotoPasteZone
+                                                itemId={item.id}
+                                                onUpload={handleExtraUpload}
+                                                uploading={item.uploadingExtra}
                                             />
                                         </div>
 
@@ -882,8 +882,8 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                     <div className="space-y-3">
                         {additionalTerms.map((term, idx) => (
                             <div key={idx} className="flex gap-2">
-                                <Input 
-                                    value={term} 
+                                <Input
+                                    value={term}
                                     onChange={e => {
                                         const newTerms = [...additionalTerms];
                                         newTerms[idx] = e.target.value;
@@ -892,10 +892,10 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                     placeholder={`Extra term ${idx + 1}`}
                                     className={smallInputCls}
                                 />
-                                <Button 
-                                    type="button" 
-                                    variant="ghost" 
-                                    size="sm" 
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => setAdditionalTerms(prev => prev.filter((_, i) => i !== idx))}
                                     className="text-rose-500 hover:text-rose-600 p-2"
                                 >
@@ -903,9 +903,9 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                 </Button>
                             </div>
                         ))}
-                        <Button 
-                            type="button" 
-                            variant="outline" 
+                        <Button
+                            type="button"
+                            variant="outline"
                             onClick={() => setAdditionalTerms(prev => [...prev, ''])}
                             className="text-[11px] font-black uppercase tracking-[0.15em] gap-2 py-2.5 h-auto rounded-xl"
                         >
@@ -940,7 +940,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                 </div>
             </form>
 
-            <CreateClientModal 
+            <CreateClientModal
                 open={showCreateModal}
                 onOpenChange={setShowCreateModal}
                 onSuccess={handleClientCreated}
@@ -951,9 +951,9 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
 // ── Shared UI helpers ─────────────────────────────────────────────────────────
 
-const inputCls      = 'bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-bold text-[15px] px-5 focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/30 shadow-xs';
+const inputCls = 'bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-12 rounded-2xl font-bold text-[15px] px-5 focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/30 shadow-xs';
 const smallInputCls = 'bg-white dark:bg-card/40 border-border dark:border-border/40 text-foreground h-10 rounded-xl font-bold px-4 text-[13px] focus:ring-1 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/30 w-full shadow-xs';
-const labelCls      = 'text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.2em] block mb-2.5 ml-1';
+const labelCls = 'text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.2em] block mb-2.5 ml-1';
 
 function ExtraPhotoPasteZone({ itemId, onUpload, uploading }: { itemId: string; onUpload: (id: string, file: File) => Promise<void>; uploading: boolean }) {
     const [isHovered, setIsHovered] = useState(false);
@@ -979,7 +979,7 @@ function ExtraPhotoPasteZone({ itemId, onUpload, uploading }: { itemId: string; 
     }, [isHovered, itemId, onUpload]);
 
     return (
-        <label 
+        <label
             className={cn(
                 "cursor-pointer outline-none transition-all rounded-xl block",
                 isHovered && "ring-2 ring-primary/40 animate-pulse bg-primary/5"

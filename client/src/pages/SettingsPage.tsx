@@ -50,7 +50,7 @@ export default function SettingsPage() {
                 className="flex items-center justify-between"
             >
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">System Config</h1>
+                    <h1 className="text-4xl font-black  text-foreground mb-3 leading-none">System Config</h1>
                     <div className="flex items-center gap-3.5">
                         <div className="h-2 w-2 rounded-full bg-primary animate-pulse shadow-[0_0_12px_rgba(var(--primary),0.5)]" />
                         <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
@@ -139,7 +139,7 @@ export default function SettingsPage() {
                                                         </div>
                                                         <div className="text-center sm:text-left">
                                                             <div className="flex items-center gap-2 mb-1 justify-center sm:justify-start">
-                                                                <p className="text-foreground text-2xl font-black tracking-tighter">{user?.name}</p>
+                                                                <p className="text-foreground text-2xl font-black ">{user?.name}</p>
                                                                 <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest rounded-md px-2 py-0.5">Active Vendor</Badge>
                                                             </div>
                                                             <p className="text-muted-foreground/80 font-bold text-sm mb-4">{user?.email}</p>
@@ -232,7 +232,7 @@ export default function SettingsPage() {
                                                                         <div className="flex items-center gap-4">
                                                                             <Laptop className={cn("text-muted-foreground/40", s.current && "text-primary")} size={18} />
                                                                             <div>
-                                                                                <p className="text-foreground font-bold text-[13px] tracking-tight">{s.device} {s.current && <Badge variant="outline" className="ml-2 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-500 text-[8px] uppercase tracking-tighter border-none">Current</Badge>}</p>
+                                                                                <p className="text-foreground font-bold text-[13px] tracking-tight">{s.device} {s.current && <Badge variant="outline" className="ml-2 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-500 text-[8px] uppercase  border-none">Current</Badge>}</p>
                                                                                 <p className="text-muted-foreground/40 text-[10px] font-bold">{s.os} • {s.ip}</p>
                                                                             </div>
                                                                         </div>
@@ -317,7 +317,7 @@ function AuditLogTab() {
         <div className="space-y-8 max-w-[1600px] mx-auto">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1.5">
-                    <h2 className="text-4xl font-black tracking-tighter flex items-center gap-3.5 mb-2">
+                    <h2 className="text-4xl font-black  flex items-center gap-3.5 mb-2">
                         <div className="size-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-inner">
                             <ScrollText className="size-5 text-primary" strokeWidth={3} />
                         </div>
@@ -464,7 +464,7 @@ function AuditLogTab() {
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="text-[11px] font-bold text-muted-foreground/60">{format(new Date(entry.createdAt), "MMM d, yyyy")}</p>
-                                                        <p className="text-[10px] text-muted-foreground/30 font-mono tracking-tighter">{format(new Date(entry.createdAt), "hh:mm a")}</p>
+                                                        <p className="text-[10px] text-muted-foreground/30 font-mono ">{format(new Date(entry.createdAt), "hh:mm a")}</p>
                                                     </div>
                                                 </div>
 

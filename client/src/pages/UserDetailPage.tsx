@@ -50,8 +50,6 @@ const ALL_PERMISSIONS: Record<string, string[]> = {
     quotation:       ['quotation.create', 'quotation.view', 'quotation.edit', 'quotation.send', 'quotation.approve', 'quotation.reject', 'quotation.delete'],
     project:         ['project.create', 'project.view', 'project.edit'],
     jobcard:         ['jobcard.create', 'jobcard.view', 'jobcard.edit', 'jobcard.export', 'jobcard.close', 'jobcard.assign', 'jobcard.override_status'],
-    designrequest:   ['designrequest.create', 'designrequest.view', 'designrequest.edit', 'designrequest.upload', 'designrequest.signoff', 'designrequest.ready'],
-    storeStage:      ['storeStage.view', 'storeStage.edit', 'storeStage.issue'],
     productionStage: ['productionStage.view', 'productionStage.edit'],
     qcStage:         ['qcStage.view', 'qcStage.edit', 'qcStage.pass', 'qcStage.fail'],
     dispatchStage:   ['dispatchStage.view', 'dispatchStage.edit', 'dispatchStage.deliver'],

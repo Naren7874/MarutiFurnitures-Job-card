@@ -25,7 +25,7 @@ const StatCard = ({ icon: Icon, label, value, sub, colorClass, delay = 0 }: any)
         <div>
             <p className="text-muted-foreground/50 text-[11px] font-black uppercase tracking-[0.15em] mb-1">{label}</p>
             <div className="flex items-baseline gap-2">
-                <p className="text-foreground text-4xl font-black tracking-tighter leading-none">{value ?? '0'}</p>
+                <p className="text-foreground text-4xl font-black  leading-none">{value ?? '0'}</p>
                 {sub && <span className="text-muted-foreground/40 text-[11px] font-black uppercase tracking-widest">{sub}</span>}
             </div>
         </div>
@@ -41,7 +41,7 @@ export default function InventoryPage() {
     const [newItem, setNewItem] = useState({ itemName: '', sku: '', category: '', unit: 'pcs', currentStock: '', minStockLevel: '', unitRate: '' });
     const { hasPermission } = useAuthStore();
     const canCreate = hasPermission('inventory.create');
-    const canEdit   = hasPermission('inventory.edit');
+    const canEdit = hasPermission('inventory.edit');
 
     const { data: raw, isLoading, refetch } = useInventory({ search, page, limit: 30 });
     const resp: any = raw;
@@ -82,7 +82,7 @@ export default function InventoryPage() {
                 className="flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3 leading-none">Inventory Management</h1>
+                    <h1 className="text-4xl font-black  text-foreground mb-3 leading-none">Inventory Management</h1>
                     <div className="flex items-center gap-3.5">
                         <div className="h-2 w-2 rounded-full bg-primary animate-pulse shadow-[0_0_12px_rgba(var(--primary),0.4)]" />
                         <p className="text-muted-foreground/60 text-[13px] font-black uppercase tracking-[0.15em]">
@@ -192,7 +192,7 @@ export default function InventoryPage() {
                                                         </div>
                                                         <div>
                                                             <p className="text-foreground font-black text-sm tracking-tight">{item.itemName}</p>
-                                                            <p className="text-muted-foreground/60 text-[10px] font-black uppercase tracking-tighter">{item.sku}</p>
+                                                            <p className="text-muted-foreground/60 text-[10px] font-black uppercase ">{item.sku}</p>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -204,7 +204,7 @@ export default function InventoryPage() {
                                                 <td className="px-8 py-5 text-center">
                                                     <div className="flex flex-col items-center">
                                                         <span className={cn(
-                                                            "text-lg font-black tracking-tighter",
+                                                            "text-lg font-black ",
                                                             isLow ? "text-rose-600" : "text-foreground"
                                                         )}>
                                                             {item.currentStock}

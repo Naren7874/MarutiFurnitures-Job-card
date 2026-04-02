@@ -63,10 +63,6 @@ const jobCardSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Quotation",                                  // full traceability back to quotation
     },
-    designRequestId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "DesignRequest",                              // design measurements, files, client sign-off
-    },
 
     // What is being made
     title: { type: String, required: true },             // "Reception Area Sofas"
@@ -79,8 +75,6 @@ const jobCardSchema = new mongoose.Schema(
     },
     contactPerson: { type: String },
     assignedTo: {
-      design:     [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-      store:      [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       production: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       qc:         [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       dispatch:   [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
@@ -92,8 +86,6 @@ const jobCardSchema = new mongoose.Schema(
       type: String,
       enum: [
         "active",          // created, WA group set up
-        "in_store",        // store checking BOM
-        "material_ready",  // all materials issued
         "in_production",   // manufacturing started
         "qc_pending",      // production done, awaiting QC
         "qc_failed",       // QC failed → back to production
@@ -117,7 +109,6 @@ const jobCardSchema = new mongoose.Schema(
     },
 
     // Stage document refs — created one-by-one as job progresses
-    storeStageId:      { type: mongoose.Schema.Types.ObjectId, ref: "StoreStage" },
     productionStageId: { type: mongoose.Schema.Types.ObjectId, ref: "ProductionStage" },
     qcStageId:         { type: mongoose.Schema.Types.ObjectId, ref: "QcStage" },
     dispatchStageId:   { type: mongoose.Schema.Types.ObjectId, ref: "DispatchStage" },

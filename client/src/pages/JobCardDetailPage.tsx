@@ -1,17 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { useParams, Link } from 'react-router-dom';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPut, apiPatch, downloadPdf, apiUpload } from '../lib/axios';
 import { useAuthStore } from '../stores/authStore';
 import {
-    ArrowLeft, AlertTriangle, Pencil, CheckCircle2, XCircle, Upload,
-    Link2, Package, Loader2, ChevronRight, Clock, CheckCheck,
-    Truck, Shield, Wrench, FlaskConical, TriangleAlert, User,
+    ArrowLeft, AlertTriangle, Pencil, CheckCircle2, XCircle,
+    Package, Loader2, Clock, CheckCheck,
+    Truck, Shield, Wrench, TriangleAlert, User,
     CalendarCheck, MapPin, Camera, FileText, Users, MessageSquare, Download,
-    Layers, ShieldCheck, Zap, Maximize2, Fingerprint, Wind, EyeOff, History,
-    Archive, Copy, ArchiveRestore, AlertCircle, Plus, ShoppingCart, 
-    ArrowRightCircle, CheckSquare
+    ShieldCheck, Zap, Maximize2, Fingerprint, Wind, EyeOff, History,
+    Archive, Copy, ArchiveRestore, AlertCircle, Sparkles, PackageCheck, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -20,6 +19,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+
 import { motion, AnimatePresence } from 'motion/react';
 import { PhotoUploadZone } from '@/components/ui/photo-upload-zone';
 import { cn } from '../lib/utils';
@@ -30,7 +37,6 @@ import { DatePicker } from '@/components/ui/date-picker';
 
 const JOB_STATUS_BADGE: Record<string, string> = {
     active: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    in_store: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
     in_production: 'bg-primary/10 text-primary border-primary/20',
     qc_pending: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
     qc_passed: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
@@ -41,25 +47,19 @@ const JOB_STATUS_BADGE: Record<string, string> = {
 };
 
 const SUB_STAGE_ORDER = [
-    'cutting', 'edge_banding', 'sanding', 'cleaning',
-    'assembly', 'hardware_fitting', 'polishing', 'packing',
+    'cutting', 'edge_banding', 'cnc_drilling', 'assembly',
+    'polishing', 'finishing', 'hardware_fitting', 'packing',
 ];
 
 const SUB_STAGE_ICONS: Record<string, any> = {
-    cutting: Wrench, edge_banding: Wrench, sanding: Wrench,
-    cleaning: FlaskConical, assembly: Package, hardware_fitting: Wrench,
-    polishing: FlaskConical, packing: Package,
+    cutting: Wrench, edge_banding: Wind, cnc_drilling: Zap,
+    assembly: Package, polishing: ShieldCheck, finishing: Sparkles,
+    hardware_fitting: Wrench, packing: Archive,
 };
 
 // ── Helper components ─────────────────────────────────────────────────────────
 
-const InfoRow = ({ label, value }: { label: string; value?: any }) =>
-    value ? (
-        <div className="flex items-start justify-between py-2 border-b border-border/40 last:border-0 hover:bg-accent/5 px-1 -mx-1">
-            <span className="text-muted-foreground/70 text-xs font-medium">{label}</span>
-            <span className="text-foreground text-xs text-right font-bold max-w-[60%]">{value}</span>
-        </div>
-    ) : null;
+// ── Helper components ─────────────────────────────────────────────────────────
 
 function SectionCard({ title, icon: Icon, color, children }: any) {
     return (
@@ -80,23 +80,31 @@ export default function JobCardDetailPage() {
     const qc = useQueryClient();
     const { hasPermission, user } = useAuthStore();
     const isSuperAdmin = user?.role === 'super_admin';
+    const isManager = ['admin', 'management'].includes(user?.role || '');
     const userId = user?.id;
 
-    const canEditJC = hasPermission('jobcard.edit') || hasPermission('designrequest.edit');
-    const canSeeDesign = hasPermission('designrequest.view');
-    const canSeeStore = hasPermission('storeStage.view');
+    const canEditJC = hasPermission('jobcard.edit');
     const canSeeProd = hasPermission('productionStage.view');
     const canSeeQC = hasPermission('qcStage.view');
     const canSeeDispatch = hasPermission('dispatchStage.view');
     // Edit permissions (full access vs read-only for the tab)
-    const canEditDesign = hasPermission('designrequest.edit');
-    const canEditStore = hasPermission('storeStage.edit');
     const canEditProd = hasPermission('productionStage.edit');
     const canEditQC = hasPermission('qcStage.edit');
     const canEditDispatch = hasPermission('dispatchStage.edit');
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
+
+    const startProdMut = useMutation({
+        mutationFn: () => apiPost(`/jobcards/${id}/production/start`, {}),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['jobcard', id] });
+            toast.success('Production started!');
+        },
+        onError: (err: any) => {
+            toast.error(err.response?.data?.message || 'Failed to start production');
+        }
+    });
 
     const { data: raw, isLoading } = useQuery({
         queryKey: ['jobcard', id],
@@ -109,17 +117,34 @@ export default function JobCardDetailPage() {
         new Date(jc.expectedDelivery) < new Date() &&
         !['delivered', 'closed', 'cancelled'].includes(jc.status);
 
-    // Build visible tabs list based on permissions
+    // Build visible tabs list based on permissions + role-based focus
     const ALL_TABS = [
         { value: 'overview', label: 'Overview', icon: FileText, show: true },
-        { value: 'design', label: 'Design', icon: Pencil, show: canSeeDesign },
-        { value: 'store', label: 'Store', icon: Package, show: canSeeStore },
         { value: 'production', label: 'Production', icon: Wrench, show: canSeeProd },
         { value: 'qc', label: 'QC', icon: Shield, show: canSeeQC },
         { value: 'dispatch', label: 'Dispatch', icon: Truck, show: canSeeDispatch },
-        { value: 'closure', label: 'Closure', icon: Archive, show: user?.role === 'admin' || user?.role === 'super_admin' },
+        { value: 'closure', label: 'Closure', icon: Archive, show: isSuperAdmin || isManager },
     ];
-    const visibleTabs = ALL_TABS.filter(t => t.show);
+
+    const visibleTabs = ALL_TABS.filter(t => {
+        if (!t.show) return false;
+        if (isSuperAdmin || isManager) return true;
+
+        const role = user?.role?.toLowerCase();
+
+        // Specific restrictions requested by user
+        if (role === 'production') {
+            return ['overview', 'production'].includes(t.value);
+        }
+        if (role === 'qc') {
+            return ['overview', 'production', 'qc'].includes(t.value);
+        }
+        if (role === 'dispatch') {
+            return ['overview', 'dispatch'].includes(t.value);
+        }
+
+        return true; // fallback for other roles (sales, design, etc. who might have view-only access)
+    });
 
     if (isLoading) {
         return <div className="p-6 space-y-4">{[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-muted/20 rounded-xl animate-pulse" />)}</div>;
@@ -148,9 +173,9 @@ export default function JobCardDetailPage() {
         Array.isArray(dept) && dept.some((u: any) => (u._id || u.id || u) === userId)
     );
     const isSalesperson = (jc.salesperson?.id || jc.salesperson?._id || jc.salesperson) === userId ||
-                          (jc.projectId?.salesPerson?.id || jc.projectId?.salesPerson?._id || jc.projectId?.salesPerson) === userId;
+                          (jc.projectId?.salesperson?.id || jc.projectId?.salesperson?._id || jc.projectId?.salesperson) === userId;
 
-    if (!isSuperAdmin && !isAssigned && !isSalesperson) {
+    if (!isSuperAdmin && !isManager && !isAssigned && !isSalesperson) {
         return (
             <div className="p-12 text-center flex flex-col items-center justify-center min-h-[500px]">
                 <div className="w-24 h-24 rounded-3xl bg-rose-500/10 flex items-center justify-center mb-8 border border-rose-500/20 shadow-xl shadow-rose-500/5">
@@ -205,6 +230,18 @@ export default function JobCardDetailPage() {
                             )}
                         </div>
                         <div className="flex items-center gap-2">
+                            {jc.status === 'active' && canEditProd && (
+                                <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => startProdMut.mutate()}
+                                    disabled={startProdMut.isPending}
+                                    className="h-8 rounded-lg text-xs font-bold bg-primary text-white hover:bg-primary/90 shadow-sm"
+                                >
+                                    {startProdMut.isPending ? <Loader2 size={14} className="mr-2 animate-spin" /> : <Package size={14} className="mr-2" />}
+                                    Start Production
+                                </Button>
+                            )}
                             {canEditJC && (
                                 <Button
                                     variant="outline"
@@ -268,15 +305,17 @@ export default function JobCardDetailPage() {
                 </TabsList>
 
                 <TabsContent value="overview" className="mt-4"><OverviewTab jc={jc} /></TabsContent>
-                {canSeeDesign && <TabsContent value="design" className="mt-4"><DesignTab id={id!} jc={jc} qcClient={qc} canEdit={canEditDesign} /></TabsContent>}
-                {canSeeStore && <TabsContent value="store" className="mt-4"><StoreTab id={id!} jc={jc} qcClient={qc} canEdit={canEditStore} /></TabsContent>}
-                {canSeeProd && <TabsContent value="production" className="mt-4"><ProductionTab id={id!} jc={jc} qcClient={qc} canEdit={canEditProd} /></TabsContent>}
-                {canSeeQC && <TabsContent value="qc" className="mt-4"><QCTab id={id!} jc={jc} qcClient={qc} canEdit={canEditQC} /></TabsContent>}
-                {canSeeDispatch && <TabsContent value="dispatch" className="mt-4"><DispatchTab id={id!} jc={jc} qcClient={qc} canEdit={canEditDispatch} /></TabsContent>}
-                {(user?.role === 'admin' || user?.role === 'super_admin') && (
-                    <TabsContent value="closure" className="mt-4">
-                        <ClosureTab id={id!} jc={jc} qcClient={qc} />
-                    </TabsContent>
+                {visibleTabs.some(t => t.value === 'production') && (
+                    <TabsContent value="production" className="mt-4"><ProductionTab id={id!} jc={jc} qcClient={qc} canEdit={canEditProd} /></TabsContent>
+                )}
+                {visibleTabs.some(t => t.value === 'qc') && (
+                    <TabsContent value="qc" className="mt-4"><QCTab id={id!} jc={jc} qcClient={qc} canEdit={canEditQC} /></TabsContent>
+                )}
+                {visibleTabs.some(t => t.value === 'dispatch') && (
+                    <TabsContent value="dispatch" className="mt-4"><DispatchTab id={id!} jc={jc} qcClient={qc} canEdit={canEditDispatch} /></TabsContent>
+                )}
+                {visibleTabs.some(t => t.value === 'closure') && (
+                    <TabsContent value="closure" className="mt-4"><ClosureTab id={id!} jc={jc} qcClient={qc} /></TabsContent>
                 )}
             </Tabs>
 
@@ -427,7 +466,8 @@ function OverviewTab({ jc }: any) {
 
             {/* ── Block 2: PERSONNEL (6 Cols) ── */}
             <div className="md:col-span-12 lg:col-span-6">
-                <div className="h-full bg-card/20 backdrop-blur-xl border border-border/10 rounded-[2.5rem] p-10 shadow-sm transition-all duration-500 hover:border-indigo-500/30 group">
+                <motion.div whileHover={{ scale: 1.01 }}
+                    className="h-full bg-card/20 backdrop-blur-xl border border-border/10 rounded-[2.5rem] p-10 shadow-sm transition-all duration-500 hover:border-indigo-500/30 group">
                     <div className="flex items-center gap-4 mb-10">
                         <div className="p-3.5 rounded-2xl bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500"><Users size={20} /></div>
                         <div>
@@ -442,7 +482,6 @@ function OverviewTab({ jc }: any) {
                                 <p className="text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 mb-2">Sales Lead</p>
                                 <p className="text-sm font-black text-foreground/80 uppercase tracking-tight">{jc.salesperson?.name || 'Unassigned'}</p>
                             </div>
-                            <MiniStaffBlock users={jc.assignedTo?.design} label="Design" icon={Layers} />
                             <MiniStaffBlock users={jc.assignedTo?.qc} label="Quality" icon={ShieldCheck} />
                         </div>
                         <div className="space-y-6">
@@ -454,12 +493,13 @@ function OverviewTab({ jc }: any) {
                             <MiniStaffBlock users={jc.assignedTo?.dispatch} label="Logistics" icon={Truck} />
                         </div>
                     </div>
-                </div>
+                </motion.div>
             </div>
 
             {/* ── Block 3: COMMUNICATION (6 Cols) ── */}
             <div className="md:col-span-12 lg:col-span-6">
-                <div className="h-full bg-card/20 backdrop-blur-xl border border-emerald-500/10 rounded-[2.5rem] p-10 shadow-sm flex flex-col justify-center group">
+                <motion.div whileHover={{ scale: 1.01 }}
+                    className="h-full bg-card/20 backdrop-blur-xl border border-emerald-500/10 rounded-[2.5rem] p-10 shadow-sm flex flex-col justify-center group">
                     <div className="flex items-center gap-4 mb-10">
                         <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500"><MessageSquare size={20} /></div>
                         <div>
@@ -482,7 +522,7 @@ function OverviewTab({ jc }: any) {
                             <p className="text-[9px] font-black text-muted-foreground/20 uppercase tracking-[0.3em]">Channel Not Assigned</p>
                         </div>
                     )}
-                </div>
+                </motion.div>
             </div>
 
             {/* ── Block 4: VISUAL ARCHIVE (12 Cols) ── */}
@@ -543,9 +583,9 @@ function MiniStaffBlock({ users, label, icon: Icon }: { users: any[]; label: str
     
     return (
         <div className="space-y-2">
-            <div className="flex items-center gap-2 opacity-30">
-                <Icon size={10} className="text-foreground" />
-                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-foreground text-left leading-none">{label}</p>
+            <div className="flex items-center gap-2 mb-1.5">
+                <Icon size={12} className="text-foreground/40" />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/30 text-left leading-none">{label}</p>
             </div>
             <div className="min-h-[20px]">
                 {list.length > 0 ? (
@@ -606,8 +646,6 @@ function VisualArchiveBlock({ photos, fabricPhoto }: { photos: string[], fabricP
     );
 }
 
-// ── Design Tab ────────────────────────────────────────────────────────────────
-
 // ── Read-only banner for tabs visible but not editable ───────────────────────
 function ReadOnlyBanner() {
     return (
@@ -618,607 +656,27 @@ function ReadOnlyBanner() {
     );
 }
 
-// ── Measurements Editor ──────────────────────────────────────────────────────
-function MeasureEditor({ id, items, onSave, canEdit }: { id: string; items: any[]; onSave: (updatedItems: any[]) => void; canEdit: boolean }) {
-    const [localItems, setLocalItems] = useState(items || []);
-    const [saving, setSaving] = useState(false);
-
-    const handleSpecChange = (itemIdx: number, key: string, val: string) => {
-        const next = [...localItems];
-        next[itemIdx] = {
-            ...next[itemIdx],
-            specifications: {
-                ...next[itemIdx].specifications,
-                [key]: val
-            }
-        };
-        setLocalItems(next);
-    };
-
-    const handleSave = async () => {
-        setSaving(true);
-        try {
-            await apiPut(`/jobcards/${id}`, { items: localItems });
-            onSave(localItems);
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    return (
-        <div className="rounded-[20px] border border-border/40 bg-card/50 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
-                <div className="flex items-center gap-2">
-                    <Layers size={14} className="text-blue-500" />
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-foreground/70">Record Measurements</p>
-                </div>
-                {canEdit && (
-                    <Button size="sm" onClick={handleSave} disabled={saving} className="h-8 rounded-xl text-xs font-black gap-2 bg-blue-500 hover:bg-blue-600 text-white shadow-sm">
-                        {saving ? <Loader2 size={12} className="animate-spin" /> : <CheckCheck size={12} />}
-                        Save Dimensions
-                    </Button>
-                )}
-            </div>
-            <div className="p-5 space-y-4">
-                {localItems.map((item, idx) => (
-                    <div key={item._id || idx} className="p-4 rounded-2xl bg-muted/20 border border-border/30 hover:border-blue-500/20 transition-all">
-                        <div className="flex items-start justify-between gap-4 mb-4">
-                            <div className="flex items-center gap-3">
-                                <span className="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center text-[10px] font-black">{idx + 1}</span>
-                                <p className="text-xs font-bold text-foreground/80">{item.description}</p>
-                            </div>
-                            <Badge variant="outline" className="text-[10px] font-black uppercase text-muted-foreground/50 border-none bg-muted/40 h-5">
-                                {item.qty} {item.unit}
-                            </Badge>
-                        </div>
-                        <div className="grid grid-cols-3 gap-3">
-                            {[
-                                { k: 'height', l: 'Height (mm)', p: 'H' },
-                                { k: 'width', l: 'Width (mm)', p: 'W' },
-                                { k: 'depth', l: 'Depth (mm)', p: 'D' },
-                            ].map(field => (
-                                <div key={field.k} className="space-y-1.5">
-                                    <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">{field.l}</Label>
-                                    <div className="relative group">
-                                        <Input
-                                            type="text"
-                                            value={item.specifications?.[field.k] || ''}
-                                            onChange={e => canEdit && handleSpecChange(idx, field.k, e.target.value)}
-                                            readOnly={!canEdit}
-                                            className="h-9 px-3 text-xs font-bold rounded-xl bg-background border-border/40 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
-                                            placeholder={field.p}
-                                        />
-                                        <div className="absolute inset-0 rounded-xl bg-blue-500/5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-function DesignTab({ id, jc, qcClient, canEdit }: any) {
-    const { data: dRaw, isLoading } = useQuery({ queryKey: ['jobcard', id, 'design'], queryFn: () => apiGet(`/jobcards/${id}/design`) });
-    const design: any = (dRaw as any)?.data ?? null;
-    const [note, setNote] = useState('');
-    const [uploadLoading, setUploadLoading] = useState(false);
-
-    const createMut = useMutation({ mutationFn: () => apiPost(`/jobcards/${id}/design`, {}), onSuccess: () => qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'design'] }) });
-    const signoffMut = useMutation({ mutationFn: () => apiPost(`/jobcards/${id}/design/signoff`, {}), onSuccess: () => qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'design'] }) });
-    const readyMut = useMutation({ mutationFn: () => apiPatch(`/jobcards/${id}/design/ready`), onSuccess: () => { qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'design'] }); } });
-
-    const signoffStatus = design?.signoff?.status;
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files?.length) return;
-        setUploadLoading(true);
-        try {
-            const fd = new FormData();
-            Array.from(e.target.files).forEach(f => fd.append('files', f));
-            await apiUpload(`/jobcards/${id}/design/files`, fd);
-            qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'design'] });
-        } finally {
-            setUploadLoading(false);
-            e.target.value = '';
-        }
-    };
-
-    if (isLoading) return (
-        <div className="space-y-4 mt-2">
-            {[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-muted/20 rounded-2xl animate-pulse" />)}
-        </div>
-    );
-
-    if (!design) return (
-        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-            className="mt-2 rounded-[24px] border border-violet-500/20 bg-violet-500/5 p-10 text-center space-y-5">
-            {!canEdit && <ReadOnlyBanner />}
-            <div className="w-16 h-16 rounded-[20px] bg-violet-500/10 flex items-center justify-center mx-auto">
-                <Pencil size={26} className="text-violet-500" />
-            </div>
-            <div>
-                <p className="font-black text-lg text-foreground mb-1">Design Stage Not Started</p>
-                <p className="text-muted-foreground/50 text-sm font-medium">
-                    Initiate the design stage to begin uploading files and getting client sign-off.
-                </p>
-            </div>
-            {canEdit && (
-                <Button onClick={() => createMut.mutate()} disabled={createMut.isPending}
-                    className="rounded-2xl font-black gap-2 h-11 px-8 bg-violet-500 hover:bg-violet-600 text-white shadow-lg shadow-violet-500/20">
-                    {createMut.isPending ? <Loader2 size={15} className="animate-spin" /> : <Pencil size={15} />}
-                    Initiate Design Stage
-                </Button>
-            )}
-        </motion.div>
-    );
-
-    return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 mt-2">
-            {!canEdit && <ReadOnlyBanner />}
-
-            {/* ── Context Banner ── */}
-            <motion.div initial={{ y: -10 }} animate={{ y: 0 }}
-                className="rounded-[20px] border border-violet-500/20 bg-linear-to-br from-violet-500/5 to-transparent p-5">
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="w-8 h-8 rounded-xl bg-violet-500/10 flex items-center justify-center">
-                        <Pencil size={14} className="text-violet-500" />
-                    </div>
-                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-violet-600 dark:text-violet-400">Design Stage</h3>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Client</p>
-                        <p className="text-sm font-bold text-foreground truncate">{jc.clientId?.name || '—'}</p>
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Expected Delivery</p>
-                        <p className={cn('text-sm font-bold', !jc.expectedDelivery ? 'text-muted-foreground/40' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
-                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : 'Not set'}
-                        </p>
-                    </div>
-                    <AssignedStaffList users={jc.assignedTo?.design} roleLabel="Assigned Designers" color="bg-violet-500" />
-                    <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Sign-off Status</p>
-                        <span className={cn(
-                            'inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black border uppercase tracking-wide',
-                            signoffStatus === 'approved' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
-                            signoffStatus === 'sent'     ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
-                            signoffStatus === 'rejected' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
-                            'bg-amber-500/10 text-amber-600 border-amber-500/20'
-                        )}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                            {signoffStatus || 'pending'}
-                        </span>
-                    </div>
-                </div>
-            </motion.div>
-
-            {/* ── Measurements ── */}
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
-                <MeasureEditor id={id!} items={jc.items} canEdit={canEdit} onSave={() => qcClient.invalidateQueries({ queryKey: ['jobcard', id] })} />
-            </motion.div>
-
-            {/* ── Design Files ── */}
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
-                <div className="rounded-[20px] border border-border/40 bg-card/50 overflow-hidden">
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
-                        <div className="flex items-center gap-2">
-                            <Upload size={14} className="text-violet-500" />
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-foreground/70">
-                                Design Files
-                            </p>
-                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground/60">
-                                {design.files?.length || 0}
-                            </span>
-                        </div>
-                        {canEdit && (
-                            <label className={cn(
-                                'flex items-center gap-1.5 cursor-pointer text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl transition-all',
-                                uploadLoading
-                                    ? 'bg-muted text-muted-foreground/40 cursor-wait'
-                                    : 'bg-violet-500/10 text-violet-500 hover:bg-violet-500/20 border border-violet-500/20'
-                            )}>
-                                <input type="file" multiple className="hidden" onChange={handleFileUpload} disabled={uploadLoading} />
-                                {uploadLoading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
-                                {uploadLoading ? 'Uploading…' : 'Upload'}
-                            </label>
-                        )}
-                    </div>
-                    <div className="p-5">
-                        {design.files?.length > 0 ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                {design.files.map((f: any, i: number) => (
-                                    <motion.a key={f._id || f.id || f.path || i} href={f.url} target="_blank" rel="noreferrer"
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        className="group flex items-center gap-3 p-3.5 rounded-2xl bg-muted/30 border border-border/40 hover:border-violet-500/30 hover:bg-violet-500/5 transition-all">
-                                        <div className="w-9 h-9 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0 group-hover:bg-violet-500/20 transition-colors">
-                                            <FileText size={16} className="text-violet-500" />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="text-xs font-bold text-foreground/80 truncate group-hover:text-violet-600 transition-colors">
-                                                {f.title || `File ${i + 1}`}
-                                            </p>
-                                            <p className="text-[9px] font-medium text-muted-foreground/40">Click to open</p>
-                                        </div>
-                                    </motion.a>
-                                ))}
-                            </div>
-                        ) : (
-                            <label className={cn(
-                                'flex flex-col items-center gap-3 py-10 rounded-2xl border-2 border-dashed transition-all cursor-pointer',
-                                canEdit ? 'border-border/40 hover:border-violet-500/40 hover:bg-violet-500/5' : 'border-border/20 cursor-default'
-                            )}>
-                                {canEdit && <input type="file" multiple className="hidden" onChange={handleFileUpload} disabled={uploadLoading} />}
-                                <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center">
-                                    <Upload size={20} className="text-muted-foreground/30" />
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-xs font-bold text-muted-foreground/50">
-                                        {canEdit ? 'Click to upload CAD files, renders, or PDFs' : 'No files uploaded yet'}
-                                    </p>
-                                    {canEdit && <p className="text-[10px] text-muted-foreground/30 mt-0.5">PNG, JPG, PDF, DWG supported</p>}
-                                </div>
-                            </label>
-                        )}
-                    </div>
-                </div>
-            </motion.div>
-
-            {/* ── Client Sign-off ── */}
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
-                className={cn(
-                    'rounded-[20px] border p-5 space-y-4',
-                    signoffStatus === 'approved' ? 'border-emerald-500/25 bg-emerald-500/5' :
-                    signoffStatus === 'rejected' ? 'border-rose-500/25 bg-rose-500/5' :
-                    signoffStatus === 'sent'     ? 'border-blue-500/25 bg-blue-500/5' :
-                    'border-border/40 bg-card/50'
-                )}>
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-                            signoffStatus === 'approved' ? 'bg-emerald-500/15 text-emerald-500' :
-                            signoffStatus === 'rejected' ? 'bg-rose-500/15 text-rose-500' :
-                            signoffStatus === 'sent'     ? 'bg-blue-500/15 text-blue-500' :
-                            'bg-amber-500/15 text-amber-500'
-                        )}>
-                            {signoffStatus === 'approved' ? <CheckCircle2 size={18} /> :
-                             signoffStatus === 'rejected' ? <XCircle size={18} /> :
-                             signoffStatus === 'sent'     ? <Link2 size={18} /> :
-                             <Link2 size={18} />}
-                        </div>
-                        <div>
-                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-0.5">Client Sign-off</p>
-                            <p className={cn('text-sm font-black capitalize',
-                                signoffStatus === 'approved' ? 'text-emerald-600 dark:text-emerald-400' :
-                                signoffStatus === 'rejected' ? 'text-rose-600 dark:text-rose-400' :
-                                signoffStatus === 'sent'     ? 'text-blue-600 dark:text-blue-400' :
-                                'text-amber-600 dark:text-amber-400'
-                            )}>
-                                {signoffStatus === 'approved' ? '✓ Approved by Client' :
-                                 signoffStatus === 'rejected' ? '✗ Rejected — Revision Needed' :
-                                 signoffStatus === 'sent'     ? 'Link Sent — Awaiting Response' :
-                                 'Pending — Not Yet Sent'}
-                            </p>
-                            {design.signoff?.remarks && (
-                                <p className="text-xs text-muted-foreground/60 italic mt-1">"{design.signoff.remarks}"</p>
-                            )}
-                        </div>
-                    </div>
-                    {canEdit && !['approved'].includes(signoffStatus) && (
-                        <Button size="sm" variant="outline" onClick={() => signoffMut.mutate()} disabled={signoffMut.isPending}
-                            className="rounded-xl text-xs font-black gap-1.5 border-border/60 shrink-0">
-                            {signoffMut.isPending ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
-                            {signoffStatus === 'sent' ? 'Resend Link' : 'Send Sign-off Link'}
-                        </Button>
-                    )}
-                </div>
-                {signoffMut.isSuccess && (
-                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-600">
-                        ✓ Sign-off link sent! The client will receive it via WhatsApp/email.
-                    </div>
-                )}
-            </motion.div>
-
-            {/* ── Designer Notes ── */}
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }}
-                className="rounded-[20px] border border-border/40 bg-card/50 overflow-hidden">
-                <div className="flex items-center gap-2 px-5 py-4 border-b border-border/30">
-                    <MessageSquare size={14} className="text-slate-400" />
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-foreground/70">Designer Notes</p>
-                </div>
-                <div className="p-5 space-y-3">
-                    <Textarea
-                        value={note || design.designerNotes || ''}
-                        onChange={canEdit ? (e => setNote(e.target.value)) : undefined}
-                        readOnly={!canEdit}
-                        rows={4}
-                        className="rounded-xl text-sm resize-none border-border/40 bg-transparent"
-                        placeholder="Add design notes, material specifications, dimensions, instructions for production…"
-                    />
-                    {canEdit && (
-                        <div className="flex items-center justify-between">
-                            <p className="text-[10px] font-medium text-muted-foreground/30">
-                                {(note || design.designerNotes || '').length} characters
-                            </p>
-                            <Button size="sm" variant="outline"
-                                className="h-8 rounded-xl text-xs font-black border-border/50 hover:border-violet-500/40 hover:bg-violet-500/5 hover:text-violet-500"
-                                onClick={() => { apiPut(`/jobcards/${id}/design`, { designerNotes: note || design.designerNotes }); qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'design'] }); }}>
-                                Save Notes
-                            </Button>
-                        </div>
-                    )}
-                </div>
-            </motion.div>
-
-            {/* ── Primary Action ── */}
-            {canEdit && jc.status === 'active' ? (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-                    <Button
-                        onClick={() => readyMut.mutate()}
-                        disabled={readyMut.isPending}
-                        className="w-full h-14 rounded-[20px] font-black gap-3 text-base bg-linear-to-r from-violet-500 to-violet-700 hover:from-violet-600 hover:to-violet-800 text-white shadow-2xl shadow-violet-500/25 transition-all hover:scale-[1.01]"
-                    >
-                        {readyMut.isPending
-                            ? <><Loader2 size={18} className="animate-spin" /> Processing…</>
-                            : <><CheckCheck size={18} /> Mark Design Ready → Move to Store</>
-                        }
-                    </Button>
-                    <p className="text-center text-[10px] font-medium text-muted-foreground/30 mt-2">
-                        This will change the job status to "In Store" and notify the store team.
-                    </p>
-                </motion.div>
-            ) : jc.status !== 'active' && !['cancelled', 'on_hold'].includes(jc.status) && (
-                <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-                    className="p-5 rounded-[24px] bg-emerald-500/5 border border-emerald-500/20 flex flex-col items-center text-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 mb-1">
-                        <CheckCheck size={20} />
-                    </div>
-                    <p className="text-sm font-black text-emerald-600">Design Stage Completed</p>
-                    <p className="text-[11px] font-medium text-emerald-600/60">
-                        This job has successfully moved to the <span className="capitalize font-black">{jc.status?.replace(/_/g, ' ')}</span> stage.
-                    </p>
-                </motion.div>
-            )}
-        </motion.div>
-    );
-}
-
-// ── Store Tab ─────────────────────────────────────────────────────────────────
-
-function StoreTab({ id, jc, qcClient, canEdit }: any) {
-    const { data: sRaw, isLoading } = useQuery({ queryKey: ['jobcard', id, 'store'], queryFn: () => apiGet(`/jobcards/${id}/store`) });
-    const stage: any = (sRaw as any)?.data ?? null;
-
-    const issueAllMut = useMutation({
-        mutationFn: () => apiPatch(`/jobcards/${id}/store/issue-all`),
-        onSuccess: () => { qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'store'] }); },
-    });
-
-    const issueOneMut = useMutation({
-        mutationFn: (bomId: string) => apiPatch(`/jobcards/${id}/store/issue/${bomId}`, { issuedQty: 999 }),
-        onSuccess: () => qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'store'] }),
-    });
-
-    if (isLoading) return <div className="h-48 bg-muted/10 rounded-3xl animate-pulse mt-4 border border-border/10" />;
-    
-    // Stage Empty State (Not even initiated)
-    if (!stage) return (
-        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-            className="mt-4 rounded-[2.5rem] border border-amber-500/20 bg-amber-500/5 p-12 text-center space-y-6">
-            <div className="w-20 h-20 rounded-3xl bg-amber-500/10 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/5">
-                <Package size={32} className="text-amber-500" />
-            </div>
-            <div className="max-w-md mx-auto">
-                <p className="font-black text-xl text-foreground mb-2 uppercase tracking-tight">Store Stage Pending</p>
-                <p className="text-muted-foreground/50 text-sm font-medium leading-relaxed">
-                    Once the design is finalized and signed off, the Bill of Materials will appear here for material procurement and issuance.
-                </p>
-            </div>
-        </motion.div>
-    );
-
-    const bom = stage.bom || [];
-    const issuedCount = bom.filter((b: any) => b.issued).length;
-    const progress = bom.length > 0 ? (issuedCount / bom.length) * 100 : 0;
-
-    return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 mt-4">
-            {!canEdit && <ReadOnlyBanner />}
-
-            {/* ── Store Stage Context ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-8">
-                    <div className="h-full rounded-[2.5rem] border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-transparent p-8 shadow-sm">
-                        <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-[1.2rem] bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                                    <Package size={18} className="text-amber-500" />
-                                </div>
-                                <div>
-                                    <h3 className="font-black text-sm uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400 leading-none">Material Management</h3>
-                                    <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest mt-1">Inventory & Issuance</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 mb-1">Status</p>
-                                <span className={cn(
-                                    'inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black border uppercase tracking-widest',
-                                    jc.status === 'in_store' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20 shadow-lg shadow-amber-500/5' : 'bg-muted text-muted-foreground border-border'
-                                )}>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-                                    {jc.status?.replace(/_/g, ' ') || 'pending'}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-8">
-                            <div className="space-y-1">
-                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">Target Delivery</p>
-                                <p className={cn('text-sm font-black italic tracking-tight', !jc.expectedDelivery ? 'text-muted-foreground/20' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500 animate-pulse' : 'text-foreground/80')}>
-                                    {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'NOT ASSIGNED'}
-                                </p>
-                            </div>
-                            <AssignedStaffList users={jc.assignedTo?.store} roleLabel="Store Custodians" color="bg-amber-500" />
-                            <div className="col-span-2 lg:col-span-1 border-t lg:border-t-0 lg:border-l border-border/10 pt-4 lg:pt-0 lg:pl-8">
-                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 mb-2 text-right lg:text-left">Milestone Progress</p>
-                                <div className="flex items-center gap-4">
-                                    <div className="flex-1 h-3 bg-muted/20 rounded-full overflow-hidden border border-border/5">
-                                        <motion.div 
-                                            initial={{ width: 0 }} 
-                                            animate={{ width: `${progress}%` }}
-                                            className="h-full bg-linear-to-r from-amber-500 to-emerald-500 rounded-full shadow-lg" 
-                                        />
-                                    </div>
-                                    <p className="text-[11px] font-black text-foreground/60 tracking-tighter w-12 text-right">{Math.round(progress)}%</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="lg:col-span-4">
-                    <div className="h-full rounded-[2rem] bg-card border border-border/40 p-6 flex flex-col justify-center gap-4 group/cta hover:border-primary/30 transition-all duration-500 shadow-sm relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover/cta:opacity-10 transition-opacity">
-                            <ShoppingCart size={80} />
-                        </div>
-                        <h4 className="font-black text-sm uppercase tracking-widest text-foreground/80 relative z-10">Procurement Action</h4>
-                        <p className="text-xs text-muted-foreground/60 font-medium leading-relaxed relative z-10">Shortage detected in BOM? Instantiate a purchase request directly linked to this job card.</p>
-                        <Link to="/purchase-orders/new" className="relative z-10">
-                            <Button variant="outline" className="w-full rounded-[1.2rem] h-12 font-black text-[10px] uppercase tracking-widest gap-2 bg-background border-border/60 hover:bg-primary/5 hover:border-primary/30 hover:text-primary transition-all active:scale-95 group/btn">
-                                <Plus size={14} className="group-hover/btn:rotate-90 transition-transform duration-300" /> Raise Purchase Order
-                            </Button>
-                        </Link>
-                    </div>
-                </div>
-            </div>
-
-            {/* ── BOM List ── */}
-            <div className="rounded-[2rem] bg-card/10 backdrop-blur-xl border border-border/20 overflow-hidden shadow-2xl">
-                <div className="px-6 py-4 border-b border-border/10 flex items-center justify-between bg-card/20">
-                    <div className="flex items-center gap-3">
-                        <ArrowRightCircle size={16} className="text-amber-500" />
-                        <h3 className="font-black text-xs uppercase tracking-[0.2em] text-foreground/80">Bill of Materials</h3>
-                    </div>
-                    <div className="px-3 py-1 rounded-xl bg-muted/30 border border-border/10 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">
-                        {bom.length} {bom.length === 1 ? 'Item' : 'Items'} Loaded
-                    </div>
-                </div>
-
-                {bom.length > 0 ? (
-                    <div className="overflow-x-auto scrollbar-hide">
-                        <table className="w-full text-xs">
-                            <thead>
-                                <tr className="bg-muted/10 text-muted-foreground/40">
-                                    <th className="text-left px-6 py-3 font-black uppercase tracking-[0.15em] w-1/3">Technical Detail</th>
-                                    <th className="text-center px-4 py-3 font-black uppercase tracking-[0.15em]">Requirement</th>
-                                    <th className="text-center px-4 py-3 font-black uppercase tracking-[0.15em]">Inventory Status</th>
-                                    <th className="text-center px-4 py-3 font-black uppercase tracking-[0.15em]">Dispatch State</th>
-                                    <th className="text-center px-6 py-3 font-black uppercase tracking-[0.15em] w-32">Operations</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border/5">
-                                {bom.map((b: any) => {
-                                    const stockOk = (b.inventoryId?.currentStock ?? 0) >= (b.requiredQty || 0);
-                                    return (
-                                        <tr key={b._id} className="group hover:bg-amber-500/2 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="space-y-0.5">
-                                                    <p className="text-sm font-black text-foreground/80 tracking-tight group-hover:text-amber-500 transition-colors">{b.inventoryId?.itemName || b.itemName}</p>
-                                                    <p className="text-[10px] font-medium text-muted-foreground/50 italic">{b.inventoryId?.category || 'Standard Component'}</p>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-5 text-center">
-                                                <div className="inline-flex items-center px-3 py-1.5 rounded-xl bg-muted/20 border border-border/10 font-black text-foreground/70 tracking-tighter shadow-sm">
-                                                    {b.requiredQty} <span className="ml-1 opacity-40">{b.unit}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-5 text-center">
-                                                <div className="flex flex-col items-center gap-1.5">
-                                                    <span className={cn(
-                                                        'px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm',
-                                                        stockOk ? 'bg-emerald-500/5 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/5 text-rose-500 border-rose-500/20 animate-pulse'
-                                                    )}>
-                                                        {b.inventoryId?.currentStock ?? 0} {b.unit}
-                                                    </span>
-                                                    {!stockOk && (
-                                                        <Link to={`/purchase-orders/new?itemName=${encodeURIComponent(b.inventoryId?.itemName || b.itemName)}`} 
-                                                            className="inline-flex items-center gap-1 text-[9px] font-black text-rose-500/60 hover:text-rose-500 uppercase tracking-tighter transition-all">
-                                                            <ShoppingCart size={10} /> Fast Raise PO
-                                                        </Link>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-5 text-center">
-                                                {b.issued ? (
-                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500 text-white text-[9px] font-black uppercase tracking-[0.15em] shadow-lg shadow-emerald-500/20">
-                                                        <CheckSquare size={12} /> Issued
-                                                    </div>
-                                                ) : (
-                                                    <div className={cn(
-                                                        "text-[10px] font-black uppercase tracking-widest opacity-30 italic",
-                                                        stockOk ? "text-amber-500" : "text-rose-500"
-                                                    )}>
-                                                        {stockOk ? "Ready to Issue" : "Shortage Alert"}
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-8 py-5 text-right">
-                                                {canEdit && !b.issued && (
-                                                    <Button 
-                                                        size="sm"
-                                                        onClick={() => issueOneMut.mutate(b._id)}
-                                                        disabled={!stockOk}
-                                                        className={cn(
-                                                            "h-9 rounded-xl text-[10px] font-black uppercase tracking-widest px-6 shadow-sm transition-all active:scale-95",
-                                                            stockOk ? "bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/10" : "bg-muted text-muted-foreground/30 opacity-50 cursor-not-allowed"
-                                                        )}>
-                                                        Issue
-                                                    </Button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    <div className="py-24 flex flex-col items-center justify-center text-center px-10">
-                        <div className="w-16 h-16 rounded-[2rem] bg-muted/20 flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
-                            <Package size={24} className="text-muted-foreground/20" />
-                        </div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 italic">No Materials Specified Yet</p>
-                    </div>
-                )}
-
-                {canEdit && jc.status === 'in_store' && (
-                    <div className="p-8 border-t border-border/5 bg-card/30 flex justify-end">
-                        <Button onClick={() => issueAllMut.mutate()} disabled={issueAllMut.isPending || bom.length === 0}
-                            className="w-full lg:w-fit rounded-[1.2rem] h-14 px-12 font-black text-xs uppercase tracking-[0.15em] gap-3 bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-500/20 active:scale-95 transition-all group/issue">
-                            {issueAllMut.isPending ? <Loader2 size={16} className="animate-spin" /> : <CheckCheck size={16} className="group-hover:scale-110 transition-transform" />}
-                            Mark All Issued → Initiate Production
-                        </Button>
-                    </div>
-                )}
-            </div>
-        </motion.div>
-    );
-}
-
 // ── Production Tab ────────────────────────────────────────────────────────────
-
 function ProductionTab({ id, jc, qcClient, canEdit }: any) {
     const { data: pRaw, isLoading } = useQuery({ queryKey: ['jobcard', id, 'production'], queryFn: () => apiGet(`/jobcards/${id}/production`) });
+    const { data: qRaw } = useQuery({ 
+        queryKey: ['jobcard', id, 'qc'], 
+        queryFn: () => apiGet(`/jobcards/${id}/qc`),
+        enabled: !!id 
+    });
     const stage: any = (pRaw as any)?.data ?? null;
+    const qcStage: any = (qRaw as any)?.data ?? null;
     const [note, setNote] = useState('');
     const [noteWorker, setNoteWorker] = useState('');
 
+    const isLocked = jc.status !== 'in_production';
+    const effectiveCanEdit = canEdit && !isLocked;
+
+    const lastRework = qcStage?.reworkHistory?.[qcStage.reworkHistory.length - 1];
+    const showReworkAlert = jc.status === 'in_production' && qcStage?.verdict === 'fail';
+
     const subStageMut = useMutation({
-        mutationFn: ({ substage, status, workerName }: any) => apiPatch(`/jobcards/${id}/production/substage`, { substage, status, workerName }),
+        mutationFn: ({ substage, status, workerName }: any) => apiPatch(`/jobcards/${id}/production/substage`, { name: substage, status, workerName }),
         onSuccess: () => qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'production'] }),
     });
 
@@ -1233,7 +691,7 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
     });
 
     const shortageMut = useMutation({
-        mutationFn: (reason: string) => apiPatch(`/jobcards/${id}/production/shortage`, { reason }),
+        mutationFn: (reason: string) => apiPatch(`/jobcards/${id}/production/shortage`, { shortageNote: reason }),
         onSuccess: () => qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'production'] }),
     });
 
@@ -1253,79 +711,135 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 mt-2">
             {!canEdit && <ReadOnlyBanner />}
+            {canEdit && isLocked && (
+                <div className="mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 text-xs font-bold">
+                    <History size={13} />
+                    Stage Locked — Job Card is currently {jc.status?.replace(/_/g, ' ')}
+                </div>
+            )}
+            {showReworkAlert && lastRework && (
+                <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
+                    className="p-5 rounded-[22px] bg-rose-500/10 border border-rose-500/20 shadow-sm relative overflow-hidden group mb-4">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-2xl bg-rose-500/20 flex items-center justify-center text-rose-500">
+                            <AlertTriangle size={20} />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-500/60">Rework Required</p>
+                            <p className="text-sm font-black text-rose-600">QC Failed · Attempt #{qcStage.reworkHistory.length}</p>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="p-4 rounded-xl bg-white/40 dark:bg-black/20 border border-rose-500/20">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-500/40 mb-1">Inspector's Failure Reason</p>
+                            <p className="text-xs font-bold text-rose-700/80 dark:text-rose-400/80 leading-relaxed italic">"{lastRework.failReason || 'No specific reason provided'}"</p>
+                        </div>
+                        {lastRework.defectSummary && (
+                            <div className="p-4 rounded-xl bg-white/40 dark:bg-black/20 border border-rose-500/20">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-rose-500/40 mb-1">Defect Summary</p>
+                                <p className="text-xs font-bold text-rose-700/80 dark:text-rose-400/80 leading-relaxed">{lastRework.defectSummary}</p>
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
+            )}
 
             {/* ── Context Banner ── */}
             <motion.div initial={{ y: -10 }} animate={{ y: 0 }}
-                className="rounded-[20px] border border-primary/20 bg-linear-to-br from-primary/5 to-transparent p-5">
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Wrench size={14} className="text-primary" />
+                className="rounded-[24px] border border-primary/20 bg-linear-to-br from-primary/10 via-background to-background p-6 shadow-xl shadow-primary/5 overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -mr-16 -mt-16 blur-3xl" />
+                <div className="flex items-center gap-3 mb-6 relative z-10">
+                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
+                        <Wrench size={18} className="text-primary" />
                     </div>
-                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-primary">Production Stage</h3>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Expected Delivery</p>
-                        <p className={cn('text-sm font-bold', !jc.expectedDelivery ? 'text-muted-foreground/40' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
-                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}
+                        <h3 className="font-black text-[10px] uppercase tracking-[0.3em] text-primary/60 leading-none mb-1">Production Stage</h3>
+                        <p className="font-bold text-lg text-foreground tracking-tight">Manufacturing Phase</p>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 relative z-10">
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-2">Target Delivery</p>
+                        <p className={cn('text-sm font-black', !jc.expectedDelivery ? 'text-muted-foreground/30 italic' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
+                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pending assignment'}
                         </p>
                     </div>
-                    <AssignedStaffList users={jc.assignedTo?.production} roleLabel="Assigned Production Team" color="bg-primary" />
-                    <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Stage Status</p>
-                        <span className={cn(
-                            'inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black border uppercase tracking-wide',
-                            jc.status === 'in_production' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
-                        )}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                            {jc.status?.replace(/_/g, ' ') || 'pending'}
-                        </span>
+                    <AssignedStaffList users={jc.assignedTo?.production} roleLabel="Production Team" color="bg-primary" />
+                    <div className="col-span-1 sm:col-span-2 sm:flex sm:justify-end">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-2 sm:text-right">Stage Status</p>
+                            <span className={cn(
+                                'inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black border uppercase tracking-widest',
+                                jc.status === 'in_production' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                            )}>
+                                <span className={cn("w-2 h-2 rounded-full bg-current", jc.status === 'in_production' && "animate-pulse")} />
+                                {jc.status?.replace(/_/g, ' ') || 'pending'}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </motion.div>
 
-            <SectionCard title="Production Stage" icon={Wrench} color="text-primary">
-            <div className="space-y-5">
+            <SectionCard title="Lifecycle Management" icon={History} color="text-primary">
+            <div className="space-y-6">
                 {/* Progress bar */}
-                <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 bg-muted/40 rounded-full overflow-hidden">
-                        <motion.div animate={{ width: `${(doneCount / SUB_STAGE_ORDER.length) * 100}%` }} transition={{ duration: 0.5 }}
-                            className="h-full bg-primary rounded-full" />
+                <div className="px-1">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-primary/50">Overall Progress</p>
+                        <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">{Math.round((doneCount / SUB_STAGE_ORDER.length) * 100)}%</span>
                     </div>
-                    <span className="text-xs font-black text-muted-foreground/60">{doneCount}/{SUB_STAGE_ORDER.length}</span>
+                    <div className="h-3 bg-muted/30 rounded-full overflow-hidden border border-border/5 p-px">
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${(doneCount / SUB_STAGE_ORDER.length) * 100}%` }} transition={{ duration: 0.8, ease: 'easeOut' }}
+                            className="h-full bg-linear-to-r from-primary to-emerald-400 rounded-full shadow-[0_0_10px_rgba(var(--primary),0.3)]" />
+                    </div>
                 </div>
 
                 {/* Substage cards */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                     {SUB_STAGE_ORDER.map((name, i) => {
                         const s = getSubstageStatus(name);
                         const Icon = SUB_STAGE_ICONS[name] || Wrench;
                         return (
-                            <button key={name} onClick={canEdit ? () => cycleStatus(name, s.status) : undefined}
-                                disabled={!canEdit}
-                                className={cn('p-3 rounded-xl border text-left transition-all', {
-                                    'opacity-60 cursor-default': !canEdit,
-                                    'bg-muted/20 border-border/30 text-muted-foreground/50': s.status === 'pending',
-                                    'bg-primary/10 border-primary/30 text-primary': s.status === 'in_progress',
-                                    'bg-emerald-500/10 border-emerald-500/30 text-emerald-600': s.status === 'done',
+                            <button key={name} onClick={effectiveCanEdit ? () => cycleStatus(name, s.status) : undefined}
+                                disabled={!effectiveCanEdit}
+                                className={cn('group relative p-4 rounded-2xl border text-left transition-all duration-300', {
+                                    'opacity-40 cursor-default grayscale': !effectiveCanEdit,
+                                    'bg-card/50 border-border/30 hover:border-border/60 hover:bg-card/80': s.status === 'pending',
+                                    'bg-primary/5 border-primary/40 shadow-[0_0_20px_rgba(var(--primary),0.1)]': s.status === 'in_progress',
+                                    'bg-emerald-500/5 border-emerald-500/40': s.status === 'done',
                                 })}>
-                                <div className="flex items-center justify-between mb-1">
-                                    <Icon size={12} />
-                                    <span className={cn('text-[10px] font-black uppercase', {
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className={cn('p-2 rounded-xl border transition-colors', {
+                                        'bg-muted/40 border-border/20 text-muted-foreground/40': s.status === 'pending',
+                                        'bg-primary/20 border-primary/30 text-primary animate-pulse': s.status === 'in_progress',
+                                        'bg-emerald-500/20 border-emerald-500/30 text-emerald-500': s.status === 'done',
+                                    })}>
+                                        <Icon size={14} strokeWidth={2.5} />
+                                    </div>
+                                    <span className={cn('text-[10px] font-black uppercase tracking-tighter opacity-30', {
+                                        'opacity-100 text-emerald-500': s.status === 'done',
+                                    })}>{s.status === 'done' ? <CheckCheck size={14} /> : `#${i + 1}`}</span>
+                                </div>
+                                <p className="text-[11px] font-black uppercase tracking-wider mb-0.5">{name.replace(/_/g, ' ')}</p>
+                                <div className="flex items-center gap-1.5 mt-2">
+                                    <div className={cn('w-1.5 h-1.5 rounded-full', {
+                                        'bg-muted-foreground/20': s.status === 'pending',
+                                        'bg-primary shadow-[0_0_5px_rgba(var(--primary),0.5)]': s.status === 'in_progress',
+                                        'bg-emerald-500': s.status === 'done',
+                                    })} />
+                                    <p className={cn('text-[9px] font-black uppercase tracking-widest', {
                                         'text-muted-foreground/30': s.status === 'pending',
                                         'text-primary': s.status === 'in_progress',
                                         'text-emerald-500': s.status === 'done',
-                                    })}>{s.status === 'done' ? '✓' : i + 1}</span>
+                                    })}>{s.status.replace('_', ' ')}</p>
                                 </div>
-                                <p className="text-[11px] font-black capitalize">{name.replace(/_/g, ' ')}</p>
-                                <p className="text-[10px] font-bold opacity-60 capitalize">{s.status.replace('_', ' ')}</p>
                             </button>
                         );
                     })}
                 </div>
 
                 {/* Notes */}
-                {canEdit && (
+                {effectiveCanEdit && (
                     <div className="space-y-2">
                         <Input value={noteWorker} onChange={e => setNoteWorker(e.target.value)} placeholder="Worker name (optional)" className="rounded-xl h-9 text-xs font-bold" />
                         <Textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Add progress note…" rows={2} className="rounded-xl text-xs" />
@@ -1354,14 +868,14 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
                 )}
 
                 {/* Mark Done */}
-                {canEdit && jc.status === 'in_production' && doneCount === SUB_STAGE_ORDER.length && (
+                {effectiveCanEdit && doneCount === SUB_STAGE_ORDER.length && (
                     <Button onClick={() => doneMut.mutate()} disabled={doneMut.isPending}
                         className="w-full h-11 rounded-xl font-black gap-2 bg-emerald-500 hover:bg-emerald-600 text-white">
                         {doneMut.isPending ? <Loader2 size={15} className="animate-spin" /> : <CheckCheck size={15} />}
                         Mark Production Complete → Move to QC
                     </Button>
                 )}
-                {canEdit && jc.status === 'in_production' && doneCount < SUB_STAGE_ORDER.length && (
+                {effectiveCanEdit && doneCount < SUB_STAGE_ORDER.length && (
                     <p className="text-center text-muted-foreground/30 text-xs font-bold">Complete all {SUB_STAGE_ORDER.length - doneCount} remaining sub-stages to proceed</p>
                 )}
             </div>
@@ -1382,6 +896,8 @@ function QCTab({ id, jc, qcClient, canEdit }: any) {
     const stage: any = (qRaw as any)?.data ?? null;
 
     const [checklist, setChecklist] = useState<Record<string, any>>({});
+    const [failReason, setFailReason] = useState('');
+    const [defectSummary, setDefectSummary] = useState('');
 
     const checkMut = useMutation({
         mutationFn: () => apiPut(`/jobcards/${id}/qc/checklist`, {
@@ -1396,12 +912,20 @@ function QCTab({ id, jc, qcClient, canEdit }: any) {
 
     const passMut = useMutation({
         mutationFn: () => apiPatch(`/jobcards/${id}/qc/pass`),
-        onSuccess: () => { qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'qc'] }); },
+        onSuccess: () => { 
+            qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); 
+            qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'qc'] }); 
+        },
     });
 
     const failMut = useMutation({
-        mutationFn: () => apiPatch(`/jobcards/${id}/qc/fail`),
+        mutationFn: () => apiPatch(`/jobcards/${id}/qc/fail`, { failReason, defectSummary }),
         onSuccess: () => { qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'qc'] }); },
+    });
+
+    const uploadPhotosMut = useMutation({
+        mutationFn: (fd: FormData) => apiUpload(`/jobcards/${id}/qc/defect-photos`, fd),
+        onSuccess: () => qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'qc'] }),
     });
 
     if (isLoading) return <div className="h-32 bg-muted/20 rounded-2xl animate-pulse mt-4" />;
@@ -1410,12 +934,22 @@ function QCTab({ id, jc, qcClient, canEdit }: any) {
     const existingChecklist: Record<string, any> = {};
     stage.checklist?.forEach((c: any) => { existingChecklist[c.parameter] = c; });
     const merged = { ...existingChecklist, ...checklist };
+    const mergedCount = Object.values(merged).filter((v: any) => v.passed).length;
 
     const allPassed = QC_PARAMETERS.every(p => merged[p]?.passed);
+
+    const isLocked = jc.status !== 'qc_pending';
+    const effectiveCanEdit = canEdit && !isLocked;
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 mt-2">
             {!canEdit && <ReadOnlyBanner />}
+            {canEdit && isLocked && (
+                <div className="mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-600 text-xs font-bold">
+                    <History size={13} />
+                    Stage Locked — Job Card is {jc.status?.replace(/_/g, ' ')}
+                </div>
+            )}
 
             {/* ── Context Banner ── */}
             <motion.div initial={{ y: -10 }} animate={{ y: 0 }}
@@ -1449,65 +983,139 @@ function QCTab({ id, jc, qcClient, canEdit }: any) {
                 </div>
             </motion.div>
 
-            <SectionCard title="Quality Control Inspection" icon={Shield} color="text-purple-500">
-            <div className="space-y-5">
+            <SectionCard title="Quality Assurance" icon={ShieldCheck} color="text-purple-500">
+            <div className="space-y-6">
                 {/* Verdict badge */}
                 {stage.verdict && (
-                    <div className={cn('flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm',
-                        stage.verdict === 'pass' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20')}>
-                        {stage.verdict === 'pass' ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-                        QC {stage.verdict === 'pass' ? 'PASSED' : 'FAILED'}
-                        {stage.reworkCount > 0 && <span className="ml-auto text-xs font-bold">Rework #{stage.reworkCount}</span>}
-                    </div>
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                        className={cn('flex items-center gap-3 px-5 py-4 rounded-[20px] font-black text-sm border shadow-sm',
+                        stage.verdict === 'pass' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20')}>
+                        <div className={cn('p-2 rounded-xl', stage.verdict === 'pass' ? 'bg-emerald-500/20' : 'bg-rose-500/20')}>
+                            {stage.verdict === 'pass' ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
+                        </div>
+                        <div className="flex-1">
+                            <p className="uppercase tracking-tighter">QC {stage.verdict === 'pass' ? 'PASSED' : 'FAILED'}</p>
+                            <p className="text-[10px] font-bold opacity-60">Verified by inspector · {new Date(stage.inspectedAt || Date.now()).toLocaleDateString()}</p>
+                        </div>
+                        {stage.reworkCount > 0 && (
+                            <div className="bg-muted/10 px-3 py-1 rounded-full border border-border/20 text-[10px] uppercase tracking-widest font-black">
+                                Rework #{stage.reworkCount}
+                            </div>
+                        )}
+                    </motion.div>
                 )}
 
                 {/* Checklist */}
                 <div className="space-y-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Inspection Checklist</p>
-                    {QC_PARAMETERS.map(param => {
-                        const val = merged[param];
-                        return (
-                            <div key={param} className="flex items-center gap-3 p-3 rounded-xl bg-muted/10 border border-border/20">
-                                <button onClick={canEdit ? () => setChecklist(prev => ({ ...prev, [param]: { ...prev[param], passed: !val?.passed } })) : undefined}
-                                    disabled={!canEdit}
-                                    className={cn('w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all',
-                                        val?.passed ? 'bg-emerald-500 border-emerald-500' : 'border-border hover:border-primary',
-                                        !canEdit && 'cursor-default opacity-70')}>
-                                    {val?.passed && <CheckCheck size={12} className="text-white" />}
-                                </button>
-                                <div className="flex-1">
-                                    <p className={cn('text-xs font-bold', val?.passed ? 'text-emerald-600 line-through decoration-emerald-300' : 'text-foreground/80')}>{param}</p>
-                                    <input className="mt-1 w-full text-[10px] font-medium bg-transparent text-muted-foreground/50 outline-none placeholder:text-muted-foreground/20 border-b border-transparent focus:border-border/40"
-                                        placeholder="Inspector note (optional)"
-                                        value={checklist[param]?.notes ?? val?.notes ?? ''}
-                                        onChange={e => setChecklist(prev => ({ ...prev, [param]: { ...prev[param], notes: e.target.value } }))} />
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Inspection Checklist</p>
+                        <p className="text-[10px] font-black text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-full">{mergedCount}/{QC_PARAMETERS.length} verified</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2.5">
+                        {QC_PARAMETERS.map(param => {
+                            const val = merged[param];
+                            return (
+                                <div key={param} className="group flex items-center gap-4 p-4 rounded-2xl bg-card/40 border border-border/20 hover:border-border/40 transition-all">
+                                    <button onClick={effectiveCanEdit ? () => setChecklist(prev => ({ ...prev, [param]: { ...prev[param], passed: !val?.passed } })) : undefined}
+                                        disabled={!effectiveCanEdit}
+                                        className={cn('w-8 h-8 rounded-xl border-2 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm',
+                                            val?.passed ? 'bg-emerald-500 border-emerald-500 scale-105' : 'bg-muted/10 border-border/30 hover:border-primary/40',
+                                            !effectiveCanEdit && 'cursor-default opacity-50')}>
+                                        {val?.passed && <CheckCheck size={16} className="text-white" strokeWidth={3} />}
+                                    </button>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={cn('text-sm font-black uppercase tracking-wide transition-all', val?.passed ? 'text-emerald-600/50 line-through' : 'text-foreground/90')}>{param}</p>
+                                        <input 
+                                            className="mt-2 w-full text-sm font-medium bg-muted/20 hover:bg-muted/40 text-foreground outline-none placeholder:text-muted-foreground/40 border border-border/10 focus:border-purple-500/50 focus:bg-purple-500/5 px-4 py-2.5 rounded-xl transition-all shadow-sm"
+                                            placeholder="Type your inspection notes here..."
+                                            value={checklist[param]?.notes ?? val?.notes ?? ''}
+                                            onChange={e => setChecklist(prev => ({ ...prev, [param]: { ...prev[param], notes: e.target.value } }))}
+                                            disabled={!effectiveCanEdit} 
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                    {canEdit && (
-                        <Button size="sm" variant="outline" onClick={() => checkMut.mutate()} disabled={checkMut.isPending} className="w-full rounded-xl font-black text-xs">
-                            {checkMut.isPending ? <Loader2 size={12} className="animate-spin mr-1" /> : null} Save Checklist
-                        </Button>
+                            );
+                        })}
+                    </div>
+                    {effectiveCanEdit && (
+                        <div className="pt-2">
+                            <Button size="sm" variant="outline" onClick={() => checkMut.mutate()} disabled={checkMut.isPending} 
+                                className="w-full h-10 rounded-xl font-black text-[11px] uppercase tracking-widest border-purple-500/20 text-purple-600 hover:bg-purple-500/5">
+                                {checkMut.isPending ? <Loader2 size={12} className="animate-spin mr-1" /> : <History size={12} className="mr-1" />} 
+                                Record Verification / Update List
+                            </Button>
+                        </div>
                     )}
                 </div>
 
-                {/* Upload defect photos */}
-                {canEdit && (
-                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-muted-foreground/50 hover:text-primary transition">
-                        <input type="file" multiple accept="image/*" className="hidden" onChange={async (e) => {
-                            if (!e.target.files?.length) return;
-                            const fd = new FormData();
-                            Array.from(e.target.files).forEach(f => fd.append('files', f));
-                            await apiPost(`/jobcards/${id}/qc/defect-photos`, fd);
-                            qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'qc'] });
-                        }} />
-                        <Camera size={13} /> Upload Defect Photos
-                    </label>
+                {/* Defect photos */}
+                <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Defect Photos</p>
+                        {effectiveCanEdit && (
+                            <div className="relative">
+                                <input type="file" id="defect-photo-upload" multiple accept="image/*" className="hidden" disabled={uploadPhotosMut.isPending} onChange={(e) => {
+                                    if (!e.target.files?.length) return;
+                                    const fd = new FormData();
+                                    Array.from(e.target.files).forEach(f => fd.append('files', f));
+                                    uploadPhotosMut.mutate(fd, {
+                                        onSettled: () => { e.target.value = ''; }
+                                    });
+                                }} />
+                                <label htmlFor="defect-photo-upload" className={cn(
+                                    "flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all",
+                                    uploadPhotosMut.isPending 
+                                        ? "bg-rose-500/5 text-rose-500/50 border border-rose-500/10 cursor-wait shadow-inner" 
+                                        : "bg-rose-500 text-white shadow-[0_4px_15px_-5px_rgba(244,63,94,0.5)] hover:shadow-[0_4px_20px_-5px_rgba(244,63,94,0.7)] hover:-translate-y-0.5 cursor-pointer"
+                                )}>
+                                    {uploadPhotosMut.isPending ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}
+                                    {uploadPhotosMut.isPending ? 'Uploading to Cloudinary...' : 'Upload Photos'}
+                                </label>
+
+                            </div>
+                        )}
+                    </div>
+                    {stage.defectPhotos?.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {stage.defectPhotos.map((photo: any, i: number) => (
+                                <div key={photo._id || i} className="group/photo relative">
+                                    <div className="aspect-square rounded-2xl overflow-hidden border border-border/20 bg-muted/20 hover:border-rose-500/40 transition-all cursor-zoom-in shadow-sm">
+                                        <ImagePreview src={photo.url} alt={`Defect ${i+1}`} />
+                                    </div>
+                                    <p className="text-center text-[8px] font-black uppercase tracking-widest text-muted-foreground/40 mt-1.5">Defect #{i+1}</p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-[10px] font-bold text-muted-foreground/30 italic">No defect photos uploaded yet.</p>
+                    )}
+                </div>
+                {/* Failure inputs (only show if any param is failed or manually triggered) */}
+                {canEdit && jc.status === 'qc_pending' && (
+                    <div className="space-y-4 pt-4 border-t border-border/10">
+                        <div className="flex items-center gap-2 mb-1">
+                            <AlertTriangle size={14} className="text-rose-500" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-500/70">Failure & Rework Details</p>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-[9px] font-black uppercase tracking-widest opacity-40 ml-1">Core Reason for Failure</Label>
+                                <Input placeholder="e.g., Dimension mismatch in base unit" value={failReason} onChange={e => setFailReason(e.target.value)}
+                                    disabled={!effectiveCanEdit}
+                                    className="h-11 rounded-1.5xl border-border/30 bg-background/50 text-xs font-bold focus:border-rose-500/40" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[9px] font-black uppercase tracking-widest opacity-40 ml-1">Detailed Defect Summary</Label>
+                                <Textarea placeholder="Describe specific defects here..." value={defectSummary} onChange={e => setDefectSummary(e.target.value)}
+                                    disabled={!effectiveCanEdit}
+                                    className="min-h-[80px] rounded-1.5xl border-border/30 bg-background/50 text-xs font-bold focus:border-rose-500/40" />
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 {/* Pass / Fail */}
-                {canEdit && jc.status === 'qc_pending' && (
+                {effectiveCanEdit && jc.status === 'qc_pending' && (
                     <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/20">
                         <Button onClick={() => failMut.mutate()} disabled={failMut.isPending}
                             className="rounded-xl font-black gap-2 bg-rose-500 hover:bg-rose-600 text-white">
@@ -1519,17 +1127,11 @@ function QCTab({ id, jc, qcClient, canEdit }: any) {
                         </Button>
                     </div>
                 )}
-                {canEdit && jc.status === 'qc_pending' && !allPassed && (
+                {effectiveCanEdit && jc.status === 'qc_pending' && !allPassed && (
                     <p className="text-center text-xs text-muted-foreground/30 font-bold">Check all parameters to enable QC Pass</p>
                 )}
 
-                {/* QC Certificate */}
-                {stage.certificateURL && (
-                    <a href={stage.certificateURL} target="_blank" rel="noreferrer"
-                        className="flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-bold hover:bg-emerald-500/20 transition">
-                        <CheckCircle2 size={14} /> View QC Certificate PDF
-                    </a>
-                )}
+
             </div>
         </SectionCard>
         </motion.div>
@@ -1544,153 +1146,378 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
 
     const [form, setForm] = useState({ scheduledDate: '', timeSlot: 'morning', vehicleNo: '', driverName: '', driverPhone: '' });
     const [proofPhoto, setProofPhoto] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string>('');
+    const [podUrl, setPodUrl] = useState<string>('');
+    const [uploadingPod, setUploadingPod] = useState(false);
     const [clientSignature, setClientSignature] = useState('');
     const [gpsLocation, setGpsLocation] = useState('');
 
+    useEffect(() => {
+        if (!proofPhoto) {
+            setPreviewUrl('');
+            return;
+        }
+        const url = URL.createObjectURL(proofPhoto);
+        setPreviewUrl(url);
+        return () => URL.revokeObjectURL(url);
+    }, [proofPhoto]);
+
+    const handlePodUpload = async (file: File) => {
+        setUploadingPod(true);
+        setProofPhoto(file); 
+        try {
+            const fd = new FormData();
+            fd.append('file', file);
+            const res: any = await apiUpload('/jobcards/upload-pod-photo', fd);
+            if (res?.success) {
+                setPodUrl(res.url);
+                toast.success('Photo uploaded to cloud');
+            }
+        } catch (err) {
+            console.error('Failed to upload POD', err);
+            toast.error('Photo upload failed');
+            setProofPhoto(null);
+        } finally {
+            setUploadingPod(false);
+        }
+    };
+
     const scheduleMut = useMutation({
-        mutationFn: () => apiPost(`/jobcards/${id}/dispatch`, form),
+        mutationFn: () => apiPost(`/jobcards/${id}/dispatch`, {
+            ...form,
+            vehicle: { number: form.vehicleNo },
+            deliveryTeam: [{ name: form.driverName, phone: form.driverPhone }]
+        }),
         onSuccess: () => { qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'dispatch'] }); },
     });
 
     const deliverMut = useMutation({
         mutationFn: async () => {
-            const fd = new FormData();
-            if (proofPhoto) fd.append('files', proofPhoto);
-            fd.append('clientSignature', clientSignature);
-            fd.append('gpsLocation', gpsLocation);
-            return apiPost(`/jobcards/${id}/dispatch/deliver`, fd);
+            return apiPatch(`/jobcards/${id}/dispatch/deliver`, {
+                clientSignature,
+                gpsLocation,
+                podPhotoUrl: podUrl
+            });
         },
-        onSuccess: () => { qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'dispatch'] }); },
+        onSuccess: () => { 
+            qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); 
+            qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'dispatch'] }); 
+            toast.success('Job delivered successfully!');
+        },
     });
 
     if (isLoading) return <div className="h-32 bg-muted/20 rounded-2xl animate-pulse mt-4" />;
     if (!stage && jc.status !== 'qc_passed') return <EmptyStage name="Dispatch Stage" />;
 
+    const isLocked = ['delivered', 'completed'].includes(jc.status);
+    const effectiveCanEdit = canEdit && !isLocked;
+
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 mt-2">
             {!canEdit && <ReadOnlyBanner />}
+            {canEdit && isLocked && (
+                <div className="mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 text-xs font-bold">
+                    <History size={13} />
+                    Stage Locked — Job Card is currently {jc.status?.replace(/_/g, ' ')}
+                </div>
+            )}
 
             {/* ── Context Banner ── */}
             <motion.div initial={{ y: -10 }} animate={{ y: 0 }}
-                className="rounded-[20px] border border-cyan-500/20 bg-linear-to-br from-cyan-500/5 to-transparent p-5">
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="w-8 h-8 rounded-xl bg-cyan-500/10 flex items-center justify-center">
-                        <Truck size={14} className="text-cyan-500" />
+                className="rounded-[24px] border border-cyan-500/20 bg-linear-to-br from-cyan-500/10 via-background to-background p-6 shadow-xl shadow-cyan-500/5 overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full -mr-16 -mt-16 blur-3xl" />
+                <div className="flex items-center gap-3 mb-6 relative z-10">
+                    <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 shadow-inner">
+                        <Truck size={18} className="text-cyan-500" />
                     </div>
-                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400">Dispatch Stage</h3>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Expected Delivery</p>
-                        <p className={cn('text-sm font-bold', !jc.expectedDelivery ? 'text-muted-foreground/40' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
-                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}
+                        <h3 className="font-black text-[10px] uppercase tracking-[0.3em] text-cyan-600/60 leading-none mb-1">Dispatch Lifecycle</h3>
+                        <p className="font-bold text-lg text-foreground tracking-tight">Logistics Management</p>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 relative z-10">
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-2">Target Delivery</p>
+                        <p className={cn('text-sm font-black', !jc.expectedDelivery ? 'text-muted-foreground/30 italic' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
+                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pending assignment'}
                         </p>
                     </div>
-                    <AssignedStaffList users={jc.assignedTo?.dispatch} roleLabel="Assigned Dispatch Team" color="bg-cyan-500" />
-                    <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Stage Status</p>
-                        <span className={cn(
-                            'inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black border uppercase tracking-wide',
-                            jc.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20'
-                        )}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                            {jc.status?.replace(/_/g, ' ') || 'pending'}
-                        </span>
+                    <AssignedStaffList users={jc.assignedTo?.dispatch} roleLabel="Dispatch Team" color="bg-cyan-500" />
+                    <div className="col-span-1 sm:col-span-2 sm:flex sm:justify-end">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-2 sm:text-right">Stage Status</p>
+                            <span className={cn(
+                                'inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black border uppercase tracking-widest',
+                                jc.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20'
+                            )}>
+                                <span className={cn("w-2 h-2 rounded-full bg-current", jc.status !== 'delivered' && "animate-pulse")} />
+                                {jc.status?.replace(/_/g, ' ') || 'pending'}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </motion.div>
 
-            <SectionCard title="Dispatch Stage" icon={Truck} color="text-cyan-500">
-            <div className="space-y-5">
+            <SectionCard title="Logistics & Delivery" icon={Truck} color="text-cyan-500">
+            <div className="space-y-6">
                 {stage?.scheduledDate && (
-                    <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-cyan-500">Scheduled Delivery</p>
-                        <InfoRow label="Date" value={new Date(stage.scheduledDate).toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long' })} />
-                        <InfoRow label="Time Slot" value={stage.timeSlot} />
-                        <InfoRow label="Vehicle No." value={stage.deliveryTeam?.[0]?.vehicle?.number} />
-                        <InfoRow label="Driver" value={stage.deliveryTeam?.[0]?.name} />
-                        {stage.challanPDF && (
-                            <a href={stage.challanPDF} target="_blank" rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-600 hover:text-cyan-700 mt-2">
-                                <ChevronRight size={12} /> View Delivery Challan PDF
-                            </a>
-                        )}
-                    </div>
-                )}
+                    <motion.div initial={{ y: 5, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+                        className="p-5 rounded-[22px] bg-cyan-500/5 border border-cyan-500/20 shadow-sm relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full -mr-16 -mt-16 blur-3xl transition-all group-hover:bg-cyan-500/10" />
+                        
+                        <div className="flex items-center justify-between mb-4 relative z-10">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-cyan-600/70 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                                Scheduled Delivery
+                            </p>
+                            {stage.challanPDF && (
+                                <Button size="sm" variant="ghost" asChild className="h-7 px-2 rounded-lg text-cyan-600 hover:text-cyan-700 hover:bg-cyan-500/10 text-[10px] font-black uppercase tracking-tighter">
+                                    <a href={stage.challanPDF} target="_blank" rel="noreferrer">
+                                        <Download size={12} className="mr-1" /> Challan PDF
+                                    </a>
+                                </Button>
+                            )}
+                        </div>
 
-                {/* Schedule form — show when QC passed or already dispatched but not delivered */}
-                {canEdit && ['qc_passed', 'dispatched'].includes(jc.status) && !stage?.deliveredAt && (
-                    <div className="space-y-4 p-4 rounded-2xl bg-muted/10 border border-border/30">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">
-                            {stage?.scheduledDate ? 'Update Schedule' : 'Schedule Delivery'}
-                        </p>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5 col-span-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Delivery Date</Label>
-                                <DatePicker 
-                                    date={form.scheduledDate ? parseISO(form.scheduledDate) : undefined} 
-                                    setDate={(date) => setForm(f => ({ ...f, scheduledDate: date ? format(date, 'yyyy-MM-dd') : '' }))} 
-                                    className="h-10 border-border/40 focus:ring-cyan-500/20 focus:border-cyan-500/50 transition-all font-bold" 
-                                />
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-4 relative z-10">
+                            <div>
+                                <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest mb-0.5">Delivery Date</p>
+                                <p className="text-xs font-black">{new Date(stage.scheduledDate).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' })}</p>
                             </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Time Slot</Label>
-                                <select value={form.timeSlot} onChange={e => setForm(f => ({ ...f, timeSlot: e.target.value }))}
-                                    className="w-full h-10 rounded-xl border border-border bg-background px-3 text-sm font-bold">
-                                    <option value="morning">Morning (9am–12pm)</option>
-                                    <option value="afternoon">Afternoon (12pm–4pm)</option>
-                                    <option value="evening">Evening (4pm–8pm)</option>
-                                </select>
+                            <div>
+                                <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest mb-0.5">Arrival Slot</p>
+                                <p className="text-xs font-black capitalize">{stage.timeSlot}</p>
                             </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Vehicle No.</Label>
-                                <Input value={form.vehicleNo} onChange={e => setForm(f => ({ ...f, vehicleNo: e.target.value }))} placeholder="MH12AB1234" className="rounded-xl h-10" />
+                            <div>
+                                <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest mb-0.5">Vehicle Number</p>
+                                <p className="text-xs font-black">{stage.deliveryTeam?.[0]?.vehicle?.number || 'N/A'}</p>
                             </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Driver Name</Label>
-                                <Input value={form.driverName} onChange={e => setForm(f => ({ ...f, driverName: e.target.value }))} className="rounded-xl h-10" />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Driver Phone</Label>
-                                <Input value={form.driverPhone} onChange={e => setForm(f => ({ ...f, driverPhone: e.target.value }))} className="rounded-xl h-10" />
+                            <div>
+                                <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest mb-0.5">Driver / Lead</p>
+                                <p className="text-xs font-black">{stage.deliveryTeam?.[0]?.name || 'Assigned'}</p>
                             </div>
                         </div>
+                    </motion.div>
+                )}
+
+                {/* Schedule form */}
+                {effectiveCanEdit && ['qc_passed', 'dispatched'].includes(jc.status) && !stage?.deliveredAt && (
+                    <div className="space-y-6 p-7 rounded-[32px] bg-card/40 border border-border/20 shadow-xl shadow-black/5 backdrop-blur-sm">
+                        <div className="flex items-center gap-2.5 mb-2">
+                            <div className="w-9 h-9 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                                <CalendarCheck size={16} className="text-cyan-600" />
+                            </div>
+                            <div>
+                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/80 leading-none mb-1">
+                                    {stage?.scheduledDate ? 'Modify Delivery Schedule' : 'Initialize Dispatch'}
+                                </p>
+                                <p className="text-[9px] font-bold text-muted-foreground/50 uppercase tracking-widest">Logistic Operations</p>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div className="space-y-2 col-span-full">
+                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Desired Delivery Date</Label>
+                                <div className={cn(!effectiveCanEdit && "opacity-50 pointer-events-none")}>
+                                    <DatePicker 
+                                        date={form.scheduledDate ? parseISO(form.scheduledDate) : undefined} 
+                                        setDate={(date) => setForm(f => ({ ...f, scheduledDate: date ? format(date, 'yyyy-MM-dd') : '' }))} 
+                                        className="h-12 rounded-2xl border-border/30 bg-background/50 focus:ring-cyan-500/10 font-bold px-5" 
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Arrival Slot</Label>
+                                <Select value={form.timeSlot} onValueChange={val => setForm(f => ({ ...f, timeSlot: val }))} disabled={!effectiveCanEdit}>
+                                    <SelectTrigger className="w-full h-12 rounded-2xl border-border/30 bg-background/50 px-5 text-xs font-black focus:ring-cyan-500/10">
+                                        <SelectValue placeholder="Select Slot" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl border-border/30 bg-background/95 backdrop-blur-md">
+                                        <SelectItem value="morning" className="rounded-xl font-bold py-3 text-xs">Morning (9am–12pm)</SelectItem>
+                                        <SelectItem value="afternoon" className="rounded-xl font-bold py-3 text-xs">Afternoon (12pm–4pm)</SelectItem>
+                                        <SelectItem value="evening" className="rounded-xl font-bold py-3 text-xs">Evening (4pm–8pm)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Vehicle License No.</Label>
+                                <Input value={form.vehicleNo} onChange={e => setForm(f => ({ ...f, vehicleNo: e.target.value }))} placeholder="e.g. GJ01-..." disabled={!effectiveCanEdit} className="rounded-2xl h-12 bg-background/50 border-border/30 font-bold text-xs px-5 focus:ring-cyan-500/10" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Driver In-Charge</Label>
+                                <Input value={form.driverName} onChange={e => setForm(f => ({ ...f, driverName: e.target.value }))} placeholder="Enter name" disabled={!effectiveCanEdit} className="rounded-2xl h-12 bg-background/50 border-border/30 font-bold text-xs px-5 focus:ring-cyan-500/10" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Contact Phone</Label>
+                                <Input value={form.driverPhone} onChange={e => setForm(f => ({ ...f, driverPhone: e.target.value }))} placeholder="Phone number" disabled={!effectiveCanEdit} className="rounded-2xl h-12 bg-background/50 border-border/30 font-bold text-xs px-5 focus:ring-cyan-500/10" />
+                            </div>
+                        </div>
+                        
                         <Button onClick={() => scheduleMut.mutate()} disabled={!form.scheduledDate || scheduleMut.isPending}
-                            className="w-full rounded-xl font-black gap-2 h-10">
-                            {scheduleMut.isPending ? <Loader2 size={14} className="animate-spin" /> : <CalendarCheck size={14} />}
-                            {stage?.scheduledDate ? 'Update Schedule' : 'Schedule Delivery'}
+                            className="w-full h-14 rounded-[20px] font-black gap-3 bg-linear-to-r from-cyan-600 to-blue-600 text-white shadow-xl shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300">
+                            {scheduleMut.isPending ? <Loader2 size={18} className="animate-spin" /> : <Truck size={18} />}
+                            {stage?.scheduledDate ? 'Save Schedule Changes' : 'Confirm & Schedule Dispatch'}
                         </Button>
                     </div>
                 )}
 
                 {/* Mark Delivered */}
-                {canEdit && jc.status === 'dispatched' && !stage?.deliveredAt && (
-                    <div className="space-y-3 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Mark as Delivered</p>
-                        <div className="space-y-2">
-                            <Input value={clientSignature} onChange={e => setClientSignature(e.target.value)} placeholder="Client name / signature (text)" className="rounded-xl h-9 text-xs" />
-                            <Input value={gpsLocation} onChange={e => setGpsLocation(e.target.value)} placeholder="GPS Location / Address" className="rounded-xl h-9 text-xs" />
-                            <label className="flex items-center gap-2 text-xs font-bold text-muted-foreground/50 cursor-pointer hover:text-primary">
-                                <input type="file" accept="image/*" className="hidden" onChange={e => setProofPhoto(e.target.files?.[0] ?? null)} />
-                                <Camera size={13} /> {proofPhoto ? proofPhoto.name : 'Upload Proof of Delivery Photo'}
-                            </label>
+                {effectiveCanEdit && jc.status === 'dispatched' && !stage?.deliveredAt && (
+                    <div className="space-y-6 p-7 rounded-[32px] bg-emerald-500/5 border border-emerald-500/20 shadow-xl shadow-emerald-500/5 backdrop-blur-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
+                        
+                        <div className="flex items-center gap-3 mb-2 relative z-10">
+                            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-inner">
+                                <PackageCheck size={18} className="text-emerald-600" />
+                            </div>
+                            <div>
+                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-600 leading-none mb-1">Mark as Delivered</p>
+                                <p className="text-[9px] font-bold text-muted-foreground/50 uppercase tracking-widest">Final Step in Lifecycle</p>
+                            </div>
                         </div>
-                        <Button onClick={() => deliverMut.mutate()} disabled={deliverMut.isPending || !clientSignature}
-                            className="w-full rounded-xl font-black gap-2 bg-emerald-500 hover:bg-emerald-600 text-white h-11">
-                            {deliverMut.isPending ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
-                            Confirm Delivery
+
+                        <div className="space-y-5 relative z-10">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Client Name / Signature</Label>
+                                    <Input value={clientSignature} onChange={e => setClientSignature(e.target.value)} placeholder="Type name or scan signature..." className="rounded-2xl h-12 bg-background/50 border-border/30 font-bold text-xs px-5 focus:ring-emerald-500/10 transition-all" disabled={!effectiveCanEdit} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">GPS Location / Address</Label>
+                                    <Input value={gpsLocation} onChange={e => setGpsLocation(e.target.value)} placeholder="Auto-detecting location..." className="rounded-2xl h-12 bg-background/50 border-border/30 font-bold text-xs px-5 focus:ring-emerald-500/10 transition-all" disabled={!effectiveCanEdit} />
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Proof of Delivery Photo</Label>
+                                <div className="flex flex-col gap-4">
+                                    {(previewUrl || podUrl || stage?.proofOfDelivery?.photo || uploadingPod) && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, scale: 0.95 }} 
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="relative w-72 aspect-video rounded-[24px] overflow-hidden border border-emerald-500/20 shadow-2xl group/preview"
+                                        >
+                                            {uploadingPod ? (
+                                                <div className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-md z-20">
+                                                    <Loader2 className="animate-spin text-emerald-600" size={28} />
+                                                </div>
+                                            ) : (
+                                                <ImagePreview 
+                                                    src={podUrl || previewUrl || stage?.proofOfDelivery?.photo} 
+                                                    alt="POD Preview" 
+                                                />
+                                            )}
+                                            
+                                            <div className="absolute top-0 inset-x-0 bg-linear-to-b from-black/40 via-transparent to-transparent p-3 flex justify-between items-start pointer-events-none z-10">
+                                               
+
+                                                {effectiveCanEdit && !uploadingPod && (
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); setProofPhoto(null); setPodUrl(''); }}
+                                                        className="p-1.5 rounded-xl bg-black/40 backdrop-blur-md text-white border border-white/20 hover:bg-rose-500 transition-colors shadow-lg pointer-events-auto"
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    {effectiveCanEdit && (
+                                        <label className={cn(
+                                            "flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-[28px] transition-all cursor-pointer group hover:bg-emerald-500/5",
+                                            (proofPhoto || podUrl) ? "border-emerald-500/50 bg-emerald-500/5" : "border-border/30 hover:border-emerald-500/30"
+                                        )}>
+                                            <input 
+                                                type="file" 
+                                                accept="image/*" 
+                                                className="hidden" 
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) handlePodUpload(file);
+                                                }} 
+                                                disabled={uploadingPod}
+                                            />
+                                            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                                                <Camera size={22} className="text-emerald-600" />
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-xs font-black uppercase tracking-widest text-emerald-600 mb-1">
+                                                    {proofPhoto ? 'Change Selected Photo' : 'Upload Delivery Proof'}
+                                                </p>
+                                                <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tighter italic">Tap to open camera or browse (Max 20MB)</p>
+                                            </div>
+                                        </label>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <Button onClick={() => deliverMut.mutate()} disabled={deliverMut.isPending || uploadingPod || !clientSignature || (!podUrl && !stage?.proofOfDelivery?.photo)}
+                            className="w-full h-14 rounded-[20px] font-black gap-3 bg-linear-to-r from-emerald-600 to-green-600 text-white shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 relative z-10">
+                            {deliverMut.isPending ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
+                            Confirm & Complete Delivery
                         </Button>
                     </div>
                 )}
 
                 {/* Delivered state */}
                 {stage?.deliveredAt && (
-                    <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
-                        <CheckCircle2 size={20} className="text-emerald-500" />
-                        <div>
-                            <p className="font-black text-emerald-600 text-sm">Delivered!</p>
-                            <p className="text-xs text-muted-foreground/60 font-medium">{new Date(stage.deliveredAt).toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                    <div className="space-y-6">
+                        <div className="p-6 rounded-[28px] bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row items-center gap-6 relative overflow-hidden backdrop-blur-sm">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
+                            
+                            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 shadow-inner shrink-0 scale-110">
+                                <CheckCircle2 size={32} className="text-emerald-600" />
+                            </div>
+                            
+                            <div className="flex-1 text-center sm:text-left relative z-10">
+                                <p className="font-black text-emerald-800 text-xl tracking-tight leading-none mb-1">Mission Completed!</p>
+                                <p className="text-xs text-emerald-700/60 font-bold uppercase tracking-widest flex items-center justify-center sm:justify-start gap-2">
+                                    <Clock size={12} />
+                                    {new Date(stage.deliveredAt).toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
+                                </p>
+                            </div>
+
+                            <Badge variant="outline" className="bg-emerald-500/20 border-emerald-500/30 text-emerald-700 text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full relative z-10">
+                                Successfully Delivered
+                            </Badge>
                         </div>
+
+                        {stage.proofOfDelivery?.photo && (
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-1">Official Proof of Delivery (POD)</Label>
+                                <div className="relative rounded-[32px] overflow-hidden border border-emerald-500/20 shadow-2xl group/final">
+                                    <img 
+                                        src={stage.proofOfDelivery.photo} 
+                                        alt="Proof of Delivery" 
+                                        className="w-full aspect-video object-cover transition-transform duration-1000 group-hover/final:scale-105" 
+                                    />
+                                    <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
+                                        <div className="flex flex-wrap items-end justify-between gap-4">
+                                            <div className="space-y-1">
+                                                <p className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">Capture Insights</p>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-1.5 text-white/90 text-xs font-black">
+                                                        <MapPin size={14} className="text-emerald-400" />
+                                                        {stage.proofOfDelivery.gpsLocation || 'Co-ordinates standard'}
+                                                    </div>
+                                                    <div className="w-1 h-1 rounded-full bg-white/20" />
+                                                    <div className="text-white/60 text-xs font-bold italic">
+                                                        Authenticated by {stage.deliveredBy?.name || 'Field Agent'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Button variant="outline" size="sm" asChild className="h-8 rounded-xl bg-white/10 backdrop-blur-md border-white/20 text-white text-[10px] font-black uppercase hover:bg-white/20">
+                                                <a href={stage.proofOfDelivery.photo} target="_blank" rel="noreferrer">
+                                                    <Maximize2 size={12} className="mr-1.5" /> Full Resolution
+                                                </a>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

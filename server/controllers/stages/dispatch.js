@@ -83,26 +83,31 @@ export const scheduleDispatch = async (req, res, next) => {
 /** PATCH /api/jobcards/:id/dispatch/deliver — Capture POD + mark delivered */
 export const markDelivered = async (req, res, next) => {
   try {
-    const { gpsLocation } = req.body;
+    const { gpsLocation, clientSignature, podPhotoUrl } = req.body;
 
-    // Upload POD photo if attached
-    let podPhotoUrl = null;
+    // Upload POD photo if attached (fallback for direct uploads)
+    let finalPodPhoto = podPhotoUrl || null;
     if (req.file) {
       const { url } = await uploadReqFile(req, `${req.user.companyId}/pod`);
-      podPhotoUrl = url;
+      finalPodPhoto = url;
+    }
+
+    const updateData = {
+      status: 'delivered',
+      deliveredBy: req.user.userId,
+      deliveredAt: new Date(),
+      'proofOfDelivery.gpsLocation': gpsLocation || null,
+      'proofOfDelivery.signature': clientSignature || null,
+      'proofOfDelivery.capturedAt': new Date(),
+    };
+
+    if (finalPodPhoto) {
+      updateData['proofOfDelivery.photo'] = finalPodPhoto;
     }
 
     const stage = await DispatchStage.findOneAndUpdate(
       { jobCardId: req.params.id },
-      {
-        status: 'delivered',
-        deliveredBy: req.user.userId,
-        proofOfDelivery: {
-          photo:       podPhotoUrl,
-          gpsLocation: gpsLocation || null,
-          capturedAt:  new Date(),
-        },
-      },
+      { $set: updateData },
       { new: true }
     );
     if (!stage) return res.status(404).json({ success: false, message: 'Dispatch stage not found' });

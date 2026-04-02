@@ -343,6 +343,24 @@ export const useUpdateWhatsApp = (id: string) => {
     });
 };
 
+export const useDeleteProject = (id: string) => {
+    const qc = useQueryClient();
+    const { company } = useAuthStore();
+    const cid = company?.id || '';
+    return useMutation({
+        mutationFn: () => apiDelete(`/projects/${id}`),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['projects', cid] });
+            qc.invalidateQueries({ queryKey: ['quotations', cid] });
+            qc.invalidateQueries({ queryKey: ['jobcards', cid] });
+            qc.invalidateQueries({ queryKey: ['invoices', cid] });
+            qc.invalidateQueries({ queryKey: ['dashboard', cid] });
+            toast.success('Project and associated records deleted');
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to delete project'),
+    });
+};
+
 // ─── Job Cards ────────────────────────────────────────────────────────────────
 
 export const useJobCards = (params: object = {}) => {
@@ -396,80 +414,6 @@ export const useCancelJobCard = (id: string) => {
     });
 };
 
-// ─── Design Stage ────────────────────────────────────────────────────────────
-
-export const useDesignStage = (jobCardId: string) => {
-    const { company } = useAuthStore();
-    return useQuery({ 
-        queryKey: ['designStage', company?.id || '', jobCardId], 
-        queryFn: () => apiGet(`/jobcards/${jobCardId}/design`), 
-        enabled: !!jobCardId && !!company?.id 
-    });
-};
-
-export const useInitiateDesign = (jobCardId: string) => {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: () => apiPost(`/jobcards/${jobCardId}/design`, {}),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['designStage', jobCardId] }),
-    });
-};
-
-export const useUpdateDesign = (jobCardId: string) => {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: (data: object) => apiPut(`/jobcards/${jobCardId}/design`, data),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['designStage', jobCardId] }),
-    });
-};
-
-export const useSendSignoffLink = (jobCardId: string) => {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: () => apiPost(`/jobcards/${jobCardId}/design/signoff`, {}),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['designStage', jobCardId] }),
-    });
-};
-
-export const useMarkDesignReady = (jobCardId: string) => {
-    const qc = useQueryClient();
-    const { company } = useAuthStore();
-    const cid = company?.id || '';
-    return useMutation({
-        mutationFn: () => apiPatch(`/jobcards/${jobCardId}/design/ready`),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: QK.jobCard(cid, jobCardId) });
-            qc.invalidateQueries({ queryKey: ['designStage', cid, jobCardId] });
-        },
-    });
-};
-
-// ─── Store Stage ─────────────────────────────────────────────────────────────
-
-export const useStoreStage = (jobCardId: string) =>
-    useQuery({ queryKey: ['storeStage', jobCardId], queryFn: () => apiGet(`/jobcards/${jobCardId}/store`), enabled: !!jobCardId });
-
-export const useIssueAllMaterials = (jobCardId: string) => {
-    const qc = useQueryClient();
-    const { company } = useAuthStore();
-    const cid = company?.id || '';
-    return useMutation({
-        mutationFn: () => apiPatch(`/jobcards/${jobCardId}/store/issue-all`),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['storeStage', cid, jobCardId] });
-            qc.invalidateQueries({ queryKey: QK.jobCard(cid, jobCardId) });
-        },
-    });
-};
-
-export const useIssueOneMaterial = (jobCardId: string) => {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: ({ bomId, issuedQty }: { bomId: string; issuedQty: number }) =>
-            apiPatch(`/jobcards/${jobCardId}/store/issue/${bomId}`, { issuedQty }),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['storeStage', jobCardId] }),
-    });
-};
 
 // ─── Production Stage ────────────────────────────────────────────────────────
 

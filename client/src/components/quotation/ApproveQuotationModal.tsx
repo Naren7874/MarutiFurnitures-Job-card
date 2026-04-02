@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Loader2, CheckCircle2, User2, CalendarDays, Users, Package,
-    ArrowRight, Shield, Wrench, Truck, PencilLine, IndianRupee, CreditCard,
+    ArrowRight, Shield, Wrench, Truck, IndianRupee, CreditCard,
     RefreshCw
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -24,8 +24,6 @@ import { StaffMultiSelect } from '../shared/StaffMultiSelect';
 import { DatePicker } from '@/components/ui/date-picker';
 
 interface TeamAssignment {
-    design: string[];
-    store: string[];
     production: string[];
     qc: string[];
     dispatch: string[];
@@ -36,7 +34,7 @@ interface JobCardConfig {
     itemId: string;
     srNo: number;
     description: string;
-    salesPerson: { id: string; name: string };
+    salesperson: { id: string; name: string };
     contactPerson: { id: string; name: string };
     expectedDelivery: string;
     assignedTo: TeamAssignment;
@@ -59,10 +57,10 @@ export default function ApproveQuotationModal({
 }: ApproveQuotationModalProps) {
     const [configs, setConfigs] = useState<JobCardConfig[]>([]);
     const [globalConfig, setGlobalConfig] = useState({
-        salesPerson: { id: '', name: '' },
+        salesperson: { id: '', name: '' },
         contactPerson: { id: '', name: '' },
         expectedDelivery: '',
-        assignedTo: { design: [], store: [], production: [], qc: [], dispatch: [], accounts: [] } as TeamAssignment,
+        assignedTo: { production: [], qc: [], dispatch: [], accounts: [] } as TeamAssignment,
     });
     const [advancePayment, setAdvancePayment] = useState({
         amount: 0,
@@ -84,27 +82,23 @@ export default function ApproveQuotationModal({
                 itemId: item._id,
                 srNo: item.srNo,
                 description: item.description,
-                salesPerson: { id: '', name: '' },
+                salesperson: { id: '', name: '' },
                 contactPerson: { id: '', name: '' },
                 expectedDelivery: '',
-                assignedTo: { 
-                    design: [...defaultStaffIds], 
-                    store: [],
-                    production: [...defaultStaffIds], 
-                    qc: [], 
+                assignedTo: {
+                    production: [...defaultStaffIds],
+                    qc: [],
                     dispatch: [],
                     accounts: []
                 },
             })));
             setGlobalConfig({
-                salesPerson: { id: '', name: '' },
+                salesperson: { id: '', name: '' },
                 contactPerson: { id: '', name: '' },
                 expectedDelivery: '',
-                assignedTo: { 
-                    design: [...defaultStaffIds], 
-                    store: [],
-                    production: [...defaultStaffIds], 
-                    qc: [], 
+                assignedTo: {
+                    production: [...defaultStaffIds],
+                    qc: [],
                     dispatch: [],
                     accounts: []
                 },
@@ -121,12 +115,10 @@ export default function ApproveQuotationModal({
     const applyGlobal = () => {
         setConfigs(prev => prev.map(c => ({
             ...c,
-            salesPerson: globalConfig.salesPerson.id ? globalConfig.salesPerson : c.salesPerson,
+            salesperson: globalConfig.salesperson.id ? globalConfig.salesperson : c.salesperson,
             contactPerson: globalConfig.contactPerson.id ? globalConfig.contactPerson : c.contactPerson,
             expectedDelivery: globalConfig.expectedDelivery || c.expectedDelivery,
             assignedTo: {
-                design: globalConfig.assignedTo.design.length ? globalConfig.assignedTo.design : c.assignedTo.design,
-                store: globalConfig.assignedTo.store.length ? globalConfig.assignedTo.store : c.assignedTo.store,
                 production: globalConfig.assignedTo.production.length ? globalConfig.assignedTo.production : c.assignedTo.production,
                 qc: globalConfig.assignedTo.qc.length ? globalConfig.assignedTo.qc : c.assignedTo.qc,
                 dispatch: globalConfig.assignedTo.dispatch.length ? globalConfig.assignedTo.dispatch : c.assignedTo.dispatch,
@@ -137,11 +129,11 @@ export default function ApproveQuotationModal({
 
     const handleConfirm = () => {
         onConfirm(
-            configs.map(({ itemId, srNo, salesPerson, contactPerson, expectedDelivery, assignedTo }) => ({
+            configs.map(({ itemId, srNo, salesperson, contactPerson, expectedDelivery, assignedTo }) => ({
                 itemId,
                 srNo,
-                salesPerson: salesPerson.id ? salesPerson : undefined,
-                contactPerson: contactPerson.name || undefined, 
+                salesperson: salesperson.id ? salesperson : undefined,
+                contactPerson: contactPerson.name || undefined,
                 expectedDelivery: expectedDelivery || undefined,
                 assignedTo,
             })),
@@ -160,7 +152,7 @@ export default function ApproveQuotationModal({
                                 <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
                                     <CheckCircle2 size={20} />
                                 </div>
-                                <DialogTitle className="text-3xl font-black tracking-tighter text-foreground">
+                                <DialogTitle className="text-3xl font-black  text-foreground">
                                     Finalize Job Cards
                                 </DialogTitle>
                             </div>
@@ -175,7 +167,7 @@ export default function ApproveQuotationModal({
                             {/* Global Bulk Action */}
                             <div className="bg-primary/3 border border-primary/10 rounded-[40px] p-10 space-y-8 relative overflow-hidden shadow-sm">
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/2 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl -z-10" />
-                                
+
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                         <div className="p-3 rounded-2xl bg-primary/10 text-primary shadow-inner">
@@ -186,8 +178,8 @@ export default function ApproveQuotationModal({
                                             <p className="text-[11px] text-muted-foreground font-bold mt-0.5">Apply settings to all job cards in this quotation</p>
                                         </div>
                                     </div>
-                                    <Button 
-                                        type="button" 
+                                    <Button
+                                        type="button"
                                         onClick={applyGlobal}
                                         className="h-12 px-10 rounded-2xl text-[11px] font-black uppercase tracking-widest bg-primary text-white hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-95 group"
                                     >
@@ -201,18 +193,18 @@ export default function ApproveQuotationModal({
                                         <label className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/80 ml-1 flex items-center gap-2">
                                             <Users size={12} className="text-primary" /> Sales Person
                                         </label>
-                                        <Select 
-                                            value={globalConfig.salesPerson.id} 
+                                        <Select
+                                            value={globalConfig.salesperson.id}
                                             onValueChange={(val) => {
                                                 const user = allUsers.find(u => u._id === val);
-                                                setGlobalConfig(prev => ({ ...prev, salesPerson: { id: val, name: user?.name || '' } }));
+                                                setGlobalConfig(prev => ({ ...prev, salesperson: { id: val, name: user?.name || '' } }));
                                             }}
                                         >
                                             <SelectTrigger className="h-12 rounded-2xl bg-background/50 border-border/60 text-sm font-bold shadow-sm focus:ring-primary/20 hover:border-primary/40 transition-colors">
                                                 <SelectValue placeholder="Select staff..." />
                                             </SelectTrigger>
                                             <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
-                                                {allUsers.map(user => (
+                                                {allUsers.filter(u => ['sales', 'management'].includes(u.role)).map(user => (
                                                     <SelectItem key={user._id} value={user._id} className="text-sm font-bold rounded-xl py-3 focus:bg-primary/10">{user.name}</SelectItem>
                                                 ))}
                                             </SelectContent>
@@ -222,8 +214,8 @@ export default function ApproveQuotationModal({
                                         <label className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/80 ml-1 flex items-center gap-2">
                                             <User2 size={12} className="text-primary" /> Contact Person
                                         </label>
-                                        <Select 
-                                            value={globalConfig.contactPerson.id} 
+                                        <Select
+                                            value={globalConfig.contactPerson.id}
                                             onValueChange={(val) => {
                                                 const user = allUsers.find(u => u._id === val);
                                                 setGlobalConfig(prev => ({ ...prev, contactPerson: { id: val, name: user?.name || '' } }));
@@ -243,8 +235,8 @@ export default function ApproveQuotationModal({
                                         <label className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/80 ml-1 flex items-center gap-2">
                                             <CalendarDays size={12} className="text-primary" /> Expected Delivery
                                         </label>
-                                        <DatePicker 
-                                            date={globalConfig.expectedDelivery ? parseISO(globalConfig.expectedDelivery) : undefined} 
+                                        <DatePicker
+                                            date={globalConfig.expectedDelivery ? parseISO(globalConfig.expectedDelivery) : undefined}
                                             setDate={(date) => setGlobalConfig(prev => ({ ...prev, expectedDelivery: date ? format(date, 'yyyy-MM-dd') : '' }))}
                                             className="h-12 bg-background/50 border-border/60 text-sm font-bold shadow-sm focus:ring-primary/20 hover:border-primary/40 transition-colors"
                                         />
@@ -256,91 +248,65 @@ export default function ApproveQuotationModal({
                                         <div className="w-1.5 h-1.5 rounded-full bg-primary" /> Team Assignment (Set for All)
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                        <StaffMultiSelect 
-                                            label="Design Team" 
-                                            icon={PencilLine} 
-                                            selectedIds={globalConfig.assignedTo.design}
-                                            allUsers={allUsers}
-                                            onToggle={(id) => setGlobalConfig(prev => ({
-                                                ...prev,
-                                                assignedTo: {
-                                                    ...prev.assignedTo,
-                                                    design: prev.assignedTo.design.includes(id) 
-                                                        ? prev.assignedTo.design.filter(x => x !== id)
-                                                        : [...prev.assignedTo.design, id]
-                                                }
-                                            }))}
-                                        />
-                                        <StaffMultiSelect 
-                                            label="Production" 
-                                            icon={Wrench} 
+                                        <StaffMultiSelect
+                                            label="Production"
+                                            icon={Wrench}
                                             selectedIds={globalConfig.assignedTo.production}
                                             allUsers={allUsers}
+                                            roleFilter="production"
                                             onToggle={(id) => setGlobalConfig(prev => ({
                                                 ...prev,
                                                 assignedTo: {
                                                     ...prev.assignedTo,
-                                                    production: prev.assignedTo.production.includes(id) 
+                                                    production: prev.assignedTo.production.includes(id)
                                                         ? prev.assignedTo.production.filter(x => x !== id)
                                                         : [...prev.assignedTo.production, id]
                                                 }
                                             }))}
                                         />
-                                        <StaffMultiSelect 
-                                            label="Store" 
-                                            icon={Package} 
-                                            selectedIds={globalConfig.assignedTo.store}
-                                            allUsers={allUsers}
-                                            onToggle={(id) => setGlobalConfig(prev => ({
-                                                ...prev,
-                                                assignedTo: {
-                                                    ...prev.assignedTo,
-                                                    store: prev.assignedTo.store.includes(id) 
-                                                        ? prev.assignedTo.store.filter(x => x !== id)
-                                                        : [...prev.assignedTo.store, id]
-                                                }
-                                            }))}
-                                        />
-                                        <StaffMultiSelect 
-                                            label="Quality Control" 
-                                            icon={Shield} 
+                                        <StaffMultiSelect
+                                            label="Quality Control"
+                                            icon={Shield}
                                             selectedIds={globalConfig.assignedTo.qc}
                                             allUsers={allUsers}
+                                            roleFilter="qc"
                                             onToggle={(id) => setGlobalConfig(prev => ({
                                                 ...prev,
                                                 assignedTo: {
                                                     ...prev.assignedTo,
-                                                    qc: prev.assignedTo.qc.includes(id) 
+                                                    qc: prev.assignedTo.qc.includes(id)
                                                         ? prev.assignedTo.qc.filter(x => x !== id)
                                                         : [...prev.assignedTo.qc, id]
                                                 }
                                             }))}
                                         />
-                                        <StaffMultiSelect 
-                                            label="Dispatch" 
-                                            icon={Truck} 
+                                        <StaffMultiSelect
+                                            label="Dispatch"
+                                            icon={Truck}
                                             selectedIds={globalConfig.assignedTo.dispatch}
                                             allUsers={allUsers}
+                                            roleFilter="dispatch"
                                             onToggle={(id) => setGlobalConfig(prev => ({
                                                 ...prev,
                                                 assignedTo: {
                                                     ...prev.assignedTo,
-                                                    dispatch: prev.assignedTo.dispatch.includes(id) 
+                                                    dispatch: prev.assignedTo.dispatch.includes(id)
                                                         ? prev.assignedTo.dispatch.filter(x => x !== id)
                                                         : [...prev.assignedTo.dispatch, id]
                                                 }
                                             }))}
                                         />
-                                        <StaffMultiSelect 
-                                            label="Accounts" 
-                                            icon={IndianRupee} 
+                                        <StaffMultiSelect
+                                            label="Accounts"
+                                            icon={IndianRupee}
                                             selectedIds={globalConfig.assignedTo.accounts}
                                             allUsers={allUsers}
+                                            roleFilter="accountant"
                                             onToggle={(id) => setGlobalConfig(prev => ({
                                                 ...prev,
                                                 assignedTo: {
                                                     ...prev.assignedTo,
-                                                    accounts: prev.assignedTo.accounts.includes(id) 
+                                                    accounts: prev.assignedTo.accounts.includes(id)
                                                         ? prev.assignedTo.accounts.filter(x => x !== id)
                                                         : [...prev.assignedTo.accounts, id]
                                                 }
@@ -407,177 +373,157 @@ export default function ApproveQuotationModal({
 
                             {/* Individual Item Configs */}
                             <div className="space-y-6">
-                                    <div className="flex items-center gap-4 ml-2">
-                                        <div className="p-2.5 rounded-2xl bg-orange-500/10 text-orange-500 shadow-inner">
-                                            <Package size={20} />
-                                        </div>
-                                        <div>
-                                            <p className="text-[12px] font-black uppercase tracking-[0.3em] text-foreground/40">
-                                                Individual Item Configuration
-                                            </p>
-                                            <div className="h-1 w-12 bg-orange-500/20 rounded-full mt-1.5" />
-                                        </div>
+                                <div className="flex items-center gap-4 ml-2">
+                                    <div className="p-2.5 rounded-2xl bg-orange-500/10 text-orange-500 shadow-inner">
+                                        <Package size={20} />
                                     </div>
-                                    {configs.map((config, idx) => (
-                                        <motion.div 
-                                            key={config.itemId}
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: idx * 0.1, duration: 0.5, ease: "circOut" }}
-                                            className="p-10 bg-card/40 border border-border/30 rounded-[48px] space-y-10 shadow-xl hover:shadow-2xl transition-all relative overflow-hidden group/card"
-                                        >
-                                            <div className="absolute top-0 right-0 w-48 h-48 bg-primary/3 rounded-bl-[120px] -z-10 group-hover/card:scale-125 transition-transform duration-700" />
-                                            
-                                            <div className="flex items-start justify-between relative">
-                                                <div className="flex items-center gap-6">
-                                                    <div className="w-16 h-16 rounded-[24px] bg-linear-to-br from-primary to-primary/80 text-white flex items-center justify-center text-2xl font-black shrink-0 shadow-2xl shadow-primary/30 ring-4 ring-primary/10">
-                                                        {config.srNo}
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-black text-2xl text-foreground tracking-tight leading-tight mb-2 uppercase group-hover/card:text-primary transition-colors">{config.description}</p>
-                                                        <div className="flex items-center gap-3">
-                                                            <Badge variant="secondary" className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-primary/10 text-primary border-none">
-                                                                Job Card #{idx + 1}
-                                                            </Badge>
-                                                            <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest px-3 py-1 border-border/30 opacity-60">
-                                                                #{config.itemId.slice(-6)}
-                                                            </Badge>
-                                                        </div>
+                                    <div>
+                                        <p className="text-[12px] font-black uppercase tracking-[0.3em] text-foreground/40">
+                                            Individual Item Configuration
+                                        </p>
+                                        <div className="h-1 w-12 bg-orange-500/20 rounded-full mt-1.5" />
+                                    </div>
+                                </div>
+                                {configs.map((config, idx) => (
+                                    <motion.div
+                                        key={config.itemId}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: idx * 0.1, duration: 0.5, ease: "circOut" }}
+                                        className="p-10 bg-card/40 border border-border/30 rounded-[48px] space-y-10 shadow-xl hover:shadow-2xl transition-all relative overflow-hidden group/card"
+                                    >
+                                        <div className="absolute top-0 right-0 w-48 h-48 bg-primary/3 rounded-bl-[120px] -z-10 group-hover/card:scale-125 transition-transform duration-700" />
+
+                                        <div className="flex items-start justify-between relative">
+                                            <div className="flex items-center gap-6">
+                                                <div className="w-16 h-16 rounded-[24px] bg-linear-to-br from-primary to-primary/80 text-white flex items-center justify-center text-2xl font-black shrink-0 shadow-2xl shadow-primary/30 ring-4 ring-primary/10">
+                                                    {config.srNo}
+                                                </div>
+                                                <div>
+                                                    <p className="font-black text-2xl text-foreground tracking-tight leading-tight mb-2 uppercase group-hover/card:text-primary transition-colors">{config.description}</p>
+                                                    <div className="flex items-center gap-3">
+                                                        <Badge variant="secondary" className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-primary/10 text-primary border-none">
+                                                            Job Card #{idx + 1}
+                                                        </Badge>
+                                                        <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest px-3 py-1 border-border/30 opacity-60">
+                                                            #{config.itemId.slice(-6)}
+                                                        </Badge>
                                                     </div>
                                                 </div>
                                             </div>
+                                        </div>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                                <div className="space-y-3">
-                                                    <label className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1 flex items-center gap-2">
-                                                        <Users size={12} className="text-primary/60" /> Sales Person
-                                                    </label>
-                                                    <Select 
-                                                        value={config.salesPerson.id} 
-                                                        onValueChange={(val) => {
-                                                            const user = allUsers.find(u => u._id === val);
-                                                            handleUpdateItem(idx, 'salesPerson', { id: val, name: user?.name || '' });
-                                                        }}
-                                                    >
-                                                        <SelectTrigger className="h-12 rounded-2xl bg-muted/40 border-border/40 text-sm font-bold shadow-inner group-hover/card:bg-background transition-colors">
-                                                            <SelectValue placeholder="Select staff..." />
-                                                        </SelectTrigger>
-                                                        <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
-                                                            {allUsers.map(user => (
-                                                                <SelectItem key={user._id} value={user._id} className="text-sm font-bold rounded-xl py-3 focus:bg-primary/10">{user.name}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <div className="space-y-3">
-                                                    <label className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1 flex items-center gap-2">
-                                                        <User2 size={12} className="text-primary/60" /> Contact Person
-                                                    </label>
-                                                    <Select 
-                                                        value={config.contactPerson.id} 
-                                                        onValueChange={(val) => {
-                                                            const user = allUsers.find(u => u._id === val);
-                                                            handleUpdateItem(idx, 'contactPerson', { id: val, name: user?.name || '' });
-                                                        }}
-                                                    >
-                                                        <SelectTrigger className="h-12 rounded-2xl bg-muted/40 border-border/40 text-sm font-bold shadow-inner group-hover/card:bg-background transition-colors">
-                                                            <SelectValue placeholder="Select staff..." />
-                                                        </SelectTrigger>
-                                                        <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
-                                                            {allUsers.map(user => (
-                                                                <SelectItem key={user._id} value={user._id} className="text-sm font-bold rounded-xl py-3 focus:bg-primary/10">{user.name}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <div className="space-y-3">
-                                                    <label className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1 flex items-center gap-2">
-                                                        <CalendarDays size={12} className="text-primary/60" /> Delivery Date
-                                                    </label>
-                                                    <DatePicker 
-                                                        date={config.expectedDelivery ? parseISO(config.expectedDelivery) : undefined} 
-                                                        setDate={(date) => handleUpdateItem(idx, 'expectedDelivery', date ? format(date, 'yyyy-MM-dd') : '')}
-                                                        className="h-12 bg-muted/40 border-border/40 text-sm font-bold shadow-inner group-hover/card:bg-background transition-colors"
-                                                    />
-                                                </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                            <div className="space-y-3">
+                                                <label className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1 flex items-center gap-2">
+                                                    <Users size={12} className="text-primary/60" /> Sales Person
+                                                </label>
+                                                <Select
+                                                    value={config.salesperson.id}
+                                                    onValueChange={(val) => {
+                                                        const user = allUsers.find(u => u._id === val);
+                                                        handleUpdateItem(idx, 'salesperson', { id: val, name: user?.name || '' });
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="h-12 rounded-2xl bg-muted/40 border-border/40 text-sm font-bold shadow-inner group-hover/card:bg-background transition-colors">
+                                                        <SelectValue placeholder="Select staff..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
+                                                        {allUsers.filter(u => ['sales', 'management'].includes(u.role)).map(user => (
+                                                            <SelectItem key={user._id} value={user._id} className="text-sm font-bold rounded-xl py-3 focus:bg-primary/10">{user.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                             </div>
-
-                                            <div className="pt-8 border-t border-border/10">
-                                                <div className="flex items-center justify-between mb-6">
-                                                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/40 ml-1 flex items-center gap-2">
-                                                        Team Assignment
-                                                    </p>
-                                                    <div className="h-px flex-1 bg-border/10 ml-4 mr-0" />
-                                                </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                                <StaffMultiSelect 
-                                                    label="Design" 
-                                                    icon={PencilLine} 
-                                                    selectedIds={config.assignedTo.design}
-                                                    allUsers={allUsers}
-                                                    onToggle={(id) => handleUpdateItem(idx, 'assignedTo', {
-                                                        ...config.assignedTo,
-                                                        design: config.assignedTo.design.includes(id) 
-                                                            ? config.assignedTo.design.filter(x => x !== id)
-                                                            : [...config.assignedTo.design, id]
-                                                    })}
+                                            <div className="space-y-3">
+                                                <label className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1 flex items-center gap-2">
+                                                    <User2 size={12} className="text-primary/60" /> Contact Person
+                                                </label>
+                                                <Select
+                                                    value={config.contactPerson.id}
+                                                    onValueChange={(val) => {
+                                                        const user = allUsers.find(u => u._id === val);
+                                                        handleUpdateItem(idx, 'contactPerson', { id: val, name: user?.name || '' });
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="h-12 rounded-2xl bg-muted/40 border-border/40 text-sm font-bold shadow-inner group-hover/card:bg-background transition-colors">
+                                                        <SelectValue placeholder="Select staff..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
+                                                        {allUsers.map(user => (
+                                                            <SelectItem key={user._id} value={user._id} className="text-sm font-bold rounded-xl py-3 focus:bg-primary/10">{user.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <label className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1 flex items-center gap-2">
+                                                    <CalendarDays size={12} className="text-primary/60" /> Delivery Date
+                                                </label>
+                                                <DatePicker
+                                                    date={config.expectedDelivery ? parseISO(config.expectedDelivery) : undefined}
+                                                    setDate={(date) => handleUpdateItem(idx, 'expectedDelivery', date ? format(date, 'yyyy-MM-dd') : '')}
+                                                    className="h-12 bg-muted/40 border-border/40 text-sm font-bold shadow-inner group-hover/card:bg-background transition-colors"
                                                 />
-                                                <StaffMultiSelect 
-                                                    label="Production" 
-                                                    icon={Wrench} 
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-8 border-t border-border/10">
+                                            <div className="flex items-center justify-between mb-6">
+                                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/40 ml-1 flex items-center gap-2">
+                                                    Team Assignment
+                                                </p>
+                                                <div className="h-px flex-1 bg-border/10 ml-4 mr-0" />
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                                <StaffMultiSelect
+                                                    label="Production"
+                                                    icon={Wrench}
                                                     selectedIds={config.assignedTo.production}
                                                     allUsers={allUsers}
+                                                    roleFilter="production"
                                                     onToggle={(id) => handleUpdateItem(idx, 'assignedTo', {
                                                         ...config.assignedTo,
-                                                        production: config.assignedTo.production.includes(id) 
+                                                        production: config.assignedTo.production.includes(id)
                                                             ? config.assignedTo.production.filter(x => x !== id)
                                                             : [...config.assignedTo.production, id]
                                                     })}
                                                 />
-                                                <StaffMultiSelect 
-                                                    label="Store" 
-                                                    icon={Package} 
-                                                    selectedIds={config.assignedTo.store}
-                                                    allUsers={allUsers}
-                                                    onToggle={(id) => handleUpdateItem(idx, 'assignedTo', {
-                                                        ...config.assignedTo,
-                                                        store: config.assignedTo.store.includes(id) 
-                                                            ? config.assignedTo.store.filter(x => x !== id)
-                                                            : [...config.assignedTo.store, id]
-                                                    })}
-                                                />
-                                                <StaffMultiSelect 
-                                                    label="QC" 
-                                                    icon={Shield} 
+                                                <StaffMultiSelect
+                                                    label="QC"
+                                                    icon={Shield}
                                                     selectedIds={config.assignedTo.qc}
                                                     allUsers={allUsers}
+                                                    roleFilter="qc"
                                                     onToggle={(id) => handleUpdateItem(idx, 'assignedTo', {
                                                         ...config.assignedTo,
-                                                        qc: config.assignedTo.qc.includes(id) 
+                                                        qc: config.assignedTo.qc.includes(id)
                                                             ? config.assignedTo.qc.filter(x => x !== id)
                                                             : [...config.assignedTo.qc, id]
                                                     })}
                                                 />
-                                                <StaffMultiSelect 
-                                                    label="Dispatch" 
-                                                    icon={Truck} 
+                                                <StaffMultiSelect
+                                                    label="Dispatch"
+                                                    icon={Truck}
                                                     selectedIds={config.assignedTo.dispatch}
                                                     allUsers={allUsers}
+                                                    roleFilter="dispatch"
                                                     onToggle={(id) => handleUpdateItem(idx, 'assignedTo', {
                                                         ...config.assignedTo,
-                                                        dispatch: config.assignedTo.dispatch.includes(id) 
+                                                        dispatch: config.assignedTo.dispatch.includes(id)
                                                             ? config.assignedTo.dispatch.filter(x => x !== id)
                                                             : [...config.assignedTo.dispatch, id]
                                                     })}
                                                 />
-                                                <StaffMultiSelect 
-                                                    label="Accounts" 
-                                                    icon={IndianRupee} 
+                                                <StaffMultiSelect
+                                                    label="Accounts"
+                                                    icon={IndianRupee}
                                                     selectedIds={config.assignedTo.accounts}
                                                     allUsers={allUsers}
+                                                    roleFilter="accountant"
                                                     onToggle={(id) => handleUpdateItem(idx, 'assignedTo', {
                                                         ...config.assignedTo,
-                                                        accounts: config.assignedTo.accounts.includes(id) 
+                                                        accounts: config.assignedTo.accounts.includes(id)
                                                             ? config.assignedTo.accounts.filter(x => x !== id)
                                                             : [...config.assignedTo.accounts, id]
                                                     })}

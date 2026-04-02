@@ -1,7 +1,6 @@
 import { QcStage } from '../../models/QcStage.js';
 import { DispatchStage } from '../../models/DispatchStage.js';
 import JobCard from '../../models/JobCard.js';
-import { generateAndUploadPDF } from '../../utils/generatePDF.js';
 import { uploadReqFiles } from '../../middleware/upload.js';
 import { auditLog } from '../../utils/auditLogger.js';
 
@@ -73,16 +72,6 @@ export const passQC = async (req, res, next) => {
 
     stage.verdict     = 'pass';
     stage.inspectedBy = req.user.userId;
-
-    // Generate QC certificate PDF
-    const certUrl = await generateAndUploadPDF(
-      'qc-certificate',
-      { JC_NUMBER: req.params.id, VERDICT: 'PASS', DATE: new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) },
-      `${req.user.companyId}/qc-certs`,
-      `QC-CERT-${req.params.id}`
-    ).catch(() => null);  // Don't fail if template not ready yet
-
-    stage.certificateURL = certUrl;
     await stage.save();
 
     // Create Dispatch Stage
@@ -118,7 +107,7 @@ export const passQC = async (req, res, next) => {
 /** PATCH /api/jobcards/:id/qc/fail — QC fail → rework */
 export const failQC = async (req, res, next) => {
   try {
-    const { defectSummary, failReason } = req.body;
+    const { defectSummary = 'General Rework', failReason = 'QC Parameters not met' } = req.body;
 
     const stage = await QcStage.findOne({ jobCardId: req.params.id });
     if (!stage) return res.status(404).json({ success: false, message: 'QC stage not found' });

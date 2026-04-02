@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-    ArrowLeft, Loader2, Plus, Trash2, 
-    ShieldAlert, Info, Package, 
+import {
+    ArrowLeft, Loader2, Plus, Trash2,
+    ShieldAlert, Info, Package,
     ArrowRight, Calculator, UserCircle, Calendar
 } from 'lucide-react';
 import { useCreatePO, useInventory } from '../hooks/useApi';
@@ -62,7 +62,7 @@ export default function NewPurchaseOrderPage() {
         if (!vendor.vendorName) errors.vendorName = 'Vendor name is required';
         if (vendor.vendorPhone && vendor.vendorPhone.length !== 10) errors.vendorPhone = 'Must be exactly 10 digits';
         if (!requiredBy) errors.requiredBy = 'Delivery target date is required';
-        
+
         items.forEach((it, i) => {
             if (!it.itemName) errors[`item_${i}_name`] = 'Required';
             if (it.qty <= 0) errors[`item_${i}_qty`] = 'Must be > 0';
@@ -112,7 +112,7 @@ export default function NewPurchaseOrderPage() {
             {/* ── Header ── */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-4">
-                    <button onClick={() => navigate('/purchase-orders')} 
+                    <button onClick={() => navigate('/purchase-orders')}
                         className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 hover:text-primary transition-colors">
                         <div className="w-8 h-8 rounded-full border border-border/40 flex items-center justify-center group-hover:border-primary/20 group-hover:bg-primary/5 transition-all">
                             <ArrowLeft size={12} className="group-hover:-translate-x-0.5 transition-transform" />
@@ -129,7 +129,7 @@ export default function NewPurchaseOrderPage() {
 
                 <div className="flex items-center gap-3">
                     <Button variant="ghost" onClick={() => navigate('/purchase-orders')} className="rounded-2xl h-12 px-6 font-black text-[10px] uppercase tracking-widest text-muted-foreground/40 hover:bg-muted/50 transition-all">Discard</Button>
-                    <Button onClick={handleSubmit} disabled={createPO.isPending} 
+                    <Button onClick={handleSubmit} disabled={createPO.isPending}
                         className="rounded-2xl h-12 px-8 font-black text-[10px] uppercase tracking-widest gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl shadow-primary/20 active:scale-95 transition-all">
                         {createPO.isPending ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
                         Finalize Request
@@ -155,7 +155,7 @@ export default function NewPurchaseOrderPage() {
                         <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
                             <UserCircle size={120} />
                         </div>
-                        
+
                         <div className="space-y-6">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center border border-primary/10">
@@ -174,7 +174,7 @@ export default function NewPurchaseOrderPage() {
                                         <Input value={vendor.vendorName} onChange={e => {
                                             setVendor(v => ({ ...v, vendorName: e.target.value }));
                                             if (fieldErrors.vendorName) setFieldErrors(p => { const n = { ...p }; delete n.vendorName; return n; });
-                                        }} 
+                                        }}
                                             className={cn("rounded-2xl h-14 bg-muted/20 border-border/10 px-6 font-bold text-sm focus-visible:ring-primary/20 transition-all placeholder:font-medium placeholder:text-muted-foreground/30", fieldErrors.vendorName && "border-rose-500/50 bg-rose-500/5")}
                                             placeholder="Enter registered vendor name" autoFocus />
                                     </div>
@@ -184,7 +184,7 @@ export default function NewPurchaseOrderPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">Contact Person</Label>
-                                        <Input value={vendor.vendorContact} onChange={e => setVendor(v => ({ ...v, vendorContact: e.target.value }))} 
+                                        <Input value={vendor.vendorContact} onChange={e => setVendor(v => ({ ...v, vendorContact: e.target.value }))}
                                             className="rounded-2xl h-12 bg-muted/10 border-border/5 px-4 font-bold text-xs" placeholder="Full name" />
                                     </div>
                                     <div className="space-y-2">
@@ -193,9 +193,9 @@ export default function NewPurchaseOrderPage() {
                                             const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                                             setVendor(v => ({ ...v, vendorPhone: val }));
                                             if (fieldErrors.vendorPhone) setFieldErrors(p => { const n = { ...p }; delete n.vendorPhone; return n; });
-                                        }} 
+                                        }}
                                             className={cn("rounded-2xl h-12 bg-muted/10 border-border/5 px-4 font-bold text-xs", fieldErrors.vendorPhone && "border-rose-500/50 bg-rose-500/5")} placeholder="+91..." />
-                                        {fieldErrors.vendorPhone && <p className="text-[8px] font-black text-rose-500 uppercase tracking-tighter mt-1 animate-in fade-in slide-in-from-top-1">{fieldErrors.vendorPhone}</p>}
+                                        {fieldErrors.vendorPhone && <p className="text-[8px] font-black text-rose-500 uppercase  mt-1 animate-in fade-in slide-in-from-top-1">{fieldErrors.vendorPhone}</p>}
                                     </div>
                                 </div>
                             </div>
@@ -210,12 +210,12 @@ export default function NewPurchaseOrderPage() {
                                 </div>
                                 <h3 className="font-black text-xs uppercase tracking-[0.2em] text-foreground/80">Delivery Target</h3>
                             </div>
-                            
+
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 px-1 text-amber-600/60">Expected Arrival</Label>
-                                    <DatePicker 
-                                        date={requiredBy ? parseISO(requiredBy) : undefined} 
+                                    <DatePicker
+                                        date={requiredBy ? parseISO(requiredBy) : undefined}
                                         setDate={(date) => {
                                             setRequiredBy(date ? format(date, 'yyyy-MM-dd') : '');
                                             if (fieldErrors.requiredBy) setFieldErrors(p => { const n = { ...p }; delete n.requiredBy; return n; });
@@ -226,7 +226,7 @@ export default function NewPurchaseOrderPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">Internal Notes</Label>
-                                    <Input value={notes} onChange={e => setNotes(e.target.value)} 
+                                    <Input value={notes} onChange={e => setNotes(e.target.value)}
                                         className="rounded-2xl h-14 bg-muted/10 border-border/5 px-6 font-bold text-xs" placeholder="Special requirements..." />
                                 </div>
                             </div>
@@ -241,7 +241,7 @@ export default function NewPurchaseOrderPage() {
                         <div className="absolute top-0 right-0 p-8 opacity-[0.05] group-hover/summary:scale-110 transition-transform duration-700">
                             <Calculator size={100} />
                         </div>
-                        
+
                         <div className="relative z-10 space-y-6">
                             <div className="flex items-center justify-between">
                                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/50">Purchase Valuation</p>
@@ -249,9 +249,9 @@ export default function NewPurchaseOrderPage() {
                                     {isHighValue ? 'Approval Required' : 'Standard PO'}
                                 </div>
                             </div>
-                            
+
                             <div className="space-y-1">
-                                <p className={cn("text-5xl font-black tracking-tighter italic transition-colors", isHighValue ? "text-amber-500" : "text-primary")}>₹{totalAmount.toLocaleString('en-IN')}</p>
+                                <p className={cn("text-5xl font-black  italic transition-colors", isHighValue ? "text-amber-500" : "text-primary")}>₹{totalAmount.toLocaleString('en-IN')}</p>
                                 <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest italic flex items-center gap-1.5">
                                     <Info size={10} /> Comprehensive valuation including all listed items
                                 </p>
@@ -283,12 +283,12 @@ export default function NewPurchaseOrderPage() {
                                     <p className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-widest mt-2">{items.length} items manifest registered</p>
                                 </div>
                             </div>
-                            
+
                             <Button onClick={addItem} variant="outline" className="rounded-2xl h-11 px-6 font-black text-[10px] uppercase tracking-widest gap-2 bg-background hover:bg-primary/5 hover:border-primary/20 hover:text-primary transition-all group/add shadow-sm">
                                 <Plus size={14} className="group-hover:rotate-90 transition-transform duration-300" /> Append Item
                             </Button>
                         </div>
-                        
+
                         <div className="overflow-x-auto flex-1 scrollbar-hide">
                             <table className="w-full text-xs">
                                 <thead>
@@ -311,10 +311,10 @@ export default function NewPurchaseOrderPage() {
                                                         <Select value={item.itemName || 'custom'} onValueChange={v => {
                                                             if (v === 'custom') { updateItem(i, 'itemName', ''); return; }
                                                             const inv = inventoryItems.find((inv: any) => inv._id === v);
-                                                            if (inv) { 
-                                                                updateItem(i, 'itemName', inv.itemName); 
-                                                                updateItem(i, 'unit', inv.unit); 
-                                                                updateItem(i, 'unitRate', inv.unitRate || 0); 
+                                                            if (inv) {
+                                                                updateItem(i, 'itemName', inv.itemName);
+                                                                updateItem(i, 'unit', inv.unit);
+                                                                updateItem(i, 'unitRate', inv.unitRate || 0);
                                                             }
                                                         }}>
                                                             <SelectTrigger className="rounded-xl h-12 bg-muted/10 border-border/5 font-black text-[11px] uppercase tracking-wider text-muted-foreground focus:ring-primary/10 transition-all hover:bg-muted/20">
@@ -333,19 +333,19 @@ export default function NewPurchaseOrderPage() {
                                                         <Input value={item.itemName} onChange={e => {
                                                             updateItem(i, 'itemName', e.target.value);
                                                             if (fieldErrors[`item_${i}_name`]) setFieldErrors(p => { const n = { ...p }; delete n[`item_${i}_name`]; return n; });
-                                                        }} 
-                                                            placeholder="Declaration label..." 
+                                                        }}
+                                                            placeholder="Declaration label..."
                                                             className={cn("rounded-xl h-10 border-border/5 bg-transparent font-medium text-sm placeholder:text-muted-foreground/20 italic", fieldErrors[`item_${i}_name`] && "border-rose-500/40")} />
-                                                        {fieldErrors[`item_${i}_name`] && <p className="text-[8px] font-black text-rose-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">Name required</p>}
+                                                        {fieldErrors[`item_${i}_name`] && <p className="text-[8px] font-black text-rose-500 uppercase  animate-in fade-in slide-in-from-top-1">Name required</p>}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-6 text-center">
                                                     <Input type="number" value={item.qty} min={1} onChange={e => {
                                                         updateItem(i, 'qty', Number(e.target.value));
                                                         if (fieldErrors[`item_${i}_qty`]) setFieldErrors(p => { const n = { ...p }; delete n[`item_${i}_qty`]; return n; });
-                                                    }} 
+                                                    }}
                                                         className={cn("rounded-xl h-12 bg-muted/10 border-border/5 text-center font-black text-sm w-20 mx-auto transition-transform focus:scale-105", fieldErrors[`item_${i}_qty`] && "border-rose-500/40 bg-rose-500/5")} />
-                                                    {fieldErrors[`item_${i}_qty`] && <p className="text-[8px] font-black text-rose-500 uppercase tracking-tighter mt-1 animate-in fade-in slide-in-from-top-1">{fieldErrors[`item_${i}_qty`]}</p>}
+                                                    {fieldErrors[`item_${i}_qty`] && <p className="text-[8px] font-black text-rose-500 uppercase  mt-1 animate-in fade-in slide-in-from-top-1">{fieldErrors[`item_${i}_qty`]}</p>}
                                                 </td>
                                                 <td className="px-4 py-6 text-center">
                                                     <Select value={item.unit} onValueChange={v => updateItem(i, 'unit', v)}>
@@ -365,17 +365,17 @@ export default function NewPurchaseOrderPage() {
                                                         <Input type="number" value={item.unitRate} min={0} onChange={e => {
                                                             updateItem(i, 'unitRate', Number(e.target.value));
                                                             if (fieldErrors[`item_${i}_rate`]) setFieldErrors(p => { const n = { ...p }; delete n[`item_${i}_rate`]; return n; });
-                                                        }} 
+                                                        }}
                                                             className={cn("rounded-xl h-12 bg-muted/10 border-border/5 text-right font-black text-sm pl-8 transition-transform focus:scale-105", fieldErrors[`item_${i}_rate`] && "border-rose-500/40 bg-rose-500/5")} />
                                                     </div>
-                                                    {fieldErrors[`item_${i}_rate`] && <p className="text-[8px] font-black text-rose-500 uppercase tracking-tighter mt-1 animate-in fade-in slide-in-from-top-1">Rate Required</p>}
+                                                    {fieldErrors[`item_${i}_rate`] && <p className="text-[8px] font-black text-rose-500 uppercase  mt-1 animate-in fade-in slide-in-from-top-1">Rate Required</p>}
                                                 </td>
                                                 <td className="px-6 py-5 text-right">
                                                     <p className="text-sm font-black text-foreground italic tracking-tight">₹{(item.qty * item.unitRate).toLocaleString('en-IN')}</p>
                                                 </td>
                                                 <td className="px-6 py-6 text-right">
                                                     {items.length > 1 && (
-                                                        <button onClick={() => removeItem(i)} 
+                                                        <button onClick={() => removeItem(i)}
                                                             className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-rose-500/10 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all text-muted-foreground/20 active:scale-95 shadow-sm hover:border border-rose-500/10">
                                                             <Trash2 size={16} />
                                                         </button>
@@ -401,7 +401,7 @@ export default function NewPurchaseOrderPage() {
                             </div>
                             <div className="flex items-center gap-4 text-primary">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Subtotal</span>
-                                <span className="text-xl font-black tracking-tighter italic">₹{totalAmount.toLocaleString('en-IN')}</span>
+                                <span className="text-xl font-black  italic">₹{totalAmount.toLocaleString('en-IN')}</span>
                             </div>
                         </div>
                     </div>

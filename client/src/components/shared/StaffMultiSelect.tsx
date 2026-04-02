@@ -12,6 +12,7 @@ interface StaffMultiSelectProps {
     allUsers: any[];
     placeholder?: string;
     className?: string;
+    roleFilter?: string | string[];
 }
 
 export const StaffMultiSelect = ({ 
@@ -21,8 +22,21 @@ export const StaffMultiSelect = ({
     onToggle, 
     allUsers,
     placeholder = "Assign staff...",
-    className
+    className,
+    roleFilter
 }: StaffMultiSelectProps) => {
+    const filteredUsers = allUsers.filter(u => {
+        if (!roleFilter) return true;
+        if (Array.isArray(roleFilter)) return roleFilter.includes(u.role);
+        
+        // Robust filtering for accounts (handles role: accountant AND department: accounts)
+        if (roleFilter === 'accountant') {
+            return u.role === 'accountant' || u.department === 'accounts';
+        }
+        
+        return u.role === roleFilter;
+    });
+
     const selectedUsers = allUsers.filter(u => selectedIds.includes(u._id));
 
     return (
@@ -30,7 +44,7 @@ export const StaffMultiSelect = ({
             <label className="text-[10px] font-black uppercase tracking-[0.15em] text-foreground/60 ml-1 flex items-center gap-2">
                 <Icon size={12} className="text-primary/50" /> {label}
             </label>
-            <Popover>
+            <Popover modal={true}>
                 <PopoverTrigger asChild>
                     <div className="min-h-12 p-2 rounded-2xl bg-muted/10 border border-border/20 flex flex-wrap gap-2 cursor-pointer hover:bg-muted/20 transition-all group-hover/card:bg-background/40">
                         {selectedUsers.length > 0 ? (
@@ -49,15 +63,16 @@ export const StaffMultiSelect = ({
                     </div>
                 </PopoverTrigger>
 
-                <PopoverContent className="w-[240px] p-0 rounded-3xl border-border/40 overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] bg-card" align="start">
+                <PopoverContent 
+                    className="w-[240px] p-0 rounded-2xl border-border/40 overflow-hidden shadow-xl bg-card" 
+                    align="start"
+                >
                     <Command className="bg-transparent">
-                        <div className="p-3 pb-0">
-                            <CommandInput placeholder={`Search ${label}...`} className="h-10 bg-muted/50 rounded-xl border-none text-sm font-bold placeholder:text-muted-foreground/30" />
-                        </div>
-                        <CommandList className="max-h-[250px] p-2 custom-scrollbar">
-                            <CommandEmpty className="py-8 text-center text-xs font-black uppercase tracking-widest text-muted-foreground/40">No staff found.</CommandEmpty>
+                        <CommandInput placeholder={`Search ${label}...`} className="font-bold border-none" />
+                        <CommandList className="max-h-[250px] p-1.5 custom-scrollbar">
+                            <CommandEmpty className="py-8 text-center text-xs font-black uppercase text-muted-foreground/40">No staff found.</CommandEmpty>
                             <CommandGroup>
-                                {allUsers.map(user => {
+                                {filteredUsers.map(user => {
                                     const isSelected = selectedIds.includes(user._id);
                                     return (
                                         <CommandItem

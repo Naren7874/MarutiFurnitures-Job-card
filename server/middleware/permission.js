@@ -1,5 +1,6 @@
 import { UserPermission } from '../models/UserPermission.js';
 import { AccessLog } from '../models/AccessLog.js';
+import { resolvePermissions } from '../utils/resolvePermissions.js';
 
 /**
  * checkPermission(permission)
@@ -31,7 +32,13 @@ export const checkPermission = (permission) => async (req, res, next) => {
       userId: req.user.userId, 
       companyId: req.user.companyId 
     }).lean();
-    const effective = userPerm?.effectivePermissions || [];
+    
+    let effective = userPerm?.effectivePermissions || [];
+    
+    // Auto-rebuild if cache is empty or missing (stale DB)
+    if (effective.length === 0 && !req.user.isSuperAdmin) {
+      effective = await resolvePermissions(req.user.userId, req.user.companyId);
+    }
     
     const requiredList = Array.isArray(permission) ? permission : [permission];
     const allowed = requiredList.some(p => hasPermission(effective, p));
