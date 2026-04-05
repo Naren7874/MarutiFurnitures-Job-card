@@ -57,7 +57,8 @@ export default function QuotationDetailPage() {
     const isBusy = sendMutation.isPending || approveMutation.isPending || rejectMutation.isPending || reviseMutation.isPending || deleteMutation.isPending;
 
     // Permission flags
-    const { hasPermission } = useAuthStore();
+    const { hasPermission, user } = useAuthStore();
+    const isSuperAdmin = user?.isSuperAdmin || user?.role === 'super_admin';
     const canEdit    = hasPermission('quotation.edit');
     const canSend    = hasPermission('quotation.send');
     const canApprove = hasPermission('quotation.approve');
@@ -333,7 +334,7 @@ export default function QuotationDetailPage() {
                     </InfoCard>
 
                     {/* Architect & Commission */}
-                    {(q.architectId || q.architectName) && (
+                    {isSuperAdmin && (q.architectId || q.architectName) && (
                         <InfoCard title="Architect & Commission" icon={Users}>
                             <div className="space-y-3">
                                 <div>

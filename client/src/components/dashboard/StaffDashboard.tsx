@@ -3,10 +3,10 @@ import { motion } from 'motion/react';
 import {
     Wrench, Shield, Truck,
     Clock, AlertTriangle, CheckCircle2,
-    ArrowRight, FileText, ClipboardList, Inbox, Layers,
+    ArrowRight, FileText, ClipboardList, Inbox, Layers, LayoutGrid,
     BarChart3, Banknote, Receipt, XCircle,
 } from 'lucide-react';
-import { useJobCards, useQuotations, useProjects, useInvoices } from '../../hooks/useApi';
+import { useJobCards, useQuotations, useInvoices, useDashboardStats } from '../../hooks/useApi';
 import { cn } from '../../lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -47,22 +47,51 @@ const isOverdue = (jc: any) =>
 const StatCard = ({ icon: Icon, label, value, colorClass, sub, delay = 0 }: {
     icon: any; label: string; value: number | string; colorClass: string; sub?: string; delay?: number;
 }) => (
-    <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay }}>
-        <Card className="rounded-[22px] border-border/40 shadow-sm hover:shadow-xl transition-all group overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-1 space-y-0">
-                <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110', colorClass)}>
-                    <Icon size={22} strokeWidth={2} />
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileHover={{ y: -5, scale: 1.02 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay, ease: "easeOut" }}
+        className="h-full"
+    >
+        <Card className="group h-full relative overflow-hidden transition-all duration-500 border-white/10 bg-white/5 backdrop-blur-xl hover:bg-white/10 hover:border-white/20 hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] dark:hover:shadow-primary/10 rounded-[28px] flex flex-col justify-between">
+            {/* Ambient Background Glow */}
+            <div className={cn("absolute -top-12 -right-12 w-32 h-32 blur-[60px] opacity-20 group-hover:opacity-40 transition-opacity duration-700 rounded-full", colorClass.split(' ')[0].replace('/10', '/30'))} />
+
+            <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
+                <div className={cn(
+                    "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-inner",
+                    colorClass
+                )}>
+                    <Icon size={20} strokeWidth={2.5} className="drop-shadow-sm" />
                 </div>
                 {sub && (
-                    <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 rounded-full border-none bg-muted/40 h-5">
+                    <Badge variant="outline" className="bg-white/5 border-white/10 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 rounded-full h-6 px-3">
                         {sub}
                     </Badge>
                 )}
             </CardHeader>
-            <CardContent className="pt-1">
-                <p className="text-muted-foreground/50 text-[9px] font-black uppercase tracking-[0.18em] mb-1">{label}</p>
-                <p className="text-foreground text-4xl font-black tracking-tight tabular-nums">{value ?? 0}</p>
+
+            <CardContent className="relative z-10 pb-4 grow flex flex-col justify-end">
+                <div className="space-y-1">
+                    <p className="text-muted-foreground/60 text-[9px] font-black uppercase tracking-[0.25em] transition-colors group-hover:text-muted-foreground/80">
+                        {label}
+                    </p>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-foreground text-3xl font-black  tabular-nums drop-shadow-sm">
+                            {value ?? '0'}
+                        </span>
+                        <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className={cn("h-1.5 w-1.5 rounded-full", colorClass.split(' ')[1] || "bg-primary")}
+                        />
+                    </div>
+                </div>
             </CardContent>
+
+            {/* Decorative Bottom Line */}
+            <div className={cn("absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-700 ease-out", colorClass.split(' ')[1] || "bg-primary")} />
         </Card>
     </motion.div>
 );
@@ -236,29 +265,61 @@ const DispatchDashboard = () => {
 
 const SalesDashboard = () => {
     const { data: qRaw, isLoading: qLoading } = useQuotations({ limit: 200 });
-    const { data: pRaw, isLoading: pLoading } = useProjects({ limit: 100 });
     const { data: iRaw, isLoading: iLoading } = useInvoices({ limit: 100 });
+    const { data: statsRaw, isLoading: statsLoading } = useDashboardStats();
 
     const qAll: any[] = (qRaw as any)?.data ?? [];
-    const pAll: any[] = (pRaw as any)?.data ?? [];
     const iAll: any[] = (iRaw as any)?.data ?? [];
-
+    const stats = (statsRaw as any)?.data;
     const allQuotes = qAll;
-    const allProjects = pAll;
-    
-    const activeQuotes = allQuotes.filter(q => ['draft', 'sent'].includes(q.status));
-    const convertedQuotes = allQuotes.filter(q => ['approved', 'converted'].includes(q.status));
-    const pendingInvoices = iAll.filter(inv => inv.status === 'pending');
 
-    const isLoading = qLoading || pLoading || iLoading;
+    const isLoading = qLoading || iLoading || statsLoading;
 
     return (
         <div className="space-y-8">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-                <StatCard icon={FileText} label="Active Quotes" value={activeQuotes.length} colorClass="bg-blue-500/10 text-blue-500" sub="Pipeline" delay={0.1} />
-                <StatCard icon={CheckCircle2} label="Conversions" value={convertedQuotes.length} colorClass="bg-emerald-500/10 text-emerald-500" sub="Approved" delay={0.2} />
-                <StatCard icon={Layers} label="Live Projects" value={allProjects.length} colorClass="bg-indigo-500/10 text-indigo-500" sub="Company-wide" delay={0.3} />
-                <StatCard icon={Receipt} label="Outstanding Invoices" value={pendingInvoices.length} colorClass="bg-rose-500/10 text-rose-500" sub="Billing" delay={0.4} />
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+                <StatCard
+                    icon={LayoutGrid}
+                    label="Ongoing Projects"
+                    value={stats?.projects.active || 0}
+                    colorClass="bg-blue-500/10 text-blue-600"
+                    delay={0.1}
+                />
+                <StatCard
+                    icon={FileText}
+                    label="Pending Quotations"
+                    value={(stats?.quotations.pending || 0) + (stats?.quotations.draft || 0)}
+                    colorClass="bg-amber-500/10 text-amber-600"
+                    delay={0.2}
+                />
+                <StatCard
+                    icon={CheckCircle2}
+                    label="Approved Quotations"
+                    value={stats?.quotations.approved || 0}
+                    colorClass="bg-emerald-500/10 text-emerald-600"
+                    delay={0.3}
+                />
+                <StatCard
+                    icon={XCircle}
+                    label="Rejected Quotations"
+                    value={stats?.quotations.rejected || 0}
+                    colorClass="bg-rose-500/10 text-rose-600"
+                    delay={0.4}
+                />
+                <StatCard
+                    icon={CheckCircle2}
+                    label="Completed Projects"
+                    value={stats?.projects.completed || 0}
+                    colorClass="bg-primary/10 text-primary"
+                    delay={0.5}
+                />
+                <StatCard
+                    icon={Receipt}
+                    label="Outstanding Invoices"
+                    value={iAll.filter(inv => inv.status === 'pending').length}
+                    colorClass="bg-indigo-500/10 text-indigo-600"
+                    delay={0.6}
+                />
             </div>
             <Card className="rounded-[28px] border-border/40 p-6 shadow-sm">
                 <SectionTitle title="Quotations Overview" count={allQuotes.length} />
