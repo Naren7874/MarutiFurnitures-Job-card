@@ -88,8 +88,12 @@ export default function ProjectsPage() {
     const resp: any = raw;
     const rawProjects: any[] = resp?.data ?? [];
 
-    // Filter projects if not super_admin
-    const projects = isSuperAdmin
+    const isManager = user?.role === 'admin' || user?.role === 'management';
+    const isSales = user?.role === 'sales';
+    const canSeeAll = isSuperAdmin || isManager || isSales;
+
+    // Filter projects if not super_admin, manager, or sales
+    const projects = canSeeAll
         ? rawProjects
         : rawProjects.filter(p =>
             p.assignedStaff?.some((u: any) => (u._id || u.id || u) === userId) ||

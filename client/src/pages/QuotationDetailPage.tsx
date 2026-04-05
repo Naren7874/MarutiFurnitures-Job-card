@@ -60,7 +60,7 @@ export default function QuotationDetailPage() {
     const { hasPermission } = useAuthStore();
     const canEdit    = hasPermission('quotation.edit');
     const canSend    = hasPermission('quotation.send');
-    const canApprove = hasPermission('quotation.edit');
+    const canApprove = hasPermission('quotation.approve');
     const canDelete  = hasPermission('quotation.delete');
 
     const handleAction = async (action: 'send' | 'approve' | 'reject' | 'revise' | 'delete') => {

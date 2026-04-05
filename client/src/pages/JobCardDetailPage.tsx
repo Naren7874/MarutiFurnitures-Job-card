@@ -80,7 +80,7 @@ export default function JobCardDetailPage() {
     const qc = useQueryClient();
     const { hasPermission, user } = useAuthStore();
     const isSuperAdmin = user?.role === 'super_admin';
-    const isManager = ['admin', 'management'].includes(user?.role || '');
+    const isManager = ['admin', 'management', 'sales'].includes(user?.role || '');
     const userId = user?.id;
 
     const canEditJC = hasPermission('jobcard.edit');
@@ -123,7 +123,7 @@ export default function JobCardDetailPage() {
         { value: 'production', label: 'Production', icon: Wrench, show: canSeeProd },
         { value: 'qc', label: 'QC', icon: Shield, show: canSeeQC },
         { value: 'dispatch', label: 'Dispatch', icon: Truck, show: canSeeDispatch },
-        { value: 'closure', label: 'Closure', icon: Archive, show: isSuperAdmin || isManager },
+        { value: 'closure', label: 'Closure', icon: Archive, show: isSuperAdmin || isManager || user?.role === 'sales' || user?.role === 'accountant' },
     ];
 
     const visibleTabs = ALL_TABS.filter(t => {
@@ -132,7 +132,7 @@ export default function JobCardDetailPage() {
 
         const role = user?.role?.toLowerCase();
 
-        // Specific restrictions requested by user
+        // Specific restrictions for technical roles
         if (role === 'production') {
             return ['overview', 'production'].includes(t.value);
         }
@@ -146,7 +146,7 @@ export default function JobCardDetailPage() {
             return ['overview', 'closure'].includes(t.value);
         }
 
-        return true; // fallback for other roles (sales, design, admin etc)
+        return true; 
     });
 
     if (isLoading) {

@@ -21,7 +21,8 @@ const FIELD = ({ label, value, icon: Icon }: { label: string; value?: string | n
 export default function ClientDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { hasPermission } = useAuthStore();
+    const { hasPermission, user } = useAuthStore();
+    const isSuperAdmin = user?.role === 'super_admin';
     const { data: raw, isLoading } = useClient(id ?? '');
     const client: any = (raw as any)?.data ?? {};
 
@@ -95,7 +96,7 @@ export default function ClientDetailPage() {
                             </Button>
                         </Link>
                     )}
-                    {client.isActive !== false && canEditClient && (
+                    {client.isActive !== false && isSuperAdmin && (
                         <Button
                             variant="outline"
                             onClick={() => setConfirmDeactivate(true)}

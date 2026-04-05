@@ -45,14 +45,6 @@ const InvoiceDetailPage = lazy(() => import('./pages/InvoiceDetailPage'));
 const NewInvoicePage = lazy(() => import('./pages/NewInvoicePage'));
 const EditInvoicePage = lazy(() => import('./pages/EditInvoicePage'));
 
-// Inventory
-const InventoryPage = lazy(() => import('./pages/InventoryPage'));
-
-// Purchase Orders
-const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrdersPage'));
-const PurchaseOrderDetailPage = lazy(() => import('./pages/PurchaseOrderDetailPage'));
-const NewPurchaseOrderPage = lazy(() => import('./pages/NewPurchaseOrderPage'));
-
 // Quotations (edit)
 const QuotationEditPage = lazy(() => import('./pages/QuotationEditPage'));
 
@@ -152,18 +144,6 @@ export default function App() {
                       <Route path="invoices/:id/edit" element={<EditInvoicePage />} />
                     </Route>
 
-                    {/* Inventory — requires inventory.view */}
-                    <Route element={<PermissionRoute permission="inventory.view" />}>
-                      <Route path="inventory" element={<InventoryPage />} />
-                      <Route path="inventory/new" element={<Stub name="New Inventory Item" />} />
-                    </Route>
-
-                    {/* Purchase Orders — requires purchaseOrder.view */}
-                    <Route element={<PermissionRoute permission="purchaseOrder.view" />}>
-                      <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
-                      <Route path="purchase-orders/new" element={<NewPurchaseOrderPage />} />
-                      <Route path="purchase-orders/:id" element={<PurchaseOrderDetailPage />} />
-                    </Route>
 
                     {/* Reports — requires reports.view_financial */}
                     <Route element={<PermissionRoute permission="reports.view_financial" />}>

@@ -6,7 +6,7 @@ import {
     ArrowRight, FileText, ClipboardList, Inbox, Layers,
     BarChart3, Banknote, Receipt, XCircle,
 } from 'lucide-react';
-import { useJobCards, useQuotations } from '../../hooks/useApi';
+import { useJobCards, useQuotations, useProjects, useInvoices } from '../../hooks/useApi';
 import { cn } from '../../lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -235,31 +235,38 @@ const DispatchDashboard = () => {
 
 
 const SalesDashboard = () => {
-    const { id: userId } = useAuthStore(state => state.user) || {};
-    const { data: qRaw, isLoading } = useQuotations({ limit: 100 });
-    const rawAll: any[] = (qRaw as any)?.data ?? [];
+    const { data: qRaw, isLoading: qLoading } = useQuotations({ limit: 200 });
+    const { data: pRaw, isLoading: pLoading } = useProjects({ limit: 100 });
+    const { data: iRaw, isLoading: iLoading } = useInvoices({ limit: 100 });
 
-    // Filter by salesperson
-    const all = rawAll.filter(q => (q.salesperson?._id || q.salesperson?.id || q.salesperson) === userId);
+    const qAll: any[] = (qRaw as any)?.data ?? [];
+    const pAll: any[] = (pRaw as any)?.data ?? [];
+    const iAll: any[] = (iRaw as any)?.data ?? [];
 
-    const draft = all.filter(q => q.status === 'draft');
-    const sent = all.filter(q => q.status === 'sent');
-    const approved = all.filter(q => q.status === 'approved' || q.status === 'converted');
+    const allQuotes = qAll;
+    const allProjects = pAll;
+    
+    const activeQuotes = allQuotes.filter(q => ['draft', 'sent'].includes(q.status));
+    const convertedQuotes = allQuotes.filter(q => ['approved', 'converted'].includes(q.status));
+    const pendingInvoices = iAll.filter(inv => inv.status === 'pending');
+
+    const isLoading = qLoading || pLoading || iLoading;
+
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-                <StatCard icon={FileText} label="Drafts" value={draft.length} colorClass="bg-slate-500/10 text-slate-500" delay={0.1} />
-                <StatCard icon={ArrowRight} label="Sent — Pending" value={sent.length} colorClass="bg-blue-500/10 text-blue-500" delay={0.2} />
-                <StatCard icon={CheckCircle2} label="Approved/Converted" value={approved.length} colorClass="bg-emerald-500/10 text-emerald-500" delay={0.3} />
-                <StatCard icon={ClipboardList} label="Total Quotations" value={all.length} colorClass="bg-primary/10 text-primary" sub="All" delay={0.4} />
+                <StatCard icon={FileText} label="Active Quotes" value={activeQuotes.length} colorClass="bg-blue-500/10 text-blue-500" sub="Pipeline" delay={0.1} />
+                <StatCard icon={CheckCircle2} label="Conversions" value={convertedQuotes.length} colorClass="bg-emerald-500/10 text-emerald-500" sub="Approved" delay={0.2} />
+                <StatCard icon={Layers} label="Live Projects" value={allProjects.length} colorClass="bg-indigo-500/10 text-indigo-500" sub="Company-wide" delay={0.3} />
+                <StatCard icon={Receipt} label="Outstanding Invoices" value={pendingInvoices.length} colorClass="bg-rose-500/10 text-rose-500" sub="Billing" delay={0.4} />
             </div>
             <Card className="rounded-[28px] border-border/40 p-6 shadow-sm">
-                <SectionTitle title="My Quotations Pipeline" count={all.length} />
+                <SectionTitle title="Quotations Overview" count={allQuotes.length} />
                 {isLoading ? <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 rounded-2xl" />)}</div>
-                    : all.length === 0 ? <EmptyState label="No quotations yet" />
+                    : allQuotes.length === 0 ? <EmptyState label="No quotations yet" />
                         : (
                             <div className="space-y-1">
-                                {all.slice(0, 20).map((q: any, i: number) => {
+                                {allQuotes.slice(0, 20).map((q: any, i: number) => {
                                     const cls =
                                         q.status === 'approved' || q.status === 'converted' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
                                             q.status === 'sent' ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :

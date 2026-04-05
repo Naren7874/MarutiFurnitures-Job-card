@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Users, FileText, Folder, ClipboardList,
-    Receipt, Package, ShoppingCart, Settings, LogOut, Bell,
+    Receipt, Settings, LogOut, Bell,
     Building2, Check,
     ShieldCheck, BarChart3, PanelLeft
 } from 'lucide-react';
@@ -26,8 +26,6 @@ const ALL_NAV = [
     { label: 'Projects', icon: Folder, path: '/projects', permission: 'project.view' },
     { label: 'Job Cards', icon: ClipboardList, path: '/jobcards', permission: 'jobcard.view' },
     { label: 'Proforma Invoices', icon: Receipt, path: '/invoices', permission: 'invoice.view' },
-    { label: 'Inventory', icon: Package, path: '/inventory', permission: 'inventory.view' },
-    { label: 'Purchase Orders', icon: ShoppingCart, path: '/purchase-orders', permission: 'purchaseOrder.view' },
     { label: 'Reports', icon: BarChart3, path: '/reports', permission: 'report.view' },
     { label: 'Users', icon: Users, path: '/users', permission: 'user.view' },
     { label: 'Roles', icon: ShieldCheck, path: '/roles', permission: 'privilege.view' },

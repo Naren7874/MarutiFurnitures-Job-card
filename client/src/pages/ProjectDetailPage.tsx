@@ -78,7 +78,11 @@ export default function ProjectDetailPage() {
     const isAssigned = project.assignedStaff?.some((u: any) => (u._id || u.id || u) === userId) ||
                        (project.salesperson?.id || project.salesperson?._id || project.salesperson) === userId;
 
-    if (!isSuperAdmin && !isAssigned) {
+    const isManager = user?.role === 'admin' || user?.role === 'management';
+    const isSales = user?.role === 'sales';
+    const canSeeAll = isSuperAdmin || isManager || isSales;
+
+    if (!canSeeAll && !isAssigned) {
         return (
             <div className="p-8 text-center">
                 <AlertTriangle size={48} className="mx-auto text-rose-500/20 mb-4" />
@@ -125,7 +129,11 @@ export default function ProjectDetailPage() {
                             <Trash2 size={16} />
                         </Button>
                     )}
-                    <Select value={project.status} onValueChange={handleStatusChange} disabled={statusChanging}>
+                    <Select 
+                        value={project.status} 
+                        onValueChange={handleStatusChange} 
+                        disabled={statusChanging || (!isSuperAdmin && user?.role !== 'admin' && user?.role !== 'management' && user?.role !== 'sales')}
+                    >
                         <SelectTrigger className="h-10 w-44 rounded-xl font-bold text-xs border-border/60 shadow-sm bg-card">
                             {statusChanging ? <Loader2 size={13} className="animate-spin mr-2" /> : null}
                             <SelectValue />
@@ -254,19 +262,21 @@ export default function ProjectDetailPage() {
                         />
                     </div>
                 </div>
-                <Button
-                    variant="outline"
-                    className="rounded-xl font-black text-xs gap-2 border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/10"
-                    disabled={whatsappMut.isPending}
-                    onClick={async () => {
-                        const groupId = (document.getElementById('whatsappGroupId') as HTMLInputElement).value;
-                        const link = (document.getElementById('whatsappInviteLink') as HTMLInputElement).value;
-                        await whatsappMut.mutateAsync({ whatsappGroupId: groupId, whatsappInviteLink: link });
-                    }}
-                >
-                    {whatsappMut.isPending ? <Loader2 size={12} className="animate-spin" /> : null}
-                    Save WhatsApp Group
-                </Button>
+                {(isSuperAdmin || user?.role === 'admin' || user?.role === 'management' || user?.role === 'sales') && (
+                    <Button
+                        variant="outline"
+                        className="rounded-xl font-black text-xs gap-2 border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/10"
+                        disabled={whatsappMut.isPending}
+                        onClick={async () => {
+                            const groupId = (document.getElementById('whatsappGroupId') as HTMLInputElement).value;
+                            const link = (document.getElementById('whatsappInviteLink') as HTMLInputElement).value;
+                            await whatsappMut.mutateAsync({ whatsappGroupId: groupId, whatsappInviteLink: link });
+                        }}
+                    >
+                        {whatsappMut.isPending ? <Loader2 size={12} className="animate-spin" /> : null}
+                        Save WhatsApp Group
+                    </Button>
+                )}
             </div>
 
             {/* Assigned Staff */}

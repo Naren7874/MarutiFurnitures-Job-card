@@ -10,9 +10,6 @@ import { apiGet, apiPost, apiPatch, apiPut, apiDelete } from '../lib/axios';
 import { useAuthStore } from '../stores/authStore';
 import { toast } from 'sonner';
 
-// ─── Query Key Factory ────────────────────────────────────────────────────────
-// Every key starts with [resource, companyId] to ensure cache isolation.
-
 export const QK = {
     clients: (cid: string, params?: object) => ['clients', cid, params],
     client: (cid: string, id: string) => ['clients', cid, id],
@@ -24,7 +21,6 @@ export const QK = {
     jobCard: (cid: string, id: string) => ['jobcards', cid, id],
     invoices: (cid: string, params?: object) => ['invoices', cid, params],
     invoice: (cid: string, id: string) => ['invoices', cid, id],
-    inventory: (cid: string, params?: object) => ['inventory', cid, params],
     notifications: (cid: string, params?: object) => ['notifications', cid, params],
     me: () => ['auth', 'me'],
     dashboard: (cid: string) => ['dashboard', cid, 'stats'],
@@ -37,6 +33,8 @@ export const QK = {
     architectClients: (uid: string) => ['architect', uid, 'clients'],
     architectQuotation: (uid: string, id: string) => ['architect', uid, 'quotations', id],
 };
+
+// ─── Users & Roles ────────────────────────────────────────────────────────────
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -615,120 +613,6 @@ export const useDeletePayment = (id: string) => {
     });
 };
 
-// ─── Inventory ────────────────────────────────────────────────────────────────
-
-export const useInventory = (params: object = {}) => {
-    const { company } = useAuthStore();
-    return useQuery({ 
-        queryKey: QK.inventory(company?.id || '', params), 
-        queryFn: () => apiGet('/inventory', params),
-        enabled: !!company?.id
-    });
-};
-
-export const useCreateItem = () => {
-    const qc = useQueryClient();
-    const { company } = useAuthStore();
-    const cid = company?.id || '';
-    return useMutation({
-        mutationFn: (data: object) => apiPost('/inventory', data),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['inventory', cid] }),
-    });
-};
-
-export const useUpdateItem = (id: string) => {
-    const qc = useQueryClient();
-    const { company } = useAuthStore();
-    const cid = company?.id || '';
-    return useMutation({
-        mutationFn: (data: object) => apiPut(`/inventory/${id}`, data),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['inventory', cid] }),
-    });
-};
-
-export const useRestockItem = (id: string) => {
-    const qc = useQueryClient();
-    const { company } = useAuthStore();
-    const cid = company?.id || '';
-    return useMutation({
-        mutationFn: (data: { qty: number }) => apiPatch(`/inventory/${id}/restock`, data),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['inventory', cid] }),
-    });
-};
-
-// ─── Purchase Orders ──────────────────────────────────────────────────────────
-
-const PO_KEYS = {
-    list: (cid: string, params?: object) => ['purchaseOrders', cid, params],
-    one: (cid: string, id: string) => ['purchaseOrders', cid, id],
-};
-
-export const usePurchaseOrders = (params: object = {}) => {
-    const { company } = useAuthStore();
-    return useQuery({ 
-        queryKey: PO_KEYS.list(company?.id || '', params), 
-        queryFn: () => apiGet('/purchase-orders', params),
-        enabled: !!company?.id
-    });
-};
-
-export const usePurchaseOrder = (id: string) => {
-    const { company } = useAuthStore();
-    return useQuery({ 
-        queryKey: PO_KEYS.one(company?.id || '', id), 
-        queryFn: () => apiGet(`/purchase-orders/${id}`), 
-        enabled: !!id && !!company?.id
-    });
-};
-
-export const useCreatePO = () => {
-    const qc = useQueryClient();
-    const { company } = useAuthStore();
-    const cid = company?.id || '';
-    return useMutation({
-        mutationFn: (data: object) => apiPost('/purchase-orders', data),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['purchaseOrders', cid] }),
-    });
-};
-
-export const useApprovePO = (id: string) => {
-    const qc = useQueryClient();
-    const { company } = useAuthStore();
-    const cid = company?.id || '';
-    return useMutation({
-        mutationFn: () => apiPatch(`/purchase-orders/${id}/approve`),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['purchaseOrders', cid] });
-            qc.invalidateQueries({ queryKey: PO_KEYS.one(cid, id) });
-        },
-    });
-};
-
-export const useReceivePO = (id: string) => {
-    const qc = useQueryClient();
-    const { company } = useAuthStore();
-    const cid = company?.id || '';
-    return useMutation({
-        mutationFn: () => apiPatch(`/purchase-orders/${id}/receive`),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['purchaseOrders', cid] });
-            qc.invalidateQueries({ queryKey: PO_KEYS.one(cid, id) });
-        },
-    });
-};
-
-export const useCancelPO = (id: string) => {
-    const qc = useQueryClient();
-    const { company } = useAuthStore();
-    const cid = company?.id || '';
-    return useMutation({
-        mutationFn: (data: { reason: string }) => apiPatch(`/purchase-orders/${id}/cancel`, data),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['purchaseOrders', cid] });
-            qc.invalidateQueries({ queryKey: PO_KEYS.one(cid, id) });
-        },
-    });
-};
 
 // ─── Users & Roles ────────────────────────────────────────────────────────────
 
@@ -748,11 +632,11 @@ export const useDeleteUser = () => {
 
 // ─── Reports & Dashboard ──────────────────────────────────────────────────────
 
-export const useDashboardStats = () => {
+export const useDashboardStats = (months?: number) => {
     const { company } = useAuthStore();
     return useQuery({ 
-        queryKey: QK.dashboard(company?.id || ''), 
-        queryFn: () => apiGet('/reports/dashboard-stats'),
+        queryKey: ['dashboard', company?.id || '', { months }], 
+        queryFn: () => apiGet('/reports/dashboard-stats', { months }),
         enabled: !!company?.id
     });
 };

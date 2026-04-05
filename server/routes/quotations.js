@@ -29,7 +29,7 @@ router.get('/:id',                checkPermission('quotation.view'),   getQuotat
 router.put('/:id',                checkPermission('quotation.edit'),   updateQuotation);
 router.get('/:id/pdf',            checkPermission('quotation.view'),   getQuotationPDF);
 router.patch('/:id/send',         checkPermission('quotation.send'),   sendQuotationPDF);
-router.patch('/:id/approve',      checkPermission('quotation.edit'),   approveQuotation);
+router.patch('/:id/approve',      checkPermission('quotation.approve'), approveQuotation);
 router.patch('/:id/reject',       checkPermission('quotation.edit'),   rejectQuotation);
 router.post('/:id/revise',        checkPermission('quotation.create'), reviseQuotation);
 router.delete('/:id',              checkPermission('quotation.delete'), deleteQuotation);

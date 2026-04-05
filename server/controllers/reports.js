@@ -273,6 +273,7 @@ export const getDashboardStats = async (req, res, next) => {
     const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
     const sixtyDaysAgo  = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
 
+    // 1. Core Summary Metrics
     const [
       activeProjects,
       totalProjects,
@@ -319,13 +320,11 @@ export const getDashboardStats = async (req, res, next) => {
       PurchaseOrder.countDocuments({ companyId, status: 'raised' }),
       Inventory.countDocuments({ companyId, $expr: { $lte: ['$currentStock', '$minStock'] } }),
 
-      // Trend: Current 30 days
       Project.countDocuments({ companyId, createdAt: { $gte: thirtyDaysAgo } }),
       JobCard.countDocuments({ companyId, createdAt: { $gte: thirtyDaysAgo } }),
       Quotation.countDocuments({ companyId, status: 'sent', updatedAt: { $gte: thirtyDaysAgo } }),
       JobCard.countDocuments({ companyId, status: 'qc_pending', updatedAt: { $gte: thirtyDaysAgo } }),
 
-      // Trend: Previous 30 days
       Project.countDocuments({ companyId, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
       JobCard.countDocuments({ companyId, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
       Quotation.countDocuments({ companyId, status: 'sent', updatedAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
@@ -339,18 +338,46 @@ export const getDashboardStats = async (req, res, next) => {
 
     const inv = invoiceSummary[0] || {};
 
-    // Helper to calculate % change
     const calcChange = (curr, prev) => {
       if (prev === 0) return curr > 0 ? 100 : 0;
       return parseFloat(((curr - prev) / prev * 100).toFixed(1));
     };
 
-    // Revenue this month from invoices
-    const { start, end } = monthRange(0);
-    const [monthlyInv] = await Invoice.aggregate([
-      { $match: { companyId: oid, createdAt: { $gte: start, $lte: end } } },
-      { $group: { _id: null, thisMonth: { $sum: '$totalPaid' } } },
+    // 2. Revenue (Invoiced vs Received) for MTD
+    const { start: mStart, end: mEnd } = monthRange(0);
+    const [monthlyStats] = await Invoice.aggregate([
+      { $match: { companyId: oid, createdAt: { $gte: mStart, $lte: mEnd } } },
+      {
+        $group: {
+          _id: null,
+          invoiced: { $sum: '$grandTotal' },
+          received: { $sum: '$totalPaid' },
+        },
+      },
     ]);
+
+    // 3. Historical Trend
+    const trendMonths = parseInt(req.query.months) || 6;
+    const trend = [];
+    for (let i = trendMonths - 1; i >= 0; i--) {
+      const { start, end } = monthRange(i);
+      const [agg] = await Invoice.aggregate([
+        { $match: { companyId: oid, createdAt: { $gte: start, $lte: end } } },
+        {
+          $group: {
+            _id: null,
+            totalInvoiced: { $sum: '$grandTotal' },
+            totalReceived: { $sum: '$totalPaid' },
+          },
+        },
+      ]);
+      const label = start.toLocaleString('en-IN', { month: 'short' });
+      trend.push({
+        label,
+        totalInvoiced: agg?.totalInvoiced || 0,
+        totalReceived: agg?.totalReceived || 0,
+      });
+    }
 
     res.json({
       success: true,
@@ -374,10 +401,14 @@ export const getDashboardStats = async (req, res, next) => {
           overdue:       inv.overdueCount  || 0,
           overdueAmount: inv.overdueAmount || 0,
         },
-        revenue: { thisMonth: monthlyInv?.thisMonth || 0 },
+        revenue: {
+          thisMonth: monthlyStats?.received || 0,
+          totalInvoicedThisMonth: monthlyStats?.invoiced || 0,
+        },
+        trend,
         quotations: {
           total:    Object.values(qMap).reduce((a, b) => a + b, 0),
-          pending:  qMap['sent'] || 0, // Specifically "Awaiting client approval"
+          pending:  qMap['sent'] || 0,
           change:   calcChange(currSentQuotes, prevSentQuotes),
           draft:    qMap['draft'] || 0,
           approved: qMap['approved'] || 0,

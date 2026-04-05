@@ -61,9 +61,11 @@ export default function JobCardsPage() {
     const userId = user?.id;
     const isSuperAdmin = user?.role === 'super_admin';
     const isManager = user?.role === 'admin' || user?.role === 'management';
+    const isSales = user?.role === 'sales';
+    const canSeeAll = isSuperAdmin || isManager || isSales;
 
-    // Filter job cards if not super_admin or manager
-    const filteredJobCards = (isSuperAdmin || isManager)
+    // Filter job cards if not super_admin, manager, or sales
+    const filteredJobCards = canSeeAll
         ? rawJobCards
         : rawJobCards.filter(jc => {
             // Check if user is assigned in ANY department array
@@ -71,7 +73,7 @@ export default function JobCardsPage() {
                 Array.isArray(dept) && dept.some((u: any) => (u._id || u.id || u) === userId)
             );
 
-            // Check if user is the salesperson
+            // Check if user is the salesperson (redundant if isSales is in canSeeAll, but kept for clarity in filter)
             const isSalesperson = (jc.salesperson?.id || jc.salesperson?._id || jc.salesperson) === userId;
 
             return isAssignedToAnyDept || isSalesperson;
