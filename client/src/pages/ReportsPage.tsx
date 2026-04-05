@@ -162,9 +162,8 @@ export default function ReportsPage() {
                 </div>
             </motion.div>
 
-            {/* Main Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {summaryCards.map((c, i) => (
+                {summaryCards.map((c) => (
                     <StatCard key={c.label} {...c} />
                 ))}
             </div>
