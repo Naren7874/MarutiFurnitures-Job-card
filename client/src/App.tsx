@@ -38,6 +38,7 @@ const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'));
 // Job Cards
 const JobCardsPage = lazy(() => import('./pages/JobCardsPage'));
 const JobCardDetailPage = lazy(() => import('./pages/JobCardDetailPage'));
+const NewJobCardPage = lazy(() => import('./pages/NewJobCardPage'));
 
 // Invoices
 const InvoicesPage = lazy(() => import('./pages/InvoicesPage'));
@@ -133,7 +134,7 @@ export default function App() {
 
                     {/* Job Cards — requires jobcard.view (all roles get this) */}
                     <Route path="jobcards" element={<JobCardsPage />} />
-                    <Route path="jobcards/new" element={<Stub name="New Job Card" />} />
+                    <Route path="jobcards/new" element={<NewJobCardPage />} />
                     <Route path="jobcards/:id" element={<JobCardDetailPage />} />
 
                     {/* Invoices — requires invoice.view */}

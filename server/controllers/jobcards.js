@@ -3,8 +3,10 @@ import Project from '../models/Project.js';
 import Company from '../models/Company.js';
 import Notification from '../models/Notification.js';
 import { Invoice } from '../models/Invoice.js';
+import Quotation from '../models/Quotation.js';
+import Client from '../models/Client.js';
 import mongoose from 'mongoose';
-import { generateJobCardNumber } from '../utils/autoNumber.js';
+import { generateJobCardNumber, generateQuotationNumber, generateProjectNumber, generateInvoiceNumber } from '../utils/autoNumber.js';
 import { generateAndUploadPDF } from '../utils/generatePDF.js';
 import { sendWhatsAppBulk, WA_TEMPLATES } from '../utils/sendWhatsApp.js';
 import { auditLog } from '../utils/auditLogger.js';
@@ -89,6 +91,199 @@ export const createJobCard = async (req, res, next) => {
       resourceId: jobCard._id,
       resourceLabel: jobCardNumber,
       metadata: { projectId: project._id, projectName: project.projectName, priority },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ── POST /api/jobcards/direct ───────────────────────────────────────────────
+
+export const createDirectJobCard = async (req, res, next) => {
+  try {
+    const { 
+      clientId, projectName, contactPerson, expectedDelivery, priority, 
+      item, gstType, discount, advancePayment, assignedTo, salesperson 
+    } = req.body;
+
+    const [company, clientData] = await Promise.all([
+      Company.findById(req.user.companyId).lean(),
+      Client.findById(clientId).lean()
+    ]);
+
+    if (!clientData) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    // 1. Calculate Single Item Totals
+    const qty = Number(item.qty) || 1;
+    const rate = Number(item.sellingPrice) || 0;
+    const itemTotal = qty * rate;
+    const subtotal = itemTotal;
+    const disc = Number(discount) || 0;
+    const amountAfterDiscount = Math.max(0, subtotal - disc);
+    
+    // Default GST: 9% CGST 9% SGST or 18% IGST depending on type
+    const isIgst = gstType === 'igst';
+    const cgst = isIgst ? 0 : +(amountAfterDiscount * 0.09).toFixed(2);
+    const sgst = isIgst ? 0 : +(amountAfterDiscount * 0.09).toFixed(2);
+    const igst = isIgst ? +(amountAfterDiscount * 0.18).toFixed(2) : 0;
+    const gstAmount = cgst + sgst + igst;
+    const grandTotal = +(amountAfterDiscount + gstAmount).toFixed(2);
+
+    const advAmount = Number(advancePayment?.amount) || 0;
+
+    // Build common item spec
+    const builtItem = {
+      srNo: 1,
+      category: item.category || '',
+      description: item.description || '',
+      photo: item.photo || '',
+      fabricPhoto: item.fabricPhoto || '',
+      photos: item.photos || [],
+      specifications: item.specifications || {},
+      qty,
+      unit: item.unit || 'pcs',
+      mrp: item.mrp || 0,
+      sellingPrice: rate,
+      totalPrice: itemTotal,
+    };
+
+    // 2. Create Quotation (Auto-Approved)
+    const quotationNumber = await generateQuotationNumber(req.user.companyId, company.quotationPrefix, clientData.name);
+    
+    const quotation = await Quotation.create({
+      companyId: req.user.companyId,
+      quotationNumber,
+      clientId,
+      projectName: projectName || `Direct Job Card - ${clientData.name}`,
+      contactPerson,
+      status: 'approved',
+      items: [builtItem],
+      subtotal,
+      discount: disc,
+      amountAfterDiscount,
+      gstType: gstType || 'cgst_sgst',
+      cgst, sgst, igst, gstAmount, grandTotal,
+      advancePercent: advancePayment?.percent || 0,
+      advanceAmount: advAmount,
+      approvedAt: new Date(),
+      handledBy: req.user.userId,
+      createdBy: req.user.userId,
+      revisionNumber: 1,
+    });
+
+    // 3. Create Project
+    const projectNumber = await generateProjectNumber(req.user.companyId, company.projectPrefix);
+    const project = await Project.create({
+      companyId: req.user.companyId,
+      projectNumber,
+      clientId,
+      quotationId: quotation._id,
+      projectName: quotation.projectName,
+      // Intentionally omitting architect/designer fields
+      contactPerson,
+      priority: priority || 'medium',
+      status: 'active',
+      createdBy: req.user.userId,
+    });
+
+    quotation.projectId = project._id;
+    await quotation.save();
+
+    // 4. Create Job Card
+    const jobCardNumber = await generateJobCardNumber(req.user.companyId, company.jobCardPrefix);
+    
+    const cleanAssignedTo = {
+      production: (assignedTo?.production || []).map(s => (s?._id || s)?.toString()),
+      qc:         (assignedTo?.qc || []).map(s => (s?._id || s)?.toString()),
+      dispatch:   (assignedTo?.dispatch || []).map(s => (s?._id || s)?.toString()),
+      accounts:   (assignedTo?.accounts || []).map(s => (s?._id || s)?.toString()),
+    };
+
+    const jobCard = await JobCard.create({
+      companyId: req.user.companyId,
+      jobCardNumber,
+      projectId: project._id,
+      clientId,
+      quotationId: quotation._id,
+      title: builtItem.category ? `${builtItem.category} - ${builtItem.description}` : (builtItem.description || `Item 1`),
+      items: [builtItem],
+      contactPerson,
+      salesperson,
+      expectedDelivery,
+      assignedTo: cleanAssignedTo,
+      priority: priority || 'medium',
+      orderDate: new Date(),
+      status: 'active',
+      activityLog: [{
+        action: 'created',
+        doneBy: req.user.userId,
+        newStatus: 'active',
+        note: 'Direct Job Card created synchronously',
+        timestamp: new Date(),
+      }],
+      createdBy: req.user.userId,
+    });
+
+    // 5. Create Invoice
+    const invoiceNumber = await generateInvoiceNumber(req.user.companyId, company.invoicePrefix);
+    const invoicePayments = [];
+    if (advAmount > 0) {
+      invoicePayments.push({
+        amount: advAmount,
+        mode: advancePayment.mode || 'cash',
+        reference: advancePayment.reference || '',
+        paidAt: new Date(),
+        recordedBy: req.user.userId,
+      });
+    }
+    const balanceDue = Math.max(0, grandTotal - advAmount);
+    const invoiceStatus = balanceDue <= 0 ? 'paid' : (advAmount > 0 ? 'partially_paid' : 'draft');
+
+    const invoice = await Invoice.create({
+      companyId: req.user.companyId,
+      invoiceNumber,
+      clientId,
+      projectId: project._id,
+      quotationId: quotation._id,
+      jobCardIds: [jobCard._id],
+      gstType: gstType || 'cgst_sgst',
+      items: [{
+        srNo: 1,
+        category: builtItem.category,
+        description: builtItem.description,
+        qty: builtItem.qty,
+        unit: builtItem.unit,
+        rate: builtItem.sellingPrice,
+        amount: builtItem.totalPrice,
+      }],
+      subtotal,
+      discount: disc,
+      amountAfterDiscount,
+      cgst, sgst, igst, gstAmount, grandTotal,
+      advancePaid: advAmount,
+      balanceDue,
+      payments: invoicePayments,
+      status: invoiceStatus,
+      createdBy: req.user.userId,
+    });
+
+    res.status(201).json({
+      success: true,
+      quotation,
+      project,
+      jobCard,
+      invoice,
+      message: 'Direct Job Card successfully generated.'
+    });
+
+    auditLog(req, {
+      action: 'create',
+      resourceType: 'JobCard',
+      resourceId: jobCard._id,
+      resourceLabel: jobCardNumber,
+      metadata: { type: 'direct_jobcard', projectId: project._id, quotationId: quotation._id },
     });
   } catch (err) {
     next(err);

@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   createJobCard,
+  createDirectJobCard,
   getJobCards,
   getJobCardById,
   updateStatus,
@@ -27,6 +28,7 @@ router.use(authenticateJWT, injectCompanyScope);
 
 // ── Core Job Card CRUD ───────────────────────────────────────────────────────
 
+router.post('/direct', checkPermission('jobcard.create'), createDirectJobCard);
 router.post('/', checkPermission('jobcard.create'), createJobCard);
 router.get('/', checkPermission('jobcard.view'), getJobCards);
 router.get('/:id', checkPermission('jobcard.view'), getJobCardById);
