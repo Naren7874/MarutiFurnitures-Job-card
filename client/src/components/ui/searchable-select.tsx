@@ -232,7 +232,7 @@ export function SearchableSelect({
                     )}
                     <span className={cn(
                         'truncate text-left',
-                        !selectedOption && !value ? 'text-muted-foreground/60' : 'text-foreground font-medium'
+                        !selectedOption && !value ? 'text-muted-foreground/45' : 'text-foreground font-medium'
                     )}>
                         {selectedOption ? selectedOption.label : (value || placeholder)}
                     </span>
@@ -285,7 +285,7 @@ export function SearchableSelect({
                                 value={query}
                                 onChange={e => { setQuery(e.target.value); setActiveIdx(0); }}
                                 placeholder={searchPlaceholder}
-                                className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none"
+                                className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/45 dark:placeholder:text-muted-foreground/70 outline-none"
                             />
                             {query && (
                                 <button
