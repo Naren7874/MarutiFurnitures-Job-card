@@ -28,6 +28,7 @@ export default function QuotationsPage() {
     const [page, setPage] = useState(1);
     const { hasPermission } = useAuthStore();
     const canCreate = hasPermission('quotation.create');
+    const canViewFinancial = hasPermission('reports.view_financial');
 
     const { data: raw, isLoading } = useQuotations({
         search,
@@ -125,7 +126,9 @@ export default function QuotationsPage() {
                                 <tr className="border-b border-border/40 bg-muted/20">
                                     <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Quotation No </th>
                                     <th className="text-left px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden sm:table-cell">Client Name</th>
-                                    <th className="text-right px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden md:table-cell">Total Value</th>
+                                    {canViewFinancial && (
+                                        <th className="text-right px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest hidden md:table-cell">Total Value</th>
+                                    )}
                                     <th className="text-center px-8 py-5 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">Status</th>
                                 </tr>
                             </thead>
@@ -161,10 +164,12 @@ export default function QuotationsPage() {
                                                     <p className="text-foreground/80 font-black text-[13px]">{q.clientId?.name || 'N/A'}</p>
                                                     <p className="text-muted-foreground/40 text-[11px] font-black uppercase tracking-tight truncate max-w-[200px]">{q.projectName || '—'}</p>
                                                 </td>
-                                                <td className="px-8 py-5 hidden md:table-cell text-right">
-                                                    <p className="text-foreground font-black text-[15px]">₹{q.grandTotal?.toLocaleString('en-IN')}</p>
-                                                    <p className="text-[11px] text-muted-foreground/40 font-black uppercase tracking-widest">Incl. GST</p>
-                                                </td>
+                                                {canViewFinancial && (
+                                                    <td className="px-8 py-5 hidden md:table-cell text-right">
+                                                        <p className="text-foreground font-black text-[15px]">₹{q.grandTotal?.toLocaleString('en-IN')}</p>
+                                                        <p className="text-[11px] text-muted-foreground/40 font-black uppercase tracking-widest">Incl. GST</p>
+                                                    </td>
+                                                )}
                                                 <td className="px-8 py-5 text-center">
                                                     <span className={cn(
                                                         "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] border shadow-xs transition-colors",

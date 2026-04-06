@@ -8,20 +8,32 @@ dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '.
 import { Role } from '../models/Role.js';
 import { UserPermission } from '../models/UserPermission.js';
 
-const restrictSalesFinancials = async () => {
+const restrictSalesActions = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ Connected to MongoDB');
 
     const permissionsToRemove = [
+      // Financial / Reports
       'reports.view_financial',
       'reports.export',
-      'invoice.view',
-      'invoice.create',
+      
+      // Invoices (Restrict but allow view and RECORD payment)
       'invoice.edit',
       'invoice.delete',
+      'invoice.archive',
+      
+      // Delete Operations (Critical for Sales restriction)
+      'quotation.delete',
+      'jobcard.delete',
+      'client.delete',
+      'project.delete'
+    ];
+
+    const permissionsToAdd = [
+      'invoice.view',
       'invoice.payment',
-      'invoice.archive'
+      'invoice.create' // Sales often needs to create invoices from Job Cards
     ];
 
     // 1. Update the Role definition (Global)
@@ -29,20 +41,30 @@ const restrictSalesFinancials = async () => {
     if (!salesRole) {
       console.log('❌ Sales role not found in Role collection');
     } else {
-      const originalCount = salesRole.permissions.length;
+      // Remove restricted
       salesRole.permissions = salesRole.permissions.filter(p => !permissionsToRemove.includes(p));
+      // Add required if missing
+      permissionsToAdd.forEach(p => {
+        if (!salesRole.permissions.includes(p)) salesRole.permissions.push(p);
+      });
       await salesRole.save();
-      console.log(`✅ Sales Role permissions updated. Removed ${originalCount - salesRole.permissions.length} restricted permissions.`);
+      console.log(`✅ Sales Role permissions updated (Global).`);
     }
 
     // 2. Update UserPermission instances for sales role (Per company/user)
-    const result = await UserPermission.updateMany(
+    // First Pull restricted
+    await UserPermission.updateMany(
       { role: 'sales' },
       { $pull: { effectivePermissions: { $in: permissionsToRemove } } }
     );
-    console.log(`✅ Updated ${result.modifiedCount} UserPermission records (pulled restricted permissions)`);
+    // Then Add required
+    const result = await UserPermission.updateMany(
+      { role: 'sales' },
+      { $addToSet: { effectivePermissions: { $each: permissionsToAdd } } }
+    );
+    console.log(`✅ Updated ${result.modifiedCount} UserPermission records (Sync complete)`);
 
-    console.log('\n🎉 Financial restriction for Sales role complete!');
+    console.log('\n🎉 Comprehensive restriction for Sales role complete!');
     await mongoose.disconnect();
     process.exit(0);
   } catch (err) {
@@ -51,4 +73,4 @@ const restrictSalesFinancials = async () => {
   }
 };
 
-restrictSalesFinancials();
+restrictSalesActions();

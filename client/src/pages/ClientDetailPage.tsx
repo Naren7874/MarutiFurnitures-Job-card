@@ -45,6 +45,7 @@ export default function ClientDetailPage() {
 
     const canEditClient = hasPermission('client.edit');
     const canCreateQuote = hasPermission('quotation.create');
+    const canViewFinancial = hasPermission('reports.view_financial');
 
 
     const handleDeactivate = async () => {
@@ -154,10 +155,10 @@ export default function ClientDetailPage() {
                         <div className="flex flex-wrap gap-4 items-center justify-center md:justify-start pt-2 border-t border-border/30">
                             {[
                                 { label: 'Client ID', value: id?.slice(-6).toUpperCase(), color: 'text-indigo-500' },
-                                { label: 'Proforma Invoiced', value: `₹${totalInvoiced.toLocaleString('en-IN')}`, color: 'text-primary' },
+                                canViewFinancial ? { label: 'Proforma Invoiced', value: `₹${totalInvoiced.toLocaleString('en-IN')}`, color: 'text-primary' } : null,
                                 { label: 'Status', value: client.isActive ? 'ACTIVE' : 'INACTIVE', color: client.isActive ? 'text-emerald-500' : 'text-rose-500' },
                                 { label: 'Type', value: client.clientType?.replace('_', ' ').toUpperCase() || 'CORE', color: 'text-amber-500' },
-                            ].map((s, idx) => (
+                            ].filter(Boolean).map((s: any, idx) => (
                                 <div key={idx} className="flex flex-col">
                                     <p className="text-muted-foreground/40 text-[9px] font-black uppercase tracking-widest">{s.label}</p>
                                     <p className={cn("text-xs font-black tracking-wider uppercase", s.color)}>{s.value}</p>
@@ -222,45 +223,45 @@ export default function ClientDetailPage() {
                                 </Button>
                             </div>
                         </motion.section>
-                    </div>
-
-                    {/* Financial Matrix */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {[
-                            { label: 'Total Proforma Invoiced', value: totalInvoiced, icon: FileText, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                            { label: 'Total Paid', value: totalPaid, icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                            { label: 'Outstanding', value: balanceDue, icon: Clock, color: 'text-rose-500', bg: 'bg-rose-500/10' },
-                        ].map((fin, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.4 + (i * 0.1) }}
-                                className="p-5 rounded-[24px] border border-border bg-card/40 flex flex-col gap-3"
-                            >
-                                <div className={cn("p-2 rounded-xl w-fit", fin.bg)}>
-                                    <fin.icon size={16} className={fin.color} />
-                                </div>
-                                <div>
-                                    <p className="text-muted-foreground/50 text-[9px] font-black uppercase tracking-widest">{fin.label}</p>
-                                    <p className="text-xl font-black tracking-tight text-foreground">₹{fin.value.toLocaleString('en-IN')}</p>
-                                </div>
-                                {fin.label === 'Total Proforma Invoiced' && totalInvoiced > 0 && (
-                                    <div className="mt-auto pt-4 border-t border-border/20">
-                                        <div className="flex justify-between items-center text-[8px] font-black uppercase mb-1">
-                                            <span className="text-emerald-500">Collected: {Math.round((totalPaid / totalInvoiced) * 100)}%</span>
-                                        </div>
-                                        <div className="h-1 bg-muted rounded-full overflow-hidden">
-                                            <div
-                                                className="h-full bg-emerald-500 transition-all duration-1000"
-                                                style={{ width: `${Math.min(100, (totalPaid / totalInvoiced) * 100)}%` }}
-                                            />
-                                        </div>
+                    </div>                     {/* Financial Matrix */}
+                    {canViewFinancial && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            {[
+                                { label: 'Total Proforma Invoiced', value: totalInvoiced, icon: FileText, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                                { label: 'Total Paid', value: totalPaid, icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                                { label: 'Outstanding', value: balanceDue, icon: Clock, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+                            ].map((fin, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.4 + (i * 0.1) }}
+                                    className="p-5 rounded-[24px] border border-border bg-card/40 flex flex-col gap-3"
+                                >
+                                    <div className={cn("p-2 rounded-xl w-fit", fin.bg)}>
+                                        <fin.icon size={16} className={fin.color} />
                                     </div>
-                                )}
-                            </motion.div>
-                        ))}
-                    </div>
+                                    <div>
+                                        <p className="text-muted-foreground/50 text-[9px] font-black uppercase tracking-widest">{fin.label}</p>
+                                        <p className="text-xl font-black tracking-tight text-foreground">₹{fin.value.toLocaleString('en-IN')}</p>
+                                    </div>
+                                    {fin.label === 'Total Proforma Invoiced' && totalInvoiced > 0 && (
+                                        <div className="mt-auto pt-4 border-t border-border/20">
+                                            <div className="flex justify-between items-center text-[8px] font-black uppercase mb-1">
+                                                <span className="text-emerald-500">Collected: {Math.round((totalPaid / totalInvoiced) * 100)}%</span>
+                                            </div>
+                                            <div className="h-1 bg-muted rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-emerald-500 transition-all duration-1000"
+                                                    style={{ width: `${Math.min(100, (totalPaid / totalInvoiced) * 100)}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Recent Quotations */}
                     <motion.div
@@ -285,7 +286,9 @@ export default function ClientDetailPage() {
                                         <p className="text-[10px] text-muted-foreground font-bold">{q.projectName}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm font-black text-foreground">₹{q.grandTotal?.toLocaleString('en-IN')}</p>
+                                        {canViewFinancial && (
+                                            <p className="text-sm font-black text-foreground">₹{q.grandTotal?.toLocaleString('en-IN')}</p>
+                                        )}
                                         <span className={cn(
                                             "text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest",
                                             q.status === 'approved' ? "bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground"

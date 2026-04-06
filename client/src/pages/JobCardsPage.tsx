@@ -57,12 +57,13 @@ export default function JobCardsPage() {
 
     const resp: any = raw;
     const rawJobCards: any[] = resp?.data ?? [];
-    const { user } = useAuthStore();
-    const userId = user?.id;
+    const { user, hasPermission } = useAuthStore();
+    const userId = user?.id || (user as any)?._id;
     const isSuperAdmin = user?.role === 'super_admin';
     const isManager = user?.role === 'admin' || user?.role === 'management';
     const isSales = user?.role === 'sales';
     const canSeeAll = isSuperAdmin || isManager || isSales;
+    const canViewFinancial = hasPermission('reports.view_financial');
 
     // Filter job cards if not super_admin, manager, or sales
     const filteredJobCards = canSeeAll
@@ -418,7 +419,9 @@ export default function JobCardsPage() {
                                                                             </div>
                                                                             <p className="text-muted-foreground/60 text-[10px] font-bold truncate max-w-[80px]">{jc.clientId?.name || 'External'}</p>
                                                                         </div>
-                                                                        <p className="text-foreground font-black text-xs">₹{(jc.quotationId?.grandTotal || 0).toLocaleString()}</p>
+                                                                        {canViewFinancial && (
+                                                                            <p className="text-foreground font-black text-xs">₹{(jc.quotationId?.grandTotal || 0).toLocaleString()}</p>
+                                                                        )}
                                                                     </div>
                                                                 </Card>
                                                             </Link>

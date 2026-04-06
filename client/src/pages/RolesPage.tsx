@@ -45,25 +45,31 @@ const PERMISSION_GROUPS = [
         group: 'Job Cards',
         prefix: 'jobcard',
         icon: '📋',
-        perms: ['jobcard.view', 'jobcard.create', 'jobcard.edit', 'jobcard.export', 'jobcard.close', 'jobcard.assign', 'jobcard.override_status'],
+        perms: ['jobcard.create', 'jobcard.view', 'jobcard.edit', 'jobcard.delete', 'jobcard.export', 'jobcard.close', 'jobcard.assign', 'jobcard.override_status'],
     },
     {
         group: 'Clients',
         prefix: 'client',
         icon: '👤',
-        perms: ['client.view', 'client.create', 'client.edit', 'client.delete', 'client.verify_gst'],
+        perms: ['client.create', 'client.view', 'client.edit', 'client.delete', 'client.verify_gst'],
     },
     {
         group: 'Quotations',
         prefix: 'quotation',
         icon: '📄',
-        perms: ['quotation.view', 'quotation.create', 'quotation.edit', 'quotation.send', 'quotation.approve', 'quotation.reject', 'quotation.delete'],
+        perms: ['quotation.create', 'quotation.view', 'quotation.edit', 'quotation.send', 'quotation.approve', 'quotation.reject', 'quotation.delete'],
     },
     {
         group: 'Projects',
         prefix: 'project',
         icon: '🏗️',
-        perms: ['project.view', 'project.create', 'project.edit'],
+        perms: ['project.create', 'project.view', 'project.edit', 'project.delete'],
+    },
+    {
+        group: 'Design Requests',
+        prefix: 'designrequest',
+        icon: '🎨',
+        perms: ['designrequest.create', 'designrequest.view', 'designrequest.edit', 'designrequest.upload', 'designrequest.signoff'],
     },
     {
         group: 'Production Stage',
@@ -87,19 +93,19 @@ const PERMISSION_GROUPS = [
         group: 'Invoices',
         prefix: 'invoice',
         icon: '🧾',
-        perms: ['invoice.view', 'invoice.create', 'invoice.edit', 'invoice.send', 'invoice.payment'],
+        perms: ['invoice.create', 'invoice.view', 'invoice.edit', 'invoice.delete', 'invoice.send', 'invoice.payment', 'invoice.archive'],
     },
     {
         group: 'Inventory',
         prefix: 'inventory',
         icon: '📦',
-        perms: ['inventory.view', 'inventory.create', 'inventory.edit'],
+        perms: ['inventory.create', 'inventory.view', 'inventory.edit', 'inventory.delete'],
     },
     {
         group: 'Purchase Orders',
         prefix: 'purchaseOrder',
         icon: '🛒',
-        perms: ['purchaseOrder.view', 'purchaseOrder.create', 'purchaseOrder.edit', 'purchaseOrder.approve'],
+        perms: ['purchaseOrder.create', 'purchaseOrder.view', 'purchaseOrder.edit', 'purchaseOrder.approve'],
     },
     {
         group: 'Reports',
@@ -111,13 +117,21 @@ const PERMISSION_GROUPS = [
         group: 'Users & Roles',
         prefix: 'user',
         icon: '👥',
-        perms: ['user.view', 'user.create', 'user.edit', 'user.deactivate', 'user.delete', 'privilege.view', 'privilege.create', 'privilege.edit', 'privilege.delete', 'privilege.grant', 'privilege.deny'],
+        perms: [
+            'user.create', 'user.view', 'user.edit', 'user.deactivate', 'user.delete',
+            'privilege.create', 'privilege.view', 'privilege.edit', 'privilege.delete', 'privilege.grant', 'privilege.deny'
+        ],
     },
     {
-        group: 'Settings & Audit',
+        group: 'Settings & Utils',
         prefix: 'settings',
         icon: '⚙️',
-        perms: ['settings.view', 'settings.edit', 'settings.company_edit', 'audit_log.view', 'audit_log.export'],
+        perms: [
+            'settings.view', 'settings.edit', 'settings.company_edit',
+            'audit_log.view', 'audit_log.export',
+            'notification.view',
+            'whatsapp.send_manual', 'gst.verify'
+        ],
     },
 ]
 

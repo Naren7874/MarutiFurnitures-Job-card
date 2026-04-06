@@ -48,6 +48,7 @@ export default function InvoicesPage() {
     const [page, setPage] = useState(1);
     const { hasPermission } = useAuthStore();
     const canCreate = hasPermission('invoice.create');
+    const canViewFinancial = hasPermission('reports.view_financial');
 
     const { data: raw, isLoading } = useInvoices({ search, status, page, limit: 20 });
     const resp: any = raw;
@@ -84,40 +85,42 @@ export default function InvoicesPage() {
             </motion.div>
 
             {/* Quick Stats Summary */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard
-                    icon={Receipt}
-                    label="Total Issued"
-                    value={pagination.total ?? 0}
-                    sub="Requests"
-                    colorClass="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                    delay={0.1}
-                />
-                <StatCard
-                    icon={CheckCircle}
-                    label="Settled Proforma Invoices"
-                    value={totalPaid}
-                    sub="Settled"
-                    colorClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                    delay={0.2}
-                />
-                <StatCard
-                    icon={XCircle}
-                    label="Overdue Alert"
-                    value={totalOverdue}
-                    sub="Critical"
-                    colorClass="bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                    delay={0.3}
-                />
-                <StatCard
-                    icon={Wallet}
-                    label="Global Balance"
-                    value={`₹${invoices.reduce((acc, i) => acc + (i.balanceDue || 0), 0).toLocaleString('en-IN')}`}
-                    sub="Receivable"
-                    colorClass="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
-                    delay={0.4}
-                />
-            </div>
+            {canViewFinancial && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <StatCard
+                        icon={Receipt}
+                        label="Total Issued"
+                        value={pagination.total ?? 0}
+                        sub="Requests"
+                        colorClass="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                        delay={0.1}
+                    />
+                    <StatCard
+                        icon={CheckCircle}
+                        label="Settled Proforma Invoices"
+                        value={totalPaid}
+                        sub="Settled"
+                        colorClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        delay={0.2}
+                    />
+                    <StatCard
+                        icon={XCircle}
+                        label="Overdue Alert"
+                        value={totalOverdue}
+                        sub="Critical"
+                        colorClass="bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                        delay={0.3}
+                    />
+                    <StatCard
+                        icon={Wallet}
+                        label="Global Balance"
+                        value={`₹${invoices.reduce((acc, i) => acc + (i.balanceDue || 0), 0).toLocaleString('en-IN')}`}
+                        sub="Receivable"
+                        colorClass="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                        delay={0.4}
+                    />
+                </div>
+            )}
 
             {/* Filters Section */}
             <motion.div

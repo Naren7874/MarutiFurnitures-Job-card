@@ -53,6 +53,7 @@ export default function ProjectsPage() {
     const [creating, setCreating] = useState(false);
     const { hasPermission } = useAuthStore();
     const canCreate = hasPermission('project.create');
+    const canViewFinancial = hasPermission('reports.view_financial');
 
     const openModal = async () => {
         try {
@@ -375,7 +376,7 @@ export default function ProjectsPage() {
                                                 )}>
                                                 <p className="font-bold text-sm text-foreground">{q.projectName || q.quotationNumber}</p>
                                                 <p className="text-xs text-muted-foreground/50 mt-0.5">
-                                                    {q.quotationNumber} · {q.clientId?.name || 'Client'} · ₹{(q.grandTotal || 0).toLocaleString('en-IN')}
+                                                    {q.quotationNumber} · {q.clientId?.name || 'Client'} {canViewFinancial && `· ₹${(q.grandTotal || 0).toLocaleString('en-IN')}`}
                                                 </p>
                                             </button>
                                         ))}

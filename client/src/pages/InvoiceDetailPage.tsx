@@ -52,10 +52,11 @@ export default function InvoiceDetailPage() {
     const [payError, setPayError] = useState('');
     const [confirm, setConfirm] = useState<'send' | null>(null);
     const [pdfLoading, setPdfLoading] = useState(false);
-    const { hasPermission } = useAuthStore();
+    const { hasPermission, user } = useAuthStore();
 
     const canEdit = hasPermission('invoice.edit');
     const canPay  = hasPermission('invoice.payment');
+    const isSales = user?.role === 'sales';
 
     const handleDownloadPDF = async () => {
         setPdfLoading(true);
@@ -358,19 +359,19 @@ export default function InvoiceDetailPage() {
                                                     {p.mode?.replace(/_/g, ' ')} {p.reference ? `· ${p.reference}` : ''}
                                                 </p>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {canPay && (
-                                                <>
-                                                    <Button variant="ghost" size="icon" onClick={() => startEditPayment(p)} className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors">
-                                                        <Pencil size={14} />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDeletePayment(p._id)} className="h-8 w-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-500 transition-colors">
-                                                        <Trash2 size={14} />
-                                                    </Button>
-                                                </>
-                                            )}
-                                            <p className="text-xs text-muted-foreground/50 font-bold">{fmtDate(p.paidAt)}</p>
+                                            <div className="flex items-center gap-2">
+                                                {canPay && !isSales && (
+                                                    <>
+                                                        <Button variant="ghost" size="icon" onClick={() => startEditPayment(p)} className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors">
+                                                            <Pencil size={14} />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleDeletePayment(p._id)} className="h-8 w-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-500 transition-colors">
+                                                            <Trash2 size={14} />
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                <p className="text-xs text-muted-foreground/50 font-bold">{fmtDate(p.paidAt)}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
