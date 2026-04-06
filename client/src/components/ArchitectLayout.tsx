@@ -39,7 +39,9 @@ export default function ArchitectLayout() {
           </div>
           {!collapsed && (
             <div className="overflow-hidden">
-              <p className="text-foreground text-sm font-black uppercase tracking-tight truncate leading-tight">Architect</p>
+              <p className="text-foreground text-sm font-black uppercase tracking-tight truncate leading-tight">
+                {user?.role === 'project_designer' || user?.role?.toLowerCase() === 'project designer' ? 'Project Designer' : 'Architect'}
+              </p>
               <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest opacity-60 truncate">Portal</p>
             </div>
           )}
@@ -79,7 +81,9 @@ export default function ArchitectLayout() {
               </Avatar>
               <div className="overflow-hidden flex-1">
                 <p className="text-foreground text-xs font-medium truncate">{user?.name}</p>
-                <p className="text-muted-foreground text-[10px] truncate">Architect</p>
+                <p className="text-muted-foreground text-[10px] truncate">
+                  {user?.role === 'project_designer' || user?.role?.toLowerCase() === 'project designer' ? 'Project Designer' : 'Architect'}
+                </p>
               </div>
             </div>
           )}

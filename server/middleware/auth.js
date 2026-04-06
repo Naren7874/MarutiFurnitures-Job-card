@@ -107,7 +107,7 @@ export const authenticateArchitect = async (req, res, next) => {
 
   try {
     const user = await User.findById(decoded.userId)
-      .select('isActive tokenVersion name role profilePhoto')
+      .select('isActive tokenVersion name email role profilePhoto')
       .lean();
 
     if (!user) return res.status(401).json({ success: false, message: 'User not found' });
@@ -120,6 +120,7 @@ export const authenticateArchitect = async (req, res, next) => {
       userId:       user._id,
       role:         user.role,
       name:         user.name,
+      email:        user.email,
       profilePhoto: user.profilePhoto,
     };
 

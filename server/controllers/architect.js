@@ -3,7 +3,29 @@ import Client from '../models/Client.js';
 import Company from '../models/Company.js';
 import Project from '../models/Project.js';
 import JobCard from '../models/JobCard.js';
+import User from '../models/User.js';
 import mongoose from 'mongoose';
+
+/**
+ * Resolves the "architectId" to use for all queries.
+ * - If user is a project_designer, find their linked architect via teamEmail === user email.
+ * - Otherwise, return the logged-in user's own ID.
+ */
+const resolveArchitectId = async (req) => {
+  const isProjectDesigner =
+    req.user.role === 'project_designer' ||
+    req.user.role?.toLowerCase() === 'project designer';
+
+  if (isProjectDesigner) {
+    // Find the architect whose teamEmail matches this project_designer's email
+    const arch = await User.findOne({ teamEmail: req.user.email }).select('_id').lean();
+    if (arch) return new mongoose.Types.ObjectId(arch._id);
+    // Fallback: use own ID (will show empty data if no architect linked)
+    return new mongoose.Types.ObjectId(req.user.userId);
+  }
+
+  return new mongoose.Types.ObjectId(req.user.userId);
+};
 
 /**
  * GET /api/architect/dashboard
@@ -11,7 +33,7 @@ import mongoose from 'mongoose';
  */
 export const getArchitectDashboard = async (req, res, next) => {
   try {
-    const architectId = new mongoose.Types.ObjectId(req.user.userId);
+    const architectId = await resolveArchitectId(req);
 
     // All quotations associated with this architect across ALL companies
     const allQuotations = await Quotation.find({ architectId })
@@ -100,7 +122,7 @@ export const getArchitectDashboard = async (req, res, next) => {
  */
 export const getArchitectQuotations = async (req, res, next) => {
   try {
-    const architectId = new mongoose.Types.ObjectId(req.user.userId);
+    const architectId = await resolveArchitectId(req);
     const { status, clientId, search, page = 1, limit = 20 } = req.query;
 
     const filter = { architectId };
@@ -142,7 +164,7 @@ export const getArchitectQuotations = async (req, res, next) => {
  */
 export const getArchitectClients = async (req, res, next) => {
   try {
-    const architectId = new mongoose.Types.ObjectId(req.user.userId);
+    const architectId = await resolveArchitectId(req);
 
     // Get distinct clientIds
     const clientIds = await Quotation.distinct('clientId', { architectId });
@@ -177,7 +199,7 @@ export const getArchitectClients = async (req, res, next) => {
  */
 export const getArchitectQuotationById = async (req, res, next) => {
   try {
-    const architectId = new mongoose.Types.ObjectId(req.user.userId);
+    const architectId = await resolveArchitectId(req);
 
     const quotation = await Quotation.findOne({ _id: req.params.id, architectId })
       .populate('clientId')
@@ -212,7 +234,7 @@ export const getArchitectQuotationById = async (req, res, next) => {
  */
 export const getArchitectProjects = async (req, res, next) => {
   try {
-    const architectId = new mongoose.Types.ObjectId(req.user.userId);
+    const architectId = await resolveArchitectId(req);
     const { search, status, clientId, page = 1, limit = 20 } = req.query;
 
     const quotations = await Quotation.find({ architectId }).select('_id').lean();
@@ -254,7 +276,7 @@ export const getArchitectProjects = async (req, res, next) => {
  */
 export const getArchitectProjectById = async (req, res, next) => {
   try {
-    const architectId = new mongoose.Types.ObjectId(req.user.userId);
+    const architectId = await resolveArchitectId(req);
     const project = await Project.findById(req.params.id)
       .populate('clientId')
       .populate('companyId', 'name logo address phone email')
@@ -284,7 +306,7 @@ export const getArchitectProjectById = async (req, res, next) => {
  */
 export const getArchitectJobCards = async (req, res, next) => {
   try {
-    const architectId = new mongoose.Types.ObjectId(req.user.userId);
+    const architectId = await resolveArchitectId(req);
     const { search, status, clientId, page = 1, limit = 20 } = req.query;
 
     const quotations = await Quotation.find({ architectId }).select('_id').lean();
@@ -327,7 +349,7 @@ export const getArchitectJobCards = async (req, res, next) => {
  */
 export const getArchitectJobCardById = async (req, res, next) => {
   try {
-    const architectId = new mongoose.Types.ObjectId(req.user.userId);
+    const architectId = await resolveArchitectId(req);
     const jobCard = await JobCard.findById(req.params.id)
       .populate('clientId')
       .populate('companyId', 'name logo address phone email')

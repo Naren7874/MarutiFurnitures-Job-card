@@ -100,7 +100,8 @@ export const createUser = async (req, res, next) => {
     const {
       firstName, middleName, lastName,
       email, password, role, department, phone, whatsappNumber,
-      firmName, factoryName, factoryLocation
+      firmName, factoryName, factoryLocation,
+      teamEmail,        // architect-only: linked project_designer email
     } = req.body;
 
     if (!firstName || !lastName || !email || !role) {
@@ -152,6 +153,7 @@ export const createUser = async (req, res, next) => {
         firmName: firmName || undefined,
         factoryName: factoryName || undefined,
         factoryLocation: factoryLocation || undefined,
+        teamEmail: teamEmail ? teamEmail.toLowerCase().trim() : undefined,
         companyId: req.user.companyId,
         createdBy: req.user.userId,
       });
@@ -209,10 +211,77 @@ export const createUser = async (req, res, next) => {
       password: generatedPassword,
       role: roleDoc.name,
     }).catch(err => console.error('[createUser] Email send failed:', err));
+
+    // ── Auto-create linked project_designer if teamEmail provided ─────────────────────
+    if (role?.toLowerCase().includes('architect') && teamEmail && teamEmail.trim()) {
+      try {
+        const cleanTeamEmail = teamEmail.toLowerCase().trim();
+        const pdRoleDoc = await Role.findOne({ name: 'project_designer' }).lean();
+
+        if (pdRoleDoc) {
+          // Generate password: same pattern using architect firstName + phoneSuffix
+          const pdPassword = generatedPassword; // same password as architect
+
+          let pdUser = await User.findOne({ email: cleanTeamEmail });
+
+          if (!pdUser) {
+            pdUser = await User.create({
+              firstName: firstName.trim(),
+              middleName: middleName?.trim(),
+              lastName: `${lastName.trim()} (Team)`,
+              email: cleanTeamEmail,
+              password: pdPassword,
+              role: 'project_designer',
+              phone: phone || undefined,
+              firmName: firmName || undefined,
+              companyId: req.user.companyId,
+              createdBy: user._id,
+            });
+          }
+
+          // Provision project_designer across all companies
+          const pdPermPromises = companies.map(comp =>
+            UserPermission.findOneAndUpdate(
+              { userId: pdUser._id, companyId: comp._id },
+              {
+                roleId: pdRoleDoc._id,
+                role: pdRoleDoc.name,
+                effectivePermissions: pdRoleDoc.permissions || [],
+              },
+              { upsert: true, new: true, setDefaultsOnInsert: true }
+            )
+          );
+          await Promise.all(pdPermPromises);
+          resolvePermissions(pdUser._id.toString(), req.user.companyId.toString()).catch(() => { });
+
+          // Send welcome email to team email with same credentials
+          sendWelcomeEmail({
+            email: cleanTeamEmail,
+            firstName: pdUser.firstName,
+            password: pdPassword,
+            role: 'Project Designer',
+          }).catch(err => console.error('[createUser] Team email send failed:', err));
+
+          // Also send credentials to architect's own email mentioning team account
+          sendWelcomeEmail({
+            email: user.email,
+            firstName: user.firstName,
+            password: pdPassword,
+            role: 'Project Designer (Team Account)',
+            extra: `A Project Designer account has been created for your team at: ${cleanTeamEmail}`,
+          }).catch(() => { });
+        }
+      } catch (pdErr) {
+        console.error('[createUser] Auto-create project_designer failed:', pdErr);
+      }
+    }
   } catch (err) {
     next(err);
   }
 };
+
+
+
 
 // ── PUT /api/users/:id ────────────────────────────────────────────────────────
 export const updateUser = async (req, res, next) => {
@@ -220,7 +289,8 @@ export const updateUser = async (req, res, next) => {
     const {
       firstName, middleName, lastName,
       role, department, phone, whatsappNumber, isActive,
-      firmName, factoryName, factoryLocation
+      firmName, factoryName, factoryLocation,
+      teamEmail,          // architect-only: add/update linked project_designer email
     } = req.body;
 
     const user = await User.findById(req.params.id);
@@ -248,6 +318,12 @@ export const updateUser = async (req, res, next) => {
     if (firmName !== undefined) user.firmName = firmName;
     if (factoryName !== undefined) user.factoryName = factoryName;
     if (factoryLocation !== undefined) user.factoryLocation = factoryLocation;
+
+    // Handle teamEmail update for architect users
+    const prevTeamEmail = user.teamEmail;
+    if (teamEmail !== undefined) {
+      user.teamEmail = teamEmail ? teamEmail.toLowerCase().trim() : undefined;
+    }
 
     await user.save();
 
@@ -287,6 +363,70 @@ export const updateUser = async (req, res, next) => {
     });
 
     res.status(200).json({ success: true, data: userObj, message: 'User updated successfully' });
+
+    // ── Auto-create project_designer if a new teamEmail was added to an architect ──
+    const currentRole = (role || user.role || '');
+    const newTeamEmail = teamEmail ? teamEmail.toLowerCase().trim() : null;
+    if (
+      currentRole.toLowerCase().includes('architect') &&
+      newTeamEmail &&
+      newTeamEmail !== prevTeamEmail
+    ) {
+      try {
+        const pdRoleDoc = await Role.findOne({ name: 'project_designer' }).lean();
+        if (pdRoleDoc) {
+          const phoneSuffix = user.phone ? user.phone.trim().replace(/\s+/g, '').slice(-4) : '1234';
+          const pdPassword = `${user.firstName}${phoneSuffix}`;
+
+          let pdUser = await User.findOne({ email: newTeamEmail });
+          if (!pdUser) {
+            pdUser = await User.create({
+              firstName: user.firstName,
+              middleName: user.middleName,
+              lastName: `${user.lastName} (Team)`,
+              email: newTeamEmail,
+              password: pdPassword,
+              role: 'project_designer',
+              phone: user.phone || undefined,
+              firmName: user.firmName || undefined,
+              companyId: req.user.companyId,
+              createdBy: user._id,
+            });
+          }
+
+          const Company = mongoose.model('Company');
+          const companies = await Company.find({ isActive: true }).lean();
+          const pdPermPromises = companies.map(comp =>
+            UserPermission.findOneAndUpdate(
+              { userId: pdUser._id, companyId: comp._id },
+              { roleId: pdRoleDoc._id, role: pdRoleDoc.name, effectivePermissions: pdRoleDoc.permissions || [] },
+              { upsert: true, new: true, setDefaultsOnInsert: true }
+            )
+          );
+          await Promise.all(pdPermPromises);
+          resolvePermissions(pdUser._id.toString(), req.user.companyId.toString()).catch(() => {});
+
+          // Send welcome email to team email
+          sendWelcomeEmail({
+            email: newTeamEmail,
+            firstName: pdUser.firstName,
+            password: pdPassword,
+            role: 'Project Designer',
+          }).catch(err => console.error('[updateUser] Team email send failed:', err));
+
+          // Also notify the architect about the new team account
+          sendWelcomeEmail({
+            email: user.email,
+            firstName: user.firstName,
+            password: pdPassword,
+            role: 'Project Designer (Team Account)',
+            extra: `A Project Designer account has been created for your team at: <strong>${newTeamEmail}</strong>. They can log in using the password above.`,
+          }).catch(err => console.error('[updateUser] Architect notify failed:', err));
+        }
+      } catch (pdErr) {
+        console.error('[updateUser] Auto-create project_designer failed:', pdErr);
+      }
+    }
   } catch (err) {
     next(err);
   }

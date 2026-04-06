@@ -5,6 +5,7 @@ import {
   FileText, CheckCircle, Clock, Package, ReceiptText
 } from 'lucide-react';
 import { useArchitectQuotationById } from '../../hooks/useApi';
+import { useAuthStore } from '../../stores/authStore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -69,6 +70,8 @@ export default function ArchitectQuotationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data, isLoading } = useArchitectQuotationById(id || '');
+  const user = useAuthStore(s => s.user);
+  const isProjectDesigner = user?.role === 'project_designer' || user?.role?.toLowerCase() === 'project designer';
   const q: any = (data as any)?.data;
 
   if (isLoading) return <DetailSkeleton />;
@@ -102,35 +105,37 @@ export default function ArchitectQuotationDetailPage() {
         </div>
       </motion.div>
 
-      {/* Commission Banner */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.05 }}
-        className={cn(
-          'rounded-2xl p-5 border flex flex-col sm:flex-row items-center justify-between gap-4',
-          isEarned
-            ? 'bg-emerald-500/8 border-emerald-500/20'
-            : 'bg-yellow-500/8 border-yellow-500/20'
-        )}
-      >
-        <div className="flex items-center gap-4">
-          <div className={cn('size-14 rounded-2xl flex items-center justify-center shadow-sm', isEarned ? 'bg-emerald-500/20' : 'bg-yellow-500/20')}>
-            {isEarned ? <CheckCircle size={26} className="text-emerald-600" /> : <Clock size={26} className="text-yellow-600" />}
+      {/* Commission Banner — hidden for project_designer */}
+      {!isProjectDesigner && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.05 }}
+          className={cn(
+            'rounded-2xl p-5 border flex flex-col sm:flex-row items-center justify-between gap-4',
+            isEarned
+              ? 'bg-emerald-500/8 border-emerald-500/20'
+              : 'bg-yellow-500/8 border-yellow-500/20'
+          )}
+        >
+          <div className="flex items-center gap-4">
+            <div className={cn('size-14 rounded-2xl flex items-center justify-center shadow-sm', isEarned ? 'bg-emerald-500/20' : 'bg-yellow-500/20')}>
+              {isEarned ? <CheckCircle size={26} className="text-emerald-600" /> : <Clock size={26} className="text-yellow-600" />}
+            </div>
+            <div>
+              <p className="text-foreground font-black text-lg md:text-xl tracking-tight">{isEarned ? 'Ooroo Earned' : 'Ooroo Pending'}</p>
+              <p className="text-muted-foreground text-sm font-medium mt-0.5">
+                {isEarned ? 'Admin has approved this quotation.' : 'Awaiting admin approval.'}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-foreground font-black text-lg md:text-xl tracking-tight">{isEarned ? 'Ooroo Earned' : 'Ooroo Pending'}</p>
-            <p className="text-muted-foreground text-sm font-medium mt-0.5">
-              {isEarned ? 'Admin has approved this quotation.' : 'Awaiting admin approval.'}
+          <div className="text-center sm:text-right">
+            <p className={cn('text-4xl md:text-5xl font-black tracking-tighter', isEarned ? 'text-emerald-600' : 'text-yellow-600')}>
+              {((q.architectCommissionAmount || 0)/1000).toFixed(3)}
             </p>
           </div>
-        </div>
-        <div className="text-center sm:text-right">
-          <p className={cn('text-4xl md:text-5xl font-black tracking-tighter', isEarned ? 'text-emerald-600' : 'text-yellow-600')}>
-            {((q.architectCommissionAmount || 0)/1000).toFixed(3)}
-          </p>
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
 
       {/* Details Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -185,22 +190,32 @@ export default function ArchitectQuotationDetailPage() {
           </div>
         </InfoCard>
 
-        {/* Financials */}
-        <InfoCard icon={ReceiptText} title="Financials">
-          <div className="space-y-2">
-            <InfoRow label="Subtotal" value={fmt(q.subtotal)} />
-            {q.discount > 0 && <InfoRow label="Discount" value={`− ${fmt(q.discount)}`} />}
-            <div className="border-t border-border/30 pt-2">
-              <InfoRow label="Grand Total" value={fmt(q.grandTotal || (q.subtotal - (q.discount || 0)))} />
+        {/* Financials — hidden for project_designer, show simplified Project Terms instead */}
+        {isProjectDesigner ? (
+          <InfoCard icon={FileText} title="Project Terms">
+            <div className="space-y-2">
+              <InfoRow label="Advance" value={q.advancePercent != null ? `${q.advancePercent}%` : null} />
+              <InfoRow label="GST Type" value={q.gstType?.replace('_', ' + ').toUpperCase() || null} />
+              <InfoRow label="Delivery" value={q.deliveryDays || null} />
             </div>
-            <div className="border-t border-primary/20 pt-2">
-              <InfoRow
-                label={`Ooroo`}
-                value={((q.architectCommissionAmount || 0)/1000).toFixed(3)}
-              />
+          </InfoCard>
+        ) : (
+          <InfoCard icon={ReceiptText} title="Financials">
+            <div className="space-y-2">
+              <InfoRow label="Subtotal" value={fmt(q.subtotal)} />
+              {q.discount > 0 && <InfoRow label="Discount" value={`− ${fmt(q.discount)}`} />}
+              <div className="border-t border-border/30 pt-2">
+                <InfoRow label="Grand Total" value={fmt(q.grandTotal || (q.subtotal - (q.discount || 0)))} />
+              </div>
+              <div className="border-t border-primary/20 pt-2">
+                <InfoRow
+                  label={`Ooroo`}
+                  value={((q.architectCommissionAmount || 0)/1000).toFixed(3)}
+                />
+              </div>
             </div>
-          </div>
-        </InfoCard>
+          </InfoCard>
+        )}
       </div>
 
       {/* Linked Project & Job Cards */}
@@ -256,7 +271,10 @@ export default function ArchitectQuotationDetailPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-muted/20 border-b border-border/20">
-                  {['#', 'Item Description', 'Qty', 'Rate', 'Total Amount'].map(h => (
+                  {(isProjectDesigner
+                    ? ['#', 'Item Description', 'Qty']
+                    : ['#', 'Item Description', 'Qty', 'Rate', 'Total Amount']
+                  ).map(h => (
                     <th key={h} className="text-left px-5 py-3 text-[9px] font-black tracking-widest text-muted-foreground/40">{h}</th>
                   ))}
                 </tr>
@@ -299,8 +317,12 @@ export default function ArchitectQuotationDetailPage() {
                       </div>
                     </td>
                     <td className="px-5 py-4 text-[14px] font-bold text-foreground/70 tracking-tight whitespace-nowrap">{item.qty} {item.unit || 'pcs'}</td>
-                    <td className="px-5 py-4 text-[14px] font-bold text-foreground/70 tracking-tight">{fmt(item.sellingPrice || 0)}</td>
-                    <td className="px-5 py-4 text-[15px] font-black text-foreground tracking-tight">{fmt(item.totalPrice || (item.qty * (item.sellingPrice || 0)))}</td>
+                    {!isProjectDesigner && (
+                      <>
+                        <td className="px-5 py-4 text-[14px] font-bold text-foreground/70 tracking-tight">{fmt(item.sellingPrice || 0)}</td>
+                        <td className="px-5 py-4 text-[15px] font-black text-foreground tracking-tight">{fmt(item.totalPrice || (item.qty * (item.sellingPrice || 0)))}</td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>

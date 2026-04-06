@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { FileText, CheckCircle, Clock, Building2, ArrowRight, Factory, AlertTriangle, Coins } from 'lucide-react';
 import { useArchitectDashboard } from '../../hooks/useApi';
+import { useAuthStore } from '../../stores/authStore';
 import { cn } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -88,6 +89,8 @@ function KpiCard({ label, value, icon: Icon, className, iconClassName, delay = 0
 export default function ArchitectDashboardPage() {
   const navigate = useNavigate();
   const { data, isLoading } = useArchitectDashboard();
+  const user = useAuthStore(s => s.user);
+  const isProjectDesigner = user?.role === 'project_designer' || user?.role?.toLowerCase() === 'project designer';
   const summary = (data as any)?.data?.summary;
   const recentQuotations: any[] = (data as any)?.data?.recentQuotations || [];
 
@@ -97,21 +100,25 @@ export default function ArchitectDashboardPage() {
     <div className="p-6 md:p-8 space-y-8 w-full">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight">Architect Dashboard</h1>
+        <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight">
+          {isProjectDesigner ? 'Project Designer Dashboard' : 'Architect Dashboard'}
+        </h1>
       </motion.div>
 
       {/* Unified KPI Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-5">
-        {/* Earnings First */}
-        <KpiCard
-          label="Ooroo Earned"
-          value={summary?.earnedOoroo || 0}
-          icon={Coins}
-          suffix="ooroo"
-          className="bg-linear-to-br from-primary/10 via-background to-background border-primary/20"
-          iconClassName="bg-primary text-primary-foreground"
-          delay={0}
-        />
+      <div className={cn('grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5', isProjectDesigner ? 'xl:grid-cols-5' : 'xl:grid-cols-6')}>
+        {/* Earnings — hidden for project_designer */}
+        {!isProjectDesigner && (
+          <KpiCard
+            label="Ooroo Earned"
+            value={summary?.earnedOoroo || 0}
+            icon={Coins}
+            suffix="ooroo"
+            className="bg-linear-to-br from-primary/10 via-background to-background border-primary/20"
+            iconClassName="bg-primary text-primary-foreground"
+            delay={0}
+          />
+        )}
 
         {/* Operational Status */}
         <KpiCard

@@ -15,7 +15,7 @@ dotenv.config();
  * @param {Object} userData - { email, firstName, password, role }
  */
 export const sendWelcomeEmail = async (userData) => {
-    const { email, firstName, password, role } = userData;
+    const { email, firstName, password, role, extra } = userData;
 
     const mailOptions = {
         from: `"Maruti Furniture" <${process.env.EMAIL_USER}>`,
@@ -28,12 +28,20 @@ export const sendWelcomeEmail = async (userData) => {
                 <p>Your account at <strong>Maruti Furniture</strong> has been successfully created. You can now log in to the management system using the following credentials:</p>
                 
                 <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px left solid #4f46e5;">
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">Role:</p>
+                    <p style="margin: 5px 0 15px 0; font-weight: bold; font-size: 14px; text-transform: capitalize;">${role}</p>
+
                     <p style="margin: 0; font-size: 14px; color: #6b7280;">Email Address:</p>
                     <p style="margin: 5px 0 15px 0; font-weight: bold; font-size: 16px;">${email}</p>
                     
                     <p style="margin: 0; font-size: 14px; color: #6b7280;">Temporary Password:</p>
                     <p style="margin: 5px 0 0 0; font-weight: bold; font-size: 16px; color: #4f46e5;">${password}</p>
                 </div>
+
+                ${extra ? `
+                <div style="background-color: #fffbeb; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #f59e0b;">
+                    <p style="margin: 0; font-size: 14px; color: #92400e;">${extra}</p>
+                </div>` : ''}
 
                 <p style="font-size: 14px; color: #ef4444;"><strong>Important:</strong> Please log in and change your password as soon as possible for security purposes.</p>
                 
@@ -54,3 +62,5 @@ export const sendWelcomeEmail = async (userData) => {
         return { success: false, error: error.message };
     }
 };
+
+

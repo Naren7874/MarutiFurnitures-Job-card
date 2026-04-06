@@ -49,6 +49,7 @@ interface AppUser {
     firmName?: string
     factoryName?: string
     factoryLocation?: string
+    teamEmail?: string
 }
 
 interface UserFormData {
@@ -63,6 +64,7 @@ interface UserFormData {
     firmName: string
     factoryName: string
     factoryLocation: string
+    teamEmail: string    // architect-only: linked project_designer account email
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -87,14 +89,19 @@ const getRoleCfg = (role: string) => SYSTEM_ROLES[role] || { label: role, color:
 
 const IS_ARCHITECT = (role: string | undefined) => ['architect', 'Architecture', 'Project Designer', 'project_designer'].some(r => r.toLowerCase() === role?.toLowerCase());
 const IS_FACTORY_MGR = (role: string | undefined) => ['factory_manager', 'Factory Manager'].some(r => r.toLowerCase() === role?.toLowerCase());
+const IS_PURE_ARCHITECT = (role: string | undefined) => role === 'architect' || role?.toLowerCase() === 'architecture';
 
 
 
 
 const EMPTY_FORM: UserFormData = {
     firstName: '', middleName: '', lastName: '', email: '', password: '', role: '', phone: '', whatsappNumber: '',
-    firmName: '', factoryName: '', factoryLocation: ''
+    firmName: '', factoryName: '', factoryLocation: '', teamEmail: ''
 }
+
+
+
+
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -190,6 +197,7 @@ function UserDrawer({
                 firmName: editUser.firmName || '',
                 factoryName: editUser.factoryName || '',
                 factoryLocation: editUser.factoryLocation || '',
+                teamEmail: editUser.teamEmail || '',
             })
         } else {
             setForm(EMPTY_FORM)
@@ -229,6 +237,7 @@ function UserDrawer({
                 firmName: form.firmName || undefined,
                 factoryName: form.factoryName || undefined,
                 factoryLocation: form.factoryLocation || undefined,
+                teamEmail: form.teamEmail || undefined,
             }
             updateMut.mutate({ id: editUser._id, body })
         } else {
@@ -432,6 +441,48 @@ function UserDrawer({
                                                     className="rounded-xl h-11 border-primary/20 bg-primary/5 focus:bg-background transition-colors"
                                                 />
                                             </div>
+
+                                            {/* Team Email — only for architect role (both create & edit) */}
+                                            {IS_PURE_ARCHITECT(form.role) && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    className="overflow-hidden space-y-3"
+                                                >
+                                                    <Separator />
+                                                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2.5">
+                                                        <div className="p-1 rounded-md bg-amber-500/20 shrink-0 mt-0.5">
+                                                            <Mail className="size-3 text-amber-600 dark:text-amber-400" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">Team Account</p>
+                                                            <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-relaxed">
+                                                                {editUser && form.teamEmail
+                                                                    ? <>Team email is linked. Update below to change — the <strong>Project Designer</strong> account will be auto-created if new.</>
+                                                                    : <>Enter team email to auto-create a linked <strong>Project Designer</strong> account with the same password.</>
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        <Label htmlFor="teamEmail" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                                            Team Email <span className="text-muted-foreground/50 font-normal normal-case">(optional)</span>
+                                                        </Label>
+                                                        <div className="relative">
+                                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-amber-500/60" />
+                                                            <Input
+                                                                id="teamEmail"
+                                                                type="email"
+                                                                placeholder="e.g. team@dreamscape.com"
+                                                                value={form.teamEmail}
+                                                                onChange={e => setForm(f => ({ ...f, teamEmail: e.target.value }))}
+                                                                className="rounded-xl h-11 pl-9 border-amber-500/20 bg-amber-500/5 focus:bg-background transition-colors"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
                                         </motion.div>
                                     )}
 

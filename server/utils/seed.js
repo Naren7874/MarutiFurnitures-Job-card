@@ -208,6 +208,33 @@ const buildRoles = () => [
     dataScope: 'own',
     isActive: true,
   },
+  {
+    companyId: null,
+    name: 'project_designer',
+    isSystem: true,
+    permissions: [
+      // Same portal access as architect — no commission/Ooroo permissions
+      'quotation.view',
+      'project.view',
+      'jobcard.view',
+      'client.view',
+    ],
+    dataScope: 'own',
+    isActive: true,
+  },
+  {
+    companyId: null,
+    name: 'architect',
+    isSystem: true,
+    permissions: [
+      'quotation.view',
+      'project.view',
+      'jobcard.view',
+      'client.view',
+    ],
+    dataScope: 'own',
+    isActive: true,
+  },
 ];
 
 // ── Seed Function ─────────────────────────────────────────────────────────────

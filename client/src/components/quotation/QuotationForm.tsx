@@ -166,13 +166,14 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         return allUsers
             .filter(u => {
                 const role = u.role?.toLowerCase() || '';
-                return ['architect', 'architecture', 'project designer', 'project_designer'].includes(role);
+                return ['architect', 'architecture'].includes(role);
             })
             .map(u => ({
                 value: u._id,
                 label: u.name,
                 firmName: u.firmName,
-                contact: u.phone || u.email || ''
+                contact: u.phone || u.email || '',
+                teamEmail: u.teamEmail || '',
             }));
     }, [allUsers]);
 
@@ -505,23 +506,26 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                 searchPlaceholder="Type name to search or add…"
                                 onChange={(userId) => {
                                     const arch = architectOptions.find(o => o.value === userId);
-                                    if (arch) {
-                                        setProject(p => ({
-                                            ...p,
-                                            architectId: userId,
-                                            architectName: arch.label,
-                                            architect: arch.firmName || arch.label,
-                                            architectContact: arch.contact
-                                        }));
-                                    } else {
-                                        setProject(p => ({
-                                            ...p,
-                                            architectId: '',
-                                            architectName: '',
-                                            architect: '',
-                                            architectContact: ''
-                                        }));
-                                    }
+                                            if (arch) {
+                                                setProject(p => ({
+                                                    ...p,
+                                                    architectId: userId,
+                                                    architectName: arch.label,
+                                                    architect: arch.firmName || arch.label,
+                                                    architectContact: arch.contact,
+                                                    // Auto-fill Project Designer Contact with team email if available
+                                                    projectDesignerContact: arch.teamEmail ? arch.teamEmail.toLowerCase() : p.projectDesignerContact,
+                                                }));
+                                            } else {
+                                                setProject(p => ({
+                                                    ...p,
+                                                    architectId: '',
+                                                    architectName: '',
+                                                    architect: '',
+                                                    architectContact: '',
+                                                    projectDesignerContact: '',
+                                                }));
+                                            }
                                 }}
                                 creatable
                                 onCreate={(val) => {
@@ -560,7 +564,28 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
                         <div>
                             <label className={labelCls}>Project Designer Contact </label>
-                            <Input value={project.projectDesignerContact} onChange={e => setProject(p => ({ ...p, projectDesignerContact: e.target.value }))} placeholder="Phone or Email" className={inputCls} />
+                            <div className="relative">
+                                <Input
+                                    value={project.projectDesignerContact}
+                                    onChange={e => setProject(p => ({ ...p, projectDesignerContact: e.target.value }))}
+                                    placeholder="Phone or Email"
+                                    autoCapitalize="none"
+                                    autoCorrect="off"
+                                    spellCheck={false}
+                                    style={{ textTransform: 'lowercase' }}
+                                    className={cn(
+                                        inputCls,
+                                        project.architectId && architectOptions.find(a => a.value === project.architectId)?.teamEmail
+                                            ? 'border-amber-500/30 bg-amber-500/5'
+                                            : ''
+                                    )}
+                                />
+                                {project.architectId && architectOptions.find(a => a.value === project.architectId)?.teamEmail && (
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md pointer-events-none">
+                                        Auto-filled
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
                         <div>

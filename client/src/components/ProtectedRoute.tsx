@@ -1,8 +1,11 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 
-const isArchitectRole = (role?: string | null) =>
-    !!(role && role.toLowerCase().includes('architect'));
+const isArchitectRole = (role?: string | null) => {
+    if (!role) return false;
+    const lower = role.toLowerCase();
+    return lower.includes('architect') || lower === 'project_designer' || lower === 'project designer';
+};
 
 /** Redirects to /login if not authenticated.
  *  Redirects architects away from non-architect routes → /architect */

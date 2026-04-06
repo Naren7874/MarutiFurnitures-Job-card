@@ -25,6 +25,9 @@ const userSchema = new mongoose.Schema(
     firmName:        { type: String, trim: true },
     factoryName:     { type: String, trim: true },
     factoryLocation: { type: String, trim: true },
+    // For architect users — email of their linked project designer (team member)
+    teamEmail:       { type: String, trim: true, lowercase: true },
+
 
     role: {
       type: String,
