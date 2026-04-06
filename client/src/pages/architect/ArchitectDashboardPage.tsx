@@ -104,7 +104,7 @@ export default function ArchitectDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-5">
         {/* Earnings First */}
         <KpiCard
-          label="Total Earned"
+          label="Ooroo Earned"
           value={summary?.earnedOoroo || 0}
           icon={Coins}
           suffix="ooroo"

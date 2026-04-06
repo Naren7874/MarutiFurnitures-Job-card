@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { ImagePreview } from '@/components/ui/image-preview';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n ?? 0);
@@ -118,7 +119,7 @@ export default function ArchitectQuotationDetailPage() {
             {isEarned ? <CheckCircle size={26} className="text-emerald-600" /> : <Clock size={26} className="text-yellow-600" />}
           </div>
           <div>
-            <p className="text-foreground font-black text-lg md:text-xl tracking-tight">{isEarned ? 'Commission Earned' : 'Commission Pending'}</p>
+            <p className="text-foreground font-black text-lg md:text-xl tracking-tight">{isEarned ? 'Ooroo Earned' : 'Ooroo Pending'}</p>
             <p className="text-muted-foreground text-sm font-medium mt-0.5">
               {isEarned ? 'Admin has approved this quotation.' : 'Awaiting admin approval.'}
             </p>
@@ -126,10 +127,7 @@ export default function ArchitectQuotationDetailPage() {
         </div>
         <div className="text-center sm:text-right">
           <p className={cn('text-4xl md:text-5xl font-black tracking-tighter', isEarned ? 'text-emerald-600' : 'text-yellow-600')}>
-            {fmt(q.architectCommissionAmount || 0)}
-          </p>
-          <p className="text-muted-foreground text-sm font-bold opacity-70">
-            {q.architectCommissionPercent || 0}% of {fmt(q.subtotal || 0)} subtotal
+            {((q.architectCommissionAmount || 0)/1000).toFixed(3)}
           </p>
         </div>
       </motion.div>
@@ -197,8 +195,8 @@ export default function ArchitectQuotationDetailPage() {
             </div>
             <div className="border-t border-primary/20 pt-2">
               <InfoRow
-                label={`My Commission (${q.architectCommissionPercent || 0}%)`}
-                value={fmt(q.architectCommissionAmount || 0)}
+                label={`Ooroo`}
+                value={((q.architectCommissionAmount || 0)/1000).toFixed(3)}
               />
             </div>
           </div>
@@ -247,36 +245,68 @@ export default function ArchitectQuotationDetailPage() {
 
       {/* Items Table */}
       {q.items && q.items.length > 0 && (
-         <InfoCard icon={Package} title={`Items (${q.items.length})`}>
-          <div className="space-y-4 -mx-1">
-            <div className="grid grid-cols-12 text-xs font-black uppercase tracking-wider text-muted-foreground/50 px-3 pb-2 border-b border-border/20">
-              <div className="col-span-1">#</div>
-              <div className="col-span-11 grid grid-cols-11 border-l border-border/10 pl-4">
-                <div className="col-span-5">Item Details</div>
-                <div className="col-span-2 text-right">Quantity</div>
-                <div className="col-span-2 text-right">Unit Rate</div>
-                <div className="col-span-2 text-right">Amount</div>
-              </div>
+        <div className="bg-card border border-border/60 rounded-3xl overflow-hidden shadow-sm">
+          <div className="px-6 py-4 border-b border-border/30 flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600">
+              <Package size={14} />
             </div>
-            {q.items.map((item: any, idx: number) => (
-              <div key={item._id || idx} className="grid grid-cols-12 px-3 py-4 items-center hover:bg-muted/30 transition-all rounded-2xl border border-transparent hover:border-border/50">
-                <div className="col-span-1 text-muted-foreground font-black text-xs">{item.srNo || idx + 1}</div>
-                <div className="col-span-11 grid grid-cols-11 border-l border-border/10 pl-4">
-                    <div className="col-span-5 pr-4">
-                      <p className="text-foreground font-black text-base tracking-tight leading-tight uppercase line-clamp-2">{item.name}</p>
-                      <p className="text-muted-foreground text-xs font-bold mt-1.5 line-clamp-2 italic opacity-60 leading-relaxed">{item.description}</p>
-                    </div>
-                    <div className="col-span-2 text-right">
-                       <span className="text-foreground/90 font-black text-base">{item.qty}</span>
-                       <span className="text-muted-foreground/40 text-[10px] font-black ml-1.5 uppercase tracking-tighter">{item.unit || 'PCS'}</span>
-                    </div>
-                    <div className="col-span-2 text-right text-muted-foreground/80 font-bold text-sm tracking-tight">{fmt(item.sellingPrice || 0)}</div>
-                    <div className="col-span-2 text-right text-foreground font-black text-sm tracking-tight">{fmt(item.totalPrice || item.qty * (item.sellingPrice || 0))}</div>
-                </div>
-              </div>
-            ))}
+            <p className="font-black text-sm tracking-wider text-foreground">Items ({q.items.length})</p>
           </div>
-        </InfoCard>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-muted/20 border-b border-border/20">
+                  {['#', 'Item Description', 'Qty', 'Rate', 'Total Amount'].map(h => (
+                    <th key={h} className="text-left px-5 py-3 text-[9px] font-black tracking-widest text-muted-foreground/40">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/20">
+                {q.items.map((item: any, idx: number) => (
+                  <tr key={item._id || idx} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-5 py-4 text-muted-foreground/40 font-black text-xs">{item.srNo || idx + 1}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex gap-4">
+                        {(item.photo || item.fabricPhoto || (item.photos && item.photos.length > 0)) && (
+                          <div className="flex gap-2 shrink-0 flex-wrap max-w-[200px]">
+                            {item.photo && (
+                              <div className="w-16 h-16">
+                                <ImagePreview src={item.photo} alt="Main" />
+                              </div>
+                            )}
+                            {item.fabricPhoto && (
+                              <div className="w-16 h-16">
+                                <ImagePreview src={item.fabricPhoto} alt="Fabric" />
+                              </div>
+                            )}
+                            {item.photos?.map((url: string, i: number) => (
+                              <div key={i} className="w-16 h-16">
+                                <ImagePreview src={url} alt={`Photo ${i + 1}`} />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex-1 space-y-1.5">
+                          <p className="text-[16px] font-black text-foreground tracking-tight uppercase">{item.name || item.category}</p>
+                          <p className="text-[13px] font-medium text-foreground/70 leading-relaxed mb-2 italic line-clamp-3">{item.description}</p>
+                          <div className="flex flex-col gap-1">
+                            {item.specifications?.size && <p className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-wider">Size: {item.specifications.size}</p>}
+                            {item.specifications?.material && <p className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-wider">Material: {item.specifications.material}</p>}
+                            {item.specifications?.polish && <p className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-wider">Polish: {item.specifications.polish}</p>}
+                            {item.specifications?.fabric && <p className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-wider">Fabric: {item.specifications.fabric}</p>}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-[14px] font-bold text-foreground/70 tracking-tight whitespace-nowrap">{item.qty} {item.unit || 'pcs'}</td>
+                    <td className="px-5 py-4 text-[14px] font-bold text-foreground/70 tracking-tight">{fmt(item.sellingPrice || 0)}</td>
+                    <td className="px-5 py-4 text-[15px] font-black text-foreground tracking-tight">{fmt(item.totalPrice || (item.qty * (item.sellingPrice || 0)))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {/* Additional Terms */}
