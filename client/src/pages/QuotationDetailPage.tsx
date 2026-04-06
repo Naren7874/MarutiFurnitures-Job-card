@@ -59,6 +59,7 @@ export default function QuotationDetailPage() {
     // Permission flags
     const { hasPermission, user } = useAuthStore();
     const isSuperAdmin = user?.isSuperAdmin || user?.role === 'super_admin';
+    const canViewFinancial = isSuperAdmin || hasPermission(['reports.view_financial', 'invoice.view']);
     const canEdit    = hasPermission('quotation.edit');
     const canSend    = hasPermission('quotation.send');
     const canApprove = hasPermission('quotation.approve');
@@ -509,24 +510,26 @@ export default function QuotationDetailPage() {
                     </div>
 
                     {/* Financial Summary */}
-                    <div className="bg-card border border-border/60 rounded-3xl p-6 space-y-4 shadow-sm">
-                        <div className="flex items-center gap-3 pb-3 border-b border-border/30">
-                            <div className="p-2 rounded-xl bg-primary/10 text-primary"><ReceiptText size={14} /></div>
-                            <p className="font-black text-sm uppercase tracking-wider text-foreground">Price Summary</p>
-                        </div>
-                        <div className="space-y-3 max-w-sm ml-auto">
-                            {q.discount > 0 && (
-                                <>
-                                    <TotalRow label="Subtotal" value={fmt(q.subtotal)} />
-                                    <TotalRow label="Discount" value={`-${fmt(q.discount)}`} valueClass="text-rose-500" />
-                                </>
-                            )}
-                            <div className={cn("flex justify-between items-center", q.discount > 0 ? "pt-3 border-t border-border/40" : "")}>
-                                <p className="font-black text-foreground text-base">Total Amount</p>
-                                <p className="font-black text-primary text-xl">{fmt(q.subtotal - (q.discount || 0))}</p>
+                    {canViewFinancial && (
+                        <div className="bg-card border border-border/60 rounded-3xl p-6 space-y-4 shadow-sm">
+                            <div className="flex items-center gap-3 pb-3 border-b border-border/30">
+                                <div className="p-2 rounded-xl bg-primary/10 text-primary"><ReceiptText size={14} /></div>
+                                <p className="font-black text-sm uppercase tracking-wider text-foreground">Price Summary</p>
+                            </div>
+                            <div className="space-y-3 max-w-sm ml-auto">
+                                {q.discount > 0 && (
+                                    <>
+                                        <TotalRow label="Subtotal" value={fmt(q.subtotal)} />
+                                        <TotalRow label="Discount" value={`-${fmt(q.discount)}`} valueClass="text-rose-500" />
+                                    </>
+                                )}
+                                <div className={cn("flex justify-between items-center", q.discount > 0 ? "pt-3 border-t border-border/40" : "")}>
+                                    <p className="font-black text-foreground text-base">Total Amount</p>
+                                    <p className="font-black text-primary text-xl">{fmt(q.subtotal - (q.discount || 0))}</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
 

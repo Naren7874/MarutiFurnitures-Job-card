@@ -6,7 +6,7 @@ import {
     ArrowRight, FileText, ClipboardList, Inbox, Layers, LayoutGrid,
     BarChart3, Banknote, Receipt, XCircle,
 } from 'lucide-react';
-import { useJobCards, useQuotations, useInvoices, useDashboardStats } from '../../hooks/useApi';
+import { useJobCards, useQuotations, useDashboardStats } from '../../hooks/useApi';
 import { cn } from '../../lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -265,15 +265,13 @@ const DispatchDashboard = () => {
 
 const SalesDashboard = () => {
     const { data: qRaw, isLoading: qLoading } = useQuotations({ limit: 200 });
-    const { data: iRaw, isLoading: iLoading } = useInvoices({ limit: 100 });
     const { data: statsRaw, isLoading: statsLoading } = useDashboardStats();
-
+ 
     const qAll: any[] = (qRaw as any)?.data ?? [];
-    const iAll: any[] = (iRaw as any)?.data ?? [];
     const stats = (statsRaw as any)?.data;
     const allQuotes = qAll;
-
-    const isLoading = qLoading || iLoading || statsLoading;
+ 
+    const isLoading = qLoading || statsLoading;
 
     return (
         <div className="space-y-8">
@@ -312,13 +310,6 @@ const SalesDashboard = () => {
                     value={stats?.projects.completed || 0}
                     colorClass="bg-primary/10 text-primary"
                     delay={0.5}
-                />
-                <StatCard
-                    icon={Receipt}
-                    label="Outstanding Invoices"
-                    value={iAll.filter(inv => inv.status === 'pending').length}
-                    colorClass="bg-indigo-500/10 text-indigo-600"
-                    delay={0.6}
                 />
             </div>
             <Card className="rounded-[28px] border-border/40 p-6 shadow-sm">

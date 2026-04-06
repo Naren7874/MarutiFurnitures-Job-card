@@ -74,14 +74,16 @@ export default function ReportsPage() {
             value: fmt(stats.revenue?.totalInvoicedThisMonth || 0), 
             icon: TrendingUp, 
             color: 'bg-emerald-500/10 text-emerald-600',
-            sub: 'Invoiced Sales'
+            sub: 'Invoiced Sales',
+            isFinancial: true
         },
         { 
             label: 'Revenue Collected (MTD)', 
             value: fmt(stats.revenue?.thisMonth || 0), 
             icon: Receipt, 
             color: 'bg-blue-500/10 text-blue-600',
-            sub: 'Cash Flow'
+            sub: 'Cash Flow',
+            isFinancial: true
         },
         { 
             label: 'Active Projects', 
@@ -99,7 +101,7 @@ export default function ReportsPage() {
             change: stats.quotations?.change,
             sub: 'Pending Action'
         },
-    ];
+    ].filter(c => canViewFinancial || !c.isFinancial);
 
     const monthlyData = stats.trend || [];
     const maxBar = Math.max(...monthlyData.map((m: any) => m.totalInvoiced), 1);
@@ -162,50 +164,49 @@ export default function ReportsPage() {
                 </div>
             </motion.div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className={cn(
+                "grid grid-cols-1 gap-6",
+                summaryCards.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4"
+            )}>
                 {summaryCards.map((c) => (
                     <StatCard key={c.label} {...c} />
                 ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Revenue Trend Visualizer */}
-                <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
-                    className="bg-card border border-border/60 rounded-[32px] p-8 space-y-8 shadow-2xl shadow-primary/5">
-                    {canViewFinancial ? (
-                        <>
-                            <div className="flex items-center justify-between border-b border-border/20 pb-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600"><TrendingUp size={18} strokeWidth={3} /></div>
-                                    <div>
-                                        <p className="font-black text-[13px] uppercase tracking-[0.15em] text-foreground">Revenue Trendline</p>
-                                        <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest mt-1">Invoiced sales over time</p>
-                                    </div>
+                {/* Revenue Trend Visualizer (Only for authorized users) */}
+                {canViewFinancial && (
+                    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
+                        className="bg-card border border-border/60 rounded-[32px] p-8 space-y-8 shadow-2xl shadow-primary/5">
+                        <div className="flex items-center justify-between border-b border-border/20 pb-6">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600"><TrendingUp size={18} strokeWidth={3} /></div>
+                                <div>
+                                    <p className="font-black text-[13px] uppercase tracking-[0.15em] text-foreground">Revenue Trendline</p>
+                                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest mt-1">Invoiced sales over time</p>
                                 </div>
                             </div>
-                            {isLoading ? (
-                                <div className="space-y-6 pt-4">
-                                    {[...Array(4)].map((_, idx) => <div key={idx} className="h-8 bg-muted/20 rounded-full animate-pulse" />)}
-                                </div>
-                            ) : (
-                                <div className="space-y-6 pt-4">
-                                    {monthlyData.map((m: any) => (
-                                        <MiniBar key={m.label} label={m.label} value={m.totalInvoiced} max={maxBar} />
-                                    ))}
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-20 opacity-20 filter grayscale">
-                            <TrendingUp size={48} className="mb-4" />
-                            <p className="font-black text-xs uppercase tracking-widest italic">Financial Insights Restricted</p>
                         </div>
-                    )}
-                </motion.div>
+                        {isLoading ? (
+                            <div className="space-y-6 pt-4">
+                                {[...Array(4)].map((_, idx) => <div key={idx} className="h-8 bg-muted/20 rounded-full animate-pulse" />)}
+                            </div>
+                        ) : (
+                            <div className="space-y-6 pt-4">
+                                {monthlyData.map((m: any) => (
+                                    <MiniBar key={m.label} label={m.label} value={m.totalInvoiced} max={maxBar} />
+                                ))}
+                            </div>
+                        )}
+                    </motion.div>
+                )}
 
                 {/* Operations Pipeline */}
                 <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
-                    className="bg-card border border-border/60 rounded-[32px] p-8 space-y-8 shadow-2xl shadow-primary/5">
+                    className={cn(
+                        "bg-card border border-border/60 rounded-[32px] p-8 space-y-8 shadow-2xl shadow-primary/5",
+                        !canViewFinancial && "lg:col-span-2"
+                    )}>
                     <div className="flex items-center justify-between border-b border-border/20 pb-6">
                         <div className="flex items-center gap-4">
                             <div className="p-3 rounded-2xl bg-primary/10 text-primary"><BarChart3 size={18} strokeWidth={3} /></div>
@@ -251,7 +252,10 @@ export default function ReportsPage() {
                 {/* Performance Summaries */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
                     className="bg-card border border-border/60 rounded-[32px] p-8 space-y-8 shadow-2xl lg:col-span-2">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className={cn(
+                        "grid grid-cols-1 gap-12",
+                        canViewFinancial ? "md:grid-cols-2" : "md:grid-cols-1"
+                    )}>
                         {/* Quotation Conversions */}
                         <div className="space-y-6">
                             <div className="flex items-center gap-3 border-b border-border/20 pb-4">
@@ -277,27 +281,29 @@ export default function ReportsPage() {
                                 ))}
                             </div>
                         </div>
-
-                        {/* Revenue & Collections */}
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3 border-b border-border/20 pb-4">
-                                <Receipt className="text-emerald-600" size={16} strokeWidth={3} />
-                                <h3 className="font-black text-xs uppercase tracking-[0.2em] text-foreground">Financial Ledger Summary</h3>
+ 
+                        {/* Revenue & Collections (Only for authorized users) */}
+                        {canViewFinancial && (
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-3 border-b border-border/20 pb-4">
+                                    <Receipt className="text-emerald-600" size={16} strokeWidth={3} />
+                                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-foreground">Financial Ledger Summary</h3>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {[
+                                        { label: 'Total Invoiced', value: fmt(stats.invoices?.totalAmount || 0), color: 'text-foreground' },
+                                        { label: 'Payments Received', value: fmt(stats.invoices?.received || 0), color: 'text-emerald-600' },
+                                        { label: 'Balance Outstanding', value: fmt((stats.invoices?.totalAmount || 0) - (stats.invoices?.received || 0)), color: 'text-rose-600' },
+                                        { label: 'Overdue Amount', value: fmt(stats.invoices?.overdueAmount || 0), color: 'text-rose-500' },
+                                    ].map(v => (
+                                        <div key={v.label} className="p-4 rounded-2xl bg-muted/10 border border-border/10 hover:bg-muted/20 transition-colors">
+                                            <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest truncate">{v.label}</p>
+                                            <p className={cn("text-lg font-black tracking-tight mt-1", v.color)}>{v.value}</p>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                {[
-                                    { label: 'Total Invoiced', value: fmt(stats.invoices?.totalAmount || 0), color: 'text-foreground' },
-                                    { label: 'Payments Received', value: fmt(stats.invoices?.received || 0), color: 'text-emerald-600' },
-                                    { label: 'Balance Outstanding', value: fmt((stats.invoices?.totalAmount || 0) - (stats.invoices?.received || 0)), color: 'text-rose-600' },
-                                    { label: 'Overdue Amount', value: fmt(stats.invoices?.overdueAmount || 0), color: 'text-rose-500' },
-                                ].map(v => (
-                                    <div key={v.label} className="p-4 rounded-2xl bg-muted/10 border border-border/10 hover:bg-muted/20 transition-colors">
-                                        <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest truncate">{v.label}</p>
-                                        <p className={cn("text-lg font-black tracking-tight mt-1", v.color)}>{v.value}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </motion.div>
             </div>
