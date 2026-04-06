@@ -101,11 +101,12 @@ export const getArchitectDashboard = async (req, res, next) => {
 export const getArchitectQuotations = async (req, res, next) => {
   try {
     const architectId = new mongoose.Types.ObjectId(req.user.userId);
-    const { status, search, page = 1, limit = 20 } = req.query;
+    const { status, clientId, search, page = 1, limit = 20 } = req.query;
 
     const filter = { architectId };
 
     if (status && status !== 'all') filter.status = status;
+    if (clientId && clientId !== 'all') filter.clientId = clientId;
     if (search) {
       filter.$or = [
         { quotationNumber: new RegExp(search, 'i') },
@@ -212,13 +213,14 @@ export const getArchitectQuotationById = async (req, res, next) => {
 export const getArchitectProjects = async (req, res, next) => {
   try {
     const architectId = new mongoose.Types.ObjectId(req.user.userId);
-    const { search, status, page = 1, limit = 20 } = req.query;
+    const { search, status, clientId, page = 1, limit = 20 } = req.query;
 
     const quotations = await Quotation.find({ architectId }).select('_id').lean();
     const qIds = quotations.map(q => q._id);
 
     const filter = { quotationId: { $in: qIds } };
     if (status && status !== 'all') filter.status = status;
+    if (clientId && clientId !== 'all') filter.clientId = clientId;
     if (search) {
       filter.$or = [
         { projectName: new RegExp(search, 'i') },
@@ -283,13 +285,14 @@ export const getArchitectProjectById = async (req, res, next) => {
 export const getArchitectJobCards = async (req, res, next) => {
   try {
     const architectId = new mongoose.Types.ObjectId(req.user.userId);
-    const { search, status, page = 1, limit = 20 } = req.query;
+    const { search, status, clientId, page = 1, limit = 20 } = req.query;
 
     const quotations = await Quotation.find({ architectId }).select('_id').lean();
     const qIds = quotations.map(q => q._id);
 
     const filter = { quotationId: { $in: qIds } };
     if (status && status !== 'all') filter.status = status;
+    if (clientId && clientId !== 'all') filter.clientId = clientId;
     if (search) {
       filter.$or = [
         { jobCardNumber: new RegExp(search, 'i') },

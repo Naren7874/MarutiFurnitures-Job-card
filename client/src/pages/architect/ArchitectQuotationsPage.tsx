@@ -1,16 +1,22 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FileText, Search, Building2, CheckCircle, Clock, Filter, ChevronRight } from 'lucide-react';
-import { useArchitectQuotations } from '../../hooks/useApi';
+import { FileText, Search, Building2, Filter, ChevronRight } from 'lucide-react';
+import { useArchitectQuotations, useArchitectClients } from '../../hooks/useApi';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { format } from 'date-fns';
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+// Removed unused fmt helper
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   draft:     { label: 'Pending', color: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/20' },
@@ -21,13 +27,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   revised:   { label: 'Revised', color: 'bg-purple-500/15 text-purple-500 border-purple-500/20' },
 };
 
-const FILTERS = [
-  { value: 'all', label: 'All' },
-  { value: 'draft', label: 'Pending' },
-  { value: 'sent', label: 'Sent' },
-  { value: 'approved', label: 'Earned' },
-  { value: 'rejected', label: 'Rejected' },
-];
+
 
 function RowSkeleton() {
   return (
@@ -50,11 +50,19 @@ function RowSkeleton() {
 export default function ArchitectQuotationsPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('all');
+  const [clientId, setClientId] = useState('all');
   const [page, setPage] = useState(1);
 
-  const params = { search: search || undefined, status: status !== 'all' ? status : undefined, page, limit: 20 };
+  const params = { 
+    search: search || undefined, 
+    status: status !== 'all' ? status : undefined, 
+    clientId: clientId !== 'all' ? clientId : undefined,
+    page, 
+    limit: 20 
+  };
   const { data, isLoading } = useArchitectQuotations(params);
+  const { data: clientsData } = useArchitectClients();
+  const clients: any[] = (clientsData as any)?.data || [];
 
   const quotations: any[] = (data as any)?.data || [];
   const pagination = (data as any)?.pagination;
@@ -63,8 +71,8 @@ export default function ArchitectQuotationsPage() {
     <div className="p-6 md:p-8 space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">My Quotations</h1>
-        <p className="text-muted-foreground text-sm mt-1">
+        <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight">My Quotations</h1>
+        <p className="text-muted-foreground text-base mt-2">
           All quotations assigned to you across all companies.
           {pagination && <span className="ml-2 text-primary font-bold">({pagination.total} total)</span>}
         </p>
@@ -86,22 +94,25 @@ export default function ArchitectQuotationsPage() {
             className="pl-9 bg-card border-border h-10 rounded-xl"
           />
         </div>
-        <div className="flex items-center gap-1.5 p-1 bg-card border border-border rounded-xl">
-          <Filter size={14} className="text-muted-foreground ml-2" />
-          {FILTERS.map(f => (
-            <button
-              key={f.value}
-              onClick={() => { setStatus(f.value); setPage(1); }}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
-                status === f.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className="flex items-center p-1 bg-card border border-border rounded-xl shadow-sm">
+          <Select value={clientId} onValueChange={v => { setClientId(v); setPage(1); }}>
+            <SelectTrigger className="h-9 border-none bg-transparent hover:bg-muted/30 focus:ring-0 focus:ring-offset-0 gap-2 px-3 data-[state=open]:bg-muted/50 transition-all font-bold text-sm">
+              <Filter size={14} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+              <SelectValue placeholder="All Clients" />
+            </SelectTrigger>
+            <SelectContent align="start" className="rounded-xl border-border shadow-2xl backdrop-blur-xl bg-card/95">
+              <SelectItem value="all" className="font-bold text-sm focus:bg-primary/10 focus:text-primary rounded-lg mx-1">All Clients</SelectItem>
+              {clients.map(c => (
+                <SelectItem 
+                  key={c._id} 
+                  value={c._id}
+                  className="font-bold text-sm focus:bg-primary/10 focus:text-primary rounded-lg mx-1"
+                >
+                  {c.name || c.firmName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </motion.div>
 
@@ -116,7 +127,6 @@ export default function ArchitectQuotationsPage() {
         ) : (
           quotations.map((q: any, i: number) => {
             const st = STATUS_CONFIG[q.status] || { label: q.status, color: 'bg-muted text-muted-foreground' };
-            const isEarned = ['approved', 'converted'].includes(q.status);
             return (
               <motion.div
                 key={q._id}
@@ -126,23 +136,23 @@ export default function ArchitectQuotationsPage() {
                 onClick={() => navigate(`/architect/quotations/${q._id}`)}
                 className="bg-card border border-border rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group"
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="size-10 rounded-lg bg-muted/50 flex items-center justify-center shrink-0 border border-border">
-                    <FileText size={16} className="text-muted-foreground" />
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="size-11 rounded-lg bg-muted/50 flex items-center justify-center shrink-0 border border-border">
+                    <FileText size={18} className="text-muted-foreground" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-foreground text-sm font-bold truncate">{q.quotationNumber}</p>
+                      <p className="text-foreground text-base font-black tracking-tight truncate leading-tight">{q.quotationNumber}</p>
                     </div>
-                    <p className="text-muted-foreground text-xs truncate">{q.projectName}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-muted-foreground/60 text-xs truncate">{q.clientId?.name || '—'}</p>
+                    <p className="text-muted-foreground text-sm font-medium truncate mt-0.5">{q.projectName}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-muted-foreground/60 text-sm truncate">{q.clientId?.name || '—'}</p>
                       {q.companyId?.name && (
                         <>
                           <span className="text-muted-foreground/30 text-xs">·</span>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
-                            <Building2 size={10} />
-                            <span className="truncate max-w-[100px]">{q.companyId.name}</span>
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground/60">
+                            <Building2 size={12} />
+                            <span className="truncate max-w-[120px]">{q.companyId.name}</span>
                           </div>
                         </>
                       )}
@@ -150,24 +160,14 @@ export default function ArchitectQuotationsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0 flex-wrap">
+                <div className="flex items-center gap-4 shrink-0 flex-wrap">
                   {q.createdAt && (
-                    <p className="text-[10px] text-muted-foreground hidden md:block">
+                    <p className="text-xs font-medium text-muted-foreground hidden md:block">
                       {format(new Date(q.createdAt), 'dd MMM yyyy')}
                     </p>
                   )}
-                  <Badge className={cn('text-[10px] font-bold border rounded-full px-2.5 py-0.5', st.color)}>{st.label}</Badge>
-                  <div className="text-right min-w-[90px]">
-                    <p className="text-xs text-muted-foreground">Commission</p>
-                    <p className={cn('text-sm font-black flex items-center gap-1', isEarned ? 'text-emerald-500' : 'text-yellow-500')}>
-                      {isEarned ? <CheckCircle size={12} /> : <Clock size={12} />}
-                      {fmt(q.architectCommissionAmount || 0)}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground">
-                      {q.architectCommissionPercent || 0}% of {fmt(q.subtotal || 0)}
-                    </p>
-                  </div>
-                  <ChevronRight size={16} className="text-muted-foreground/30 group-hover:text-primary/60 transition-colors shrink-0 hidden sm:block" />
+                  <Badge className={cn('text-xs font-bold border rounded-full px-3 py-1', st.color)}>{st.label}</Badge>
+                  <ChevronRight size={18} className="text-muted-foreground/30 group-hover:text-primary/60 transition-colors shrink-0 hidden sm:block" />
                 </div>
               </motion.div>
             );

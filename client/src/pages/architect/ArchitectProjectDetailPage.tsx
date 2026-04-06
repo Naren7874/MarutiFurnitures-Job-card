@@ -68,13 +68,13 @@ export default function ArchitectProjectDetailPage() {
                         <ArrowLeft size={16} />
                     </button>
                     <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-black tracking-tight text-foreground">{project.projectName}</h1>
-                            <span className={cn('px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border', cfg.bg, cfg.color, cfg.border)}>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">{project.projectName}</h1>
+                            <span className={cn('px-4 py-1.5 rounded-xl text-xs md:text-sm font-black uppercase tracking-widest border shadow-sm', cfg.bg, cfg.color, cfg.border)}>
                                 {cfg.label}
                             </span>
                         </div>
-                        <p className="text-muted-foreground/50 text-xs font-bold mt-1">{project.projectNumber}</p>
+                        <p className="text-muted-foreground/60 text-sm md:text-base font-bold mt-2 tracking-tight">{project.projectNumber}</p>
                     </div>
                 </div>
             </div>
@@ -82,70 +82,71 @@ export default function ArchitectProjectDetailPage() {
             {/* Info Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Client */}
-                <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-3 shadow-sm">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
-                        <Building2 size={12} /> Client Details
+                <div className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-sm hover:border-primary/20 transition-colors">
+                    <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
+                        <Building2 size={14} /> Client Details
                     </div>
-                    <div>
-                        <h3 className="font-black text-[15px] text-foreground tracking-tight">{project.clientId?.name || '—'}</h3>
-                        {project.clientId?.firmName && <p className="text-[11px] font-bold text-muted-foreground/60 tracking-wide mt-0.5">{project.clientId.firmName}</p>}
+                    <div className="space-y-1">
+                        <h3 className="font-black text-lg md:text-xl text-foreground tracking-tight leading-tight">{project.clientId?.name || '—'}</h3>
+                        {project.clientId?.firmName && <p className="text-sm font-bold text-muted-foreground/70 tracking-tight italic">{project.clientId.firmName}</p>}
                     </div>
 
-                    <div className="space-y-2 pt-1">
+                    <div className="space-y-2.5 pt-1">
                         {project.clientId?.phone && (
-                            <div className="flex items-center gap-2.5 text-xs text-muted-foreground/80 font-bold">
-                                <Phone size={13} className="text-blue-500/60" /> {project.clientId.phone}
+                            <div className="flex items-center gap-2.5 text-sm text-muted-foreground font-bold">
+                                <Phone size={14} className="text-primary/60" /> {project.clientId.phone}
                             </div>
                         )}
                         {project.clientId?.email && (
-                            <div className="flex items-center gap-2.5 text-xs text-muted-foreground/80 font-bold truncate">
-                                <Mail size={13} className="text-violet-500/60" /> {project.clientId.email}
+                            <div className="flex items-center gap-2.5 text-sm text-muted-foreground font-bold truncate">
+                                <Mail size={14} className="text-primary/60" /> {project.clientId.email}
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* Site Address */}
-                <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-3 shadow-sm">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 pb-2 border-b border-border/20">
-                        <MapPin size={12} /> Site Address
+                <div className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-sm">
+                    <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground/60 pb-2 border-b border-border/20">
+                        <MapPin size={14} /> Site Address
                     </div>
-                    <div className="text-xs text-muted-foreground/70 font-semibold space-y-1.5">
-                        {project.siteAddress?.location && <p className="font-black text-foreground text-[13px]">{project.siteAddress.location}</p>}
+                    <div className="text-sm text-muted-foreground/80 font-semibold space-y-2">
+                        {project.siteAddress?.location && <p className="font-black text-foreground text-base md:text-lg tracking-tight">{project.siteAddress.location}</p>}
                         {project.siteAddress?.line1 && <p>{project.siteAddress.line1}</p>}
                         {project.siteAddress?.line2 && <p>{project.siteAddress.line2}</p>}
-                        {project.siteAddress?.pincode && <p className="pt-1">Pincode: <span className="font-bold text-foreground">{project.siteAddress.pincode}</span></p>}
+                        {project.siteAddress?.pincode && <p className="pt-2 font-bold text-muted-foreground">Pincode: <span className="font-black text-foreground">{project.siteAddress.pincode}</span></p>}
                         {!project.siteAddress?.location && !project.siteAddress?.line1 && (
-                            <p className="italic opacity-50 font-normal">No site address provided</p>
+                            <p className="italic opacity-50 font-medium">No site address provided</p>
                         )}
                     </div>
                 </div>
 
                 {/* Timeline */}
-                <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-3 shadow-sm">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 pb-2 border-b border-border/20">
-                        <Calendar size={12} /> Timeline
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
+                    <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground/60 pb-2 border-b border-border/20">
+                        <Calendar size={14} /> Timeline
                     </div>
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground/50 font-bold">Created</span>
-                            <span className="font-bold text-foreground">{fmtDate(project.createdAt)}</span>
+                    <div className="grid grid-cols-1 gap-3.5 pt-1">
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground/70 font-bold">Created On</span>
+                            <span className="font-black text-foreground tracking-tight">{fmtDate(project.createdAt)}</span>
                         </div>
                         {project.expectedDelivery && (
-                            <div className="flex justify-between text-xs">
-                                <span className="text-muted-foreground/50 font-bold">Expected</span>
-                                <span className="font-bold text-foreground">{fmtDate(project.expectedDelivery)}</span>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground/70 font-bold">Expected Delivery</span>
+                                <span className="font-black text-primary tracking-tight">{fmtDate(project.expectedDelivery)}</span>
                             </div>
                         )}
-                        <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground/50 font-bold">Priority</span>
-                            <span className={cn('font-black capitalize', project.priority === 'urgent' ? 'text-rose-500' : project.priority === 'high' ? 'text-amber-500' : 'text-foreground')}>{project.priority || 'Medium'}</span>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground/70 font-bold">Project Priority</span>
+                            <span className={cn('font-black uppercase tracking-widest text-[11px] px-2.5 py-0.5 rounded-full border', project.priority === 'urgent' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' : project.priority === 'high' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 'bg-blue-500/10 text-blue-600 border-blue-500/20')}>{project.priority || 'Medium'}</span>
                         </div>
                         {project.quotationId && (
-                            <div className="flex justify-between text-xs pt-2 border-t border-border/20">
-                                <span className="text-muted-foreground/50 font-bold">Quotation</span>
-                                <Link to={`/architect/quotations/${project.quotationId._id || project.quotationId}`} className="font-black text-primary hover:underline">
-                                    {project.quotationId.quotationNumber || 'View Quotation'}
+                            <div className="flex justify-between items-center text-sm pt-4 border-t border-border/30">
+                                <span className="text-muted-foreground/70 font-bold">Linked Quotation</span>
+                                <Link to={`/architect/quotations/${project.quotationId._id || project.quotationId}`} className="font-black text-primary hover:underline flex items-center gap-1.5 group">
+                                    <span className="tracking-tight">{project.quotationId.quotationNumber || 'View Detail'}</span>
+                                    <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                                 </Link>
                             </div>
                         )}
@@ -154,10 +155,10 @@ export default function ArchitectProjectDetailPage() {
             </div>
 
             {/* Related Job Cards */}
-            <div className="space-y-4">
+            <div className="space-y-5">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-primary/10 text-primary"><Package size={14} /></div>
-                    <p className="font-black text-sm uppercase tracking-wider text-foreground">Job Cards ({jobCards.length})</p>
+                    <div className="p-2.5 rounded-xl bg-primary/10 text-primary shadow-sm"><Package size={18} /></div>
+                    <p className="font-black text-lg md:text-xl tracking-tight text-foreground">Related Job Cards <span className="text-muted-foreground/40 ml-1">({jobCards.length})</span></p>
                 </div>
 
                 {jobCards.length === 0 ? (
@@ -178,21 +179,21 @@ export default function ArchitectProjectDetailPage() {
                                 >
                                     <Link
                                         to={`/architect/jobcards/${jc._id}`}
-                                        className="group block p-5 bg-card border border-border/60 rounded-2xl hover:border-primary/30 hover:shadow-md transition-all shadow-sm"
+                                        className="group block p-6 bg-card border border-border rounded-22xl hover:border-primary/40 hover:shadow-xl transition-all shadow-sm"
                                     >
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                <Activity size={18} />
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
+                                                <Activity size={22} />
                                             </div>
-                                            <Badge variant="outline" className={cn('text-[10px] font-bold border rounded-full px-2 py-0.5', jcCfg.color)}>{jcCfg.label}</Badge>
+                                            <Badge variant="outline" className={cn('text-xs font-black border rounded-full px-3 py-1', jcCfg.color)}>{jcCfg.label}</Badge>
                                         </div>
-                                        <h4 className="font-black text-sm text-foreground line-clamp-1">{jc.title}</h4>
-                                        <p className="text-[10px] text-muted-foreground/50 font-bold mt-1">{jc.jobCardNumber}</p>
-                                        <div className="mt-4 pt-3 border-t border-border/20 flex items-center justify-between">
-                                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                                <Package size={10} /> {jc.items?.length || 0} items
+                                        <h4 className="font-black text-base md:text-lg text-foreground line-clamp-1 tracking-tight uppercase leading-tight">{jc.title}</h4>
+                                        <p className="text-xs text-muted-foreground/60 font-bold mt-1.5 tracking-tight">{jc.jobCardNumber}</p>
+                                        <div className="mt-5 pt-4 border-t border-border/30 flex items-center justify-between">
+                                            <p className="text-xs text-muted-foreground font-bold flex items-center gap-2">
+                                                <Package size={14} className="text-primary/50" /> {jc.items?.length || 0} items
                                             </p>
-                                            <ChevronRight size={14} className="text-muted-foreground/30 group-hover:text-primary transition-colors" />
+                                            <ChevronRight size={18} className="text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                                         </div>
                                     </Link>
                                 </motion.div>

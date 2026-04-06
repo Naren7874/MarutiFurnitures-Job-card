@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
-import { FileText, CheckCircle, Clock, Building2, ArrowRight, Factory, AlertTriangle, Sparkles } from 'lucide-react';
+import { FileText, CheckCircle, Clock, Building2, ArrowRight, Factory, AlertTriangle, Coins } from 'lucide-react';
 import { useArchitectDashboard } from '../../hooks/useApi';
 import { cn } from '@/lib/utils';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -73,9 +73,9 @@ function KpiCard({ label, value, icon: Icon, className, iconClassName, delay = 0
         <Icon size={28} />
       </div>
       <div>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 opacity-80">{label}</p>
+        <p className="text-muted-foreground text-xs font-black uppercase tracking-[0.2em] mb-2 opacity-80">{label}</p>
         <div className="flex items-baseline gap-2">
-          <p className="text-foreground text-3xl font-black tracking-tight">{value}</p>
+          <p className="text-foreground text-4xl font-black tracking-tight">{value}</p>
           {suffix && <span className="text-sm font-bold text-muted-foreground italic opacity-60 group-hover:opacity-100 transition-opacity">{suffix}</span>}
         </div>
       </div>
@@ -86,6 +86,7 @@ function KpiCard({ label, value, icon: Icon, className, iconClassName, delay = 0
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function ArchitectDashboardPage() {
+  const navigate = useNavigate();
   const { data, isLoading } = useArchitectDashboard();
   const summary = (data as any)?.data?.summary;
   const recentQuotations: any[] = (data as any)?.data?.recentQuotations || [];
@@ -96,7 +97,7 @@ export default function ArchitectDashboardPage() {
     <div className="p-6 md:p-8 space-y-8 w-full">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">Architect Dashboard</h1>
+        <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight">Architect Dashboard</h1>
       </motion.div>
 
       {/* Unified KPI Grid */}
@@ -105,7 +106,7 @@ export default function ArchitectDashboardPage() {
         <KpiCard
           label="Total Earned"
           value={summary?.earnedOoroo || 0}
-          icon={Sparkles}
+          icon={Coins}
           suffix="ooroo"
           className="bg-linear-to-br from-primary/10 via-background to-background border-primary/20"
           iconClassName="bg-primary text-primary-foreground"
@@ -156,13 +157,13 @@ export default function ArchitectDashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.3 }}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-foreground">Recent Quotations</h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-xl font-bold text-foreground tracking-tight">Recent Quotations</h2>
           <Link
             to="/architect/quotations"
-            className="text-primary text-xs font-bold flex items-center gap-1 hover:gap-2 transition-all"
+            className="text-primary text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all"
           >
-            View All <ArrowRight size={12} />
+            View All <ArrowRight size={14} />
           </Link>
         </div>
 
@@ -180,27 +181,28 @@ export default function ArchitectDashboardPage() {
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: 0.3 + i * 0.05 }}
-                  className="bg-card border border-border rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-primary/20 hover:shadow-sm transition-all"
+                  onClick={() => navigate(`/architect/quotations/${q._id}`)}
+                  className="bg-card border border-border rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-primary/20 hover:shadow-sm transition-all cursor-pointer group"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-9 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
-                      <FileText size={15} className="text-muted-foreground" />
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="size-11 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-border/50">
+                      <FileText size={18} className="text-muted-foreground" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-foreground text-sm font-bold truncate">{q.quotationNumber}</p>
-                      <p className="text-muted-foreground text-xs truncate">{q.projectName} · {q.clientId?.name || '—'}</p>
+                      <p className="text-foreground text-base font-bold truncate leading-tight">{q.quotationNumber}</p>
+                      <p className="text-muted-foreground text-sm truncate mt-0.5">{q.projectName} · {q.clientId?.name || '—'}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0 flex-wrap">
+                  <div className="flex items-center gap-4 shrink-0 flex-wrap">
                     {q.companyId?.name && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Building2 size={11} />
-                        <span className="truncate max-w-[100px]">{q.companyId.name}</span>
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground/80">
+                        <Building2 size={13} />
+                        <span className="truncate max-w-[120px]">{q.companyId.name}</span>
                       </div>
                     )}
-                    <Badge className={cn('text-[10px] font-bold border rounded-full px-2.5 py-0.5', st.color)}>{st.label}</Badge>
+                    <Badge className={cn('text-xs font-bold border rounded-full px-3 py-1', st.color)}>{st.label}</Badge>
                     {q.createdAt && (
-                      <p className="text-[10px] text-muted-foreground hidden md:block">{format(new Date(q.createdAt), 'dd MMM yy')}</p>
+                      <p className="text-xs font-medium text-muted-foreground/60 hidden md:block">{format(new Date(q.createdAt), 'dd MMM yy')}</p>
                     )}
                   </div>
                 </motion.div>

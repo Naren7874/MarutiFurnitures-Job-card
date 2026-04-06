@@ -43,19 +43,19 @@ export default function ArchitectJobCardDetailPage() {
                     <ArrowLeft size={16} />
                 </button>
                 <div>
-                    <p className="text-primary text-[10px] font-black tracking-widest uppercase mb-1">{jc.jobCardNumber}</p>
-                    <h1 className="text-foreground text-2xl font-black tracking-tight leading-none group flex items-center gap-2">
+                    <p className="text-primary text-xs md:text-sm font-black tracking-[0.2em] uppercase mb-1.5 opacity-80">{jc.jobCardNumber}</p>
+                    <h1 className="text-foreground text-3xl md:text-4xl font-black tracking-tighter leading-none">
                         {jc.title}
                     </h1>
-                    <p className="text-muted-foreground/60 text-xs font-bold mt-1.5 flex items-center gap-2">
-                         Project: {jc.projectId?.projectName || '—'} 
-                         <span className="opacity-30">/</span> 
-                         Client: {jc.clientId?.name || '—'}
+                    <p className="text-muted-foreground/70 text-sm md:text-base font-bold mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                         <span className="flex items-center gap-1.5">Project: <span className="text-foreground/80">{jc.projectId?.projectName || '—'}</span></span>
+                         <span className="opacity-30 hidden sm:inline">/</span> 
+                         <span className="flex items-center gap-1.5">Client: <span className="text-foreground/80">{jc.clientId?.name || '—'}</span></span>
                          {jc.quotationId && (
                              <>
-                                 <span className="opacity-30">/</span>
-                                 <Link to={`/architect/quotations/${jc.quotationId._id || jc.quotationId}`} className="text-primary hover:underline">
-                                     Quotation: {jc.quotationId.quotationNumber || 'View'}
+                                 <span className="opacity-30 hidden sm:inline">/</span>
+                                 <Link to={`/architect/quotations/${jc.quotationId._id || jc.quotationId}`} className="text-primary hover:underline flex items-center gap-1.5 font-black uppercase tracking-tight text-xs md:text-sm">
+                                     Quotation: {jc.quotationId.quotationNumber || 'View Detail'}
                                  </Link>
                              </>
                          )}
@@ -85,16 +85,16 @@ export default function ArchitectJobCardDetailPage() {
 
                 {/* Content Section (Right) */}
                 <div className="lg:w-[60%] p-8 lg:p-12 flex flex-col">
-                    <div className="mb-10">
-                        <div className="inline-flex items-center px-2 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider mb-4">
+                    <div className="mb-12">
+                        <div className="inline-flex items-center px-3 py-1.5 rounded-xl bg-primary/10 text-primary text-xs font-black uppercase tracking-widest mb-5 border border-primary/20 shadow-sm">
                             {item?.category || 'General Item'}
                         </div>
-                        <h2 className="text-3xl lg:text-4xl font-black text-foreground tracking-tight leading-tight mb-4 uppercase">
+                        <h2 className="text-4xl lg:text-5xl font-black text-foreground tracking-tighter leading-tight mb-6 uppercase max-w-3xl">
                             {item?.description || jc.title}
                         </h2>
                         {item?.specifications?.notes && (
-                            <div className="p-5 rounded-2xl bg-muted/10 border border-border/10 max-w-xl">
-                                <p className="text-muted-foreground/50 text-xs font-medium leading-relaxed italic">
+                            <div className="p-6 rounded-3xl bg-muted/10 border border-border/10 max-w-2xl shadow-inner">
+                                <p className="text-muted-foreground text-sm font-bold leading-relaxed italic opacity-70">
                                     "{item.specifications.notes}"
                                 </p>
                             </div>
@@ -104,53 +104,53 @@ export default function ArchitectJobCardDetailPage() {
                     {/* Technical Grid */}
                     <div className="mt-auto pt-8 border-t border-border/10 grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* Specs Column */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] pl-0.5">Dimensions</p>
-                                <div className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-blue-500/5 border border-blue-500/10">
-                                    <Maximize2 size={14} className="text-blue-500/60" />
-                                    <p className="text-sm font-black text-foreground/90 tracking-tight italic">{item?.specifications?.size || 'N/A'}</p>
+                        <div className="grid grid-cols-2 gap-5 md:gap-6">
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] pl-1">Dimensions</p>
+                                <div className="flex items-center gap-3 p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 shadow-sm">
+                                    <Maximize2 size={16} className="text-blue-500" />
+                                    <p className="text-base font-black text-foreground tracking-tight italic">{item?.specifications?.size || 'N/A'}</p>
                                 </div>
                             </div>
-                            <div className="space-y-1.5">
-                                <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] pl-0.5">Quantity</p>
-                                <div className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-primary/5 border border-primary/10">
-                                    <Package size={14} className="text-primary/60" />
-                                    <p className="text-sm font-black text-foreground/90 uppercase tracking-tight">{item?.qty} {item?.unit || 'PCS'}</p>
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] pl-1">Quantity</p>
+                                <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/5 border border-primary/10 shadow-sm">
+                                    <Package size={16} className="text-primary" />
+                                    <p className="text-base font-black text-foreground uppercase tracking-tight">{item?.qty} {item?.unit || 'PCS'}</p>
                                 </div>
                             </div>
-                            <div className="space-y-1.5">
-                                <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] pl-0.5">Material</p>
-                                <div className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-amber-500/5 border border-amber-500/10">
-                                    <Fingerprint size={14} className="text-amber-500/60" />
-                                    <p className="text-[11px] font-black text-foreground/70 uppercase tracking-tight leading-tight line-clamp-2">{item?.specifications?.material || 'N/A'}</p>
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] pl-1">Material</p>
+                                <div className="flex items-center gap-3 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 shadow-sm">
+                                    <Fingerprint size={16} className="text-amber-600" />
+                                    <p className="text-sm font-black text-foreground/80 uppercase tracking-tight leading-tight line-clamp-2">{item?.specifications?.material || 'N/A'}</p>
                                 </div>
                             </div>
-                            <div className="space-y-1.5">
-                                <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] pl-0.5">Finish</p>
-                                <div className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
-                                    <Wind size={14} className="text-emerald-500/60" />
-                                    <p className="text-[11px] font-black text-foreground/70 uppercase tracking-tight leading-tight line-clamp-2">{item?.specifications?.polish || 'N/A'}</p>
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] pl-1">Finish</p>
+                                <div className="flex items-center gap-3 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
+                                    <Wind size={16} className="text-emerald-600" />
+                                    <p className="text-sm font-black text-foreground/80 uppercase tracking-tight leading-tight line-clamp-2">{item?.specifications?.polish || 'N/A'}</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Fabric Column */}
-                        <div className="space-y-4">
-                            <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] pl-0.5 border-b border-border/10 pb-2">Technical Specification (Fabrics)</p>
-                            <div className="flex flex-wrap gap-2">
+                        <div className="space-y-5">
+                            <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] pl-1 border-b border-border/10 pb-3">Technical Specification (Fabrics)</p>
+                            <div className="flex flex-wrap gap-2.5">
                                 {(item?.specifications?.fabrics?.length > 0) ? (
                                     item.specifications.fabrics.map((f: string, fi: number) => (
-                                        <div key={fi} className="inline-flex items-center gap-2 bg-violet-500/5 border border-violet-500/10 px-4 py-2 rounded-xl text-[10px] font-black text-foreground/60 uppercase">
-                                            <span className="opacity-30">#{fi + 1}</span> {f}
+                                        <div key={fi} className="inline-flex items-center gap-2.5 bg-violet-500/5 border border-violet-500/20 px-4 py-2.5 rounded-xl text-xs font-black text-foreground/70 uppercase shadow-sm">
+                                            <span className="text-violet-500/50">#{fi + 1}</span> {f}
                                         </div>
                                     ))
                                 ) : item?.specifications?.fabric ? (
-                                    <div className="inline-flex items-center bg-violet-500/5 border border-violet-500/10 px-4 py-2 rounded-xl text-[10px] font-black text-foreground/60 uppercase">
+                                    <div className="inline-flex items-center bg-violet-500/5 border border-violet-500/20 px-4 py-2.5 rounded-xl text-xs font-black text-foreground/70 uppercase shadow-sm">
                                         {item.specifications.fabric}
                                     </div>
                                 ) : (
-                                    <p className="text-[10px] font-bold text-muted-foreground/20 italic uppercase py-2">No fabric specifications defined</p>
+                                    <p className="text-xs font-bold text-muted-foreground/30 italic uppercase py-3 pl-1">No fabric specifications defined</p>
                                 )}
                             </div>
                         </div>
@@ -166,31 +166,31 @@ export default function ArchitectJobCardDetailPage() {
                     transition={{ delay: 0.1 }}
                     className="bg-card dark:bg-card/20 backdrop-blur-xl border border-border/10 rounded-[2.5rem] p-8 md:p-12 shadow-sm"
                 >
-                    <div className="flex items-center gap-4 mb-10">
-                        <div className="p-3.5 rounded-2xl bg-primary/10 text-primary border border-primary/20">
-                            <Camera size={20} />
+                    <div className="flex items-center gap-5 mb-12">
+                        <div className="size-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shadow-sm">
+                            <Camera size={26} />
                         </div>
                         <div>
-                            <h4 className="font-black text-sm uppercase tracking-[0.15em] text-foreground">Visual Archive</h4>
-                            <p className="text-[9px] text-muted-foreground/40 font-medium uppercase tracking-widest">Technical References</p>
+                            <h4 className="font-black text-lg uppercase tracking-widest text-foreground leading-none">Visual Archive</h4>
+                            <p className="text-xs text-muted-foreground/60 font-bold uppercase tracking-widest mt-1.5">Technical Project References</p>
                         </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8">
                         {item.fabricPhoto && (
-                            <div className="space-y-3">
-                                <div className="aspect-4/5 rounded-3xl overflow-hidden border border-border/20 bg-muted/20 hover:border-primary/50 transition-all cursor-zoom-in shadow-lg">
+                            <div className="space-y-4">
+                                <div className="aspect-4/5 rounded-[2.5rem] overflow-hidden border border-border/20 bg-muted/20 hover:border-primary/50 transition-all cursor-zoom-in shadow-2xl">
                                     <ImagePreview src={item.fabricPhoto} alt="Fabric Reference" />
                                 </div>
-                                <p className="text-center text-[8px] font-black uppercase tracking-widest text-muted-foreground/40">Fabric Selection</p>
+                                <p className="text-center text-xs font-black uppercase tracking-widest text-muted-foreground/60">Fabric Selection</p>
                             </div>
                         )}
                         {item.photos?.map((url: string, i: number) => (
-                            <div key={i} className="space-y-3">
-                                <div className="aspect-4/5 rounded-3xl overflow-hidden border border-border/20 bg-muted/20 hover:border-primary/50 transition-all cursor-zoom-in shadow-lg">
+                            <div key={i} className="space-y-4">
+                                <div className="aspect-4/5 rounded-[2.5rem] overflow-hidden border border-border/20 bg-muted/20 hover:border-primary/50 transition-all cursor-zoom-in shadow-2xl">
                                     <ImagePreview src={url} alt={`Reference ${i+1}`} />
                                 </div>
-                                <p className="text-center text-[8px] font-black uppercase tracking-widest text-muted-foreground/40">Reference Photo #{i+1}</p>
+                                <p className="text-center text-xs font-black uppercase tracking-widest text-muted-foreground/60">Reference Photo #{i+1}</p>
                             </div>
                         ))}
                     </div>
