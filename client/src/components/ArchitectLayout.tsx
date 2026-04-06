@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, LogOut, Building2 } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, LogOut, Building2, Factory, FolderKanban } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,6 +10,8 @@ import { useState } from 'react';
 const NAV = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/architect' },
   { label: 'Quotations', icon: FileText, path: '/architect/quotations' },
+  { label: 'Projects', icon: FolderKanban, path: '/architect/projects' },
+  { label: 'Job Cards', icon: Factory, path: '/architect/jobcards' },
   { label: 'Clients', icon: Users, path: '/architect/clients' },
 ];
 

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { IndianRupee, FileText, CheckCircle, Users, Clock, TrendingUp, Building2, ArrowRight } from 'lucide-react';
+import { FileText, CheckCircle, Clock, Building2, ArrowRight, Factory, AlertTriangle, Sparkles } from 'lucide-react';
 import { useArchitectDashboard } from '../../hooks/useApi';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -9,8 +9,7 @@ import { format } from 'date-fns';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+// Removed fmt helper as it's no longer used
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   draft:     { label: 'Pending', color: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/20' },
@@ -25,14 +24,14 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 
 function DashboardSkeleton() {
   return (
-    <div className="p-6 md:p-8 space-y-8">
+    <div className="p-6 md:p-8 space-y-8 w-full">
       <div>
         <Skeleton className="h-8 w-48 mb-2" />
         <Skeleton className="h-4 w-72" />
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-28 rounded-2xl" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-44 rounded-3xl" />
         ))}
       </div>
       <div>
@@ -51,26 +50,34 @@ function DashboardSkeleton() {
 
 interface KpiCardProps {
   label: string;
-  value: string;
+  value: string | number;
   icon: React.ElementType;
-  color: string;
+  className?: string;
+  iconClassName?: string;
   delay?: number;
+  suffix?: string;
 }
 
-function KpiCard({ label, value, icon: Icon, color, delay = 0 }: KpiCardProps) {
+function KpiCard({ label, value, icon: Icon, className, iconClassName, delay = 0, suffix }: KpiCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
-      className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition-shadow"
+      className={cn(
+        "relative overflow-hidden bg-card border border-border rounded-3xl p-6 flex flex-col gap-5 hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/5 transition-all group",
+        className
+      )}
     >
-      <div className={cn('size-11 rounded-xl flex items-center justify-center shrink-0', color)}>
-        <Icon size={20} />
+      <div className={cn('size-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-110 duration-300', iconClassName)}>
+        <Icon size={28} />
       </div>
-      <div className="overflow-hidden">
-        <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider leading-tight line-clamp-2">{label}</p>
-        <p className="text-foreground text-xl font-black mt-1 truncate">{value}</p>
+      <div>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 opacity-80">{label}</p>
+        <div className="flex items-baseline gap-2">
+          <p className="text-foreground text-3xl font-black tracking-tight">{value}</p>
+          {suffix && <span className="text-sm font-bold text-muted-foreground italic opacity-60 group-hover:opacity-100 transition-opacity">{suffix}</span>}
+        </div>
       </div>
     </motion.div>
   );
@@ -86,74 +93,61 @@ export default function ArchitectDashboardPage() {
   if (isLoading) return <DashboardSkeleton />;
 
   return (
-    <div className="p-6 md:p-8 space-y-8 max-w-5xl mx-auto">
+    <div className="p-6 md:p-8 space-y-8 w-full">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">Architect Dashboard</h1>
       </motion.div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Unified KPI Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-5">
+        {/* Earnings First */}
         <KpiCard
-          label="Earned"
-          value={fmt(summary?.totalEarned || 0)}
-          icon={CheckCircle}
-          color="bg-emerald-500/10 text-emerald-500"
+          label="Total Earned"
+          value={summary?.earnedOoroo || 0}
+          icon={Sparkles}
+          suffix="ooroo"
+          className="bg-linear-to-br from-primary/10 via-background to-background border-primary/20"
+          iconClassName="bg-primary text-primary-foreground"
           delay={0}
         />
-        <KpiCard
-          label="Pending"
-          value={fmt(summary?.totalPending || 0)}
-          icon={Clock}
-          color="bg-yellow-500/10 text-yellow-500"
-          delay={0.06}
-        />
-        <KpiCard
-          label="Total Commission"
-          value={fmt(summary?.totalCommission || 0)}
-          icon={IndianRupee}
-          color="bg-primary/10 text-primary"
-          delay={0.12}
-        />
-        <KpiCard
-          label="Quotations"
-          value={String(summary?.totalQuotations || 0)}
-          icon={FileText}
-          color="bg-blue-500/10 text-blue-500"
-          delay={0.18}
-        />
-      </div>
 
-      {/* Extra Stats */}
-      <div className="grid grid-cols-2 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.22 }}
-          className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4"
-        >
-          <div className="size-11 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center shrink-0">
-            <Users size={20} />
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">Clients</p>
-            <p className="text-foreground text-xl font-black">{summary?.totalClients || 0}</p>
-          </div>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.26 }}
-          className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4"
-        >
-          <div className="size-11 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
-            <TrendingUp size={20} />
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">Approved</p>
-            <p className="text-foreground text-xl font-black">{(summary?.statusBreakdown?.approved || 0) + (summary?.statusBreakdown?.converted || 0)}</p>
-          </div>
-        </motion.div>
+        {/* Operational Status */}
+        <KpiCard
+          label="Ongoing Projects"
+          value={summary?.ongoingProjects || 0}
+          icon={Building2}
+          iconClassName="bg-blue-500/10 text-blue-500"
+          delay={0.1}
+        />
+        <KpiCard
+          label="Active Job Cards"
+          value={summary?.activeJobCards || 0}
+          icon={Factory}
+          iconClassName="bg-emerald-500/10 text-emerald-500"
+          delay={0.15}
+        />
+        <KpiCard
+          label="Completed Projects"
+          value={summary?.completedProjects || 0}
+          icon={CheckCircle}
+          iconClassName="bg-violet-500/10 text-violet-500"
+          delay={0.2}
+        />
+        <KpiCard
+          label="Pending Quotations"
+          value={summary?.pendingQuotations || 0}
+          icon={Clock}
+          iconClassName="bg-yellow-500/10 text-yellow-500"
+          delay={0.25}
+        />
+        <KpiCard
+          label="Rejected Quotations"
+          value={summary?.rejectedQuotations || 0}
+          icon={AlertTriangle}
+          iconClassName="bg-red-500/10 text-red-500"
+          delay={0.3}
+        />
       </div>
 
       {/* Recent Quotations */}
@@ -180,7 +174,6 @@ export default function ArchitectDashboardPage() {
           <div className="space-y-3">
             {recentQuotations.map((q: any, i: number) => {
               const st = STATUS_CONFIG[q.status] || { label: q.status, color: 'bg-muted text-muted-foreground' };
-              const isEarned = ['approved', 'converted'].includes(q.status);
               return (
                 <motion.div
                   key={q._id}
@@ -206,12 +199,6 @@ export default function ArchitectDashboardPage() {
                       </div>
                     )}
                     <Badge className={cn('text-[10px] font-bold border rounded-full px-2.5 py-0.5', st.color)}>{st.label}</Badge>
-                    <div className="text-right">
-                      <p className={cn('text-sm font-black', isEarned ? 'text-emerald-500' : 'text-yellow-500')}>
-                        {fmt(q.architectCommissionAmount || 0)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">{isEarned ? 'Earned' : 'Pending'}</p>
-                    </div>
                     {q.createdAt && (
                       <p className="text-[10px] text-muted-foreground hidden md:block">{format(new Date(q.createdAt), 'dd MMM yy')}</p>
                     )}

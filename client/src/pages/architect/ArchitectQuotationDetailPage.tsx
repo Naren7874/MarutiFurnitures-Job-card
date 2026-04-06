@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Building2, User, Phone, Mail, MapPin,
@@ -199,30 +199,74 @@ export default function ArchitectQuotationDetailPage() {
         </InfoCard>
       </div>
 
+      {/* Linked Project & Job Cards */}
+      {(q.projectId || (q.jobCards && q.jobCards.length > 0)) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {q.projectId && (
+            <Link to={`/architect/projects/${q.projectId}`}>
+              <motion.div whileHover={{ scale: 1.01 }} className="bg-primary/5 border border-primary/20 rounded-2xl p-5 flex items-center justify-between group transition-colors hover:bg-primary/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                    <CheckCircle size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Linked Project</p>
+                    <p className="text-foreground font-black text-sm uppercase">{q.projectNumber || 'View Project'}</p>
+                  </div>
+                </div>
+                <div className="text-primary italic text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">View Detail →</div>
+              </motion.div>
+            </Link>
+          )}
+
+          {q.jobCards && q.jobCards.length > 0 && (
+            <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-5 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500"><Package size={14} /></div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500/60">Related Job Cards ({q.jobCards.length})</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {q.jobCards.map((jc: any) => (
+                  <Link key={jc._id} to={`/architect/jobcards/${jc._id}`}>
+                    <span className="px-3 py-1.5 rounded-xl bg-white/50 dark:bg-card border border-indigo-500/20 text-indigo-600 text-[10px] font-black uppercase tracking-tight hover:bg-indigo-500 hover:text-white transition-all">
+                      {jc.jobCardNumber}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Items Table */}
       {q.items && q.items.length > 0 && (
         <InfoCard icon={Package} title={`Items (${q.items.length})`}>
           <div className="space-y-3 -mx-1">
             <div className="grid grid-cols-12 text-[10px] font-black uppercase tracking-wider text-muted-foreground/60 px-1 pb-1 border-b border-border/20">
               <div className="col-span-1">#</div>
-              <div className="col-span-5">Item</div>
-              <div className="col-span-2 text-right">Qty</div>
-              <div className="col-span-2 text-right">Rate</div>
-              <div className="col-span-2 text-right">Total</div>
+              <div className="col-span-11 grid grid-cols-11 border-l border-border/10 pl-3">
+                <div className="col-span-5">Item Details</div>
+                <div className="col-span-2 text-right">Quantity</div>
+                <div className="col-span-2 text-right">Unit Rate</div>
+                <div className="col-span-2 text-right">Amount</div>
+              </div>
             </div>
             {q.items.map((item: any, idx: number) => (
-              <div key={item._id || idx} className="grid grid-cols-12 text-xs px-1 py-1.5 rounded-lg hover:bg-muted/30 transition-colors">
-                <div className="col-span-1 text-muted-foreground font-bold">{item.srNo || idx + 1}</div>
-                <div className="col-span-5">
-                  <p className="text-foreground font-bold truncate">{item.name}</p>
-                  {item.description && <p className="text-muted-foreground text-[10px] truncate mt-0.5">{item.description}</p>}
-                  {item.specifications?.size && (
-                    <p className="text-muted-foreground/60 text-[10px]">{item.specifications.size}</p>
-                  )}
+              <div key={item._id || idx} className="grid grid-cols-12 text-xs px-1 py-3 items-center hover:bg-muted/30 transition-all rounded-xl">
+                <div className="col-span-1 text-muted-foreground font-black text-[10px]">{item.srNo || idx + 1}</div>
+                <div className="col-span-11 grid grid-cols-11 border-l border-border/10 pl-3">
+                    <div className="col-span-5">
+                      <p className="text-foreground font-black text-sm tracking-tight leading-tight uppercase line-clamp-1">{item.name}</p>
+                      <p className="text-muted-foreground text-[10px] font-bold mt-1 line-clamp-1 italic">{item.description}</p>
+                    </div>
+                    <div className="col-span-2 text-right">
+                       <span className="text-foreground/80 font-black text-xs">{item.qty}</span>
+                       <span className="text-muted-foreground/30 text-[9px] font-bold ml-1 uppercase">{item.unit || 'PCS'}</span>
+                    </div>
+                    <div className="col-span-2 text-right text-muted-foreground font-bold">{fmt(item.sellingPrice || 0)}</div>
+                    <div className="col-span-2 text-right text-foreground font-black">{fmt(item.totalPrice || item.qty * (item.sellingPrice || 0))}</div>
                 </div>
-                <div className="col-span-2 text-right text-muted-foreground font-bold">{item.qty}</div>
-                <div className="col-span-2 text-right text-muted-foreground font-bold">{fmt(item.sellingPrice || 0)}</div>
-                <div className="col-span-2 text-right text-foreground font-black">{fmt(item.totalPrice || item.qty * (item.sellingPrice || 0))}</div>
               </div>
             ))}
           </div>
@@ -234,7 +278,7 @@ export default function ArchitectQuotationDetailPage() {
         <InfoCard icon={FileText} title="Terms & Conditions">
           <ul className="space-y-1.5 list-disc list-inside">
             {q.additionalTerms.map((term: string, i: number) => (
-              <li key={i} className="text-muted-foreground text-xs">{term}</li>
+              <li key={i} className="text-muted-foreground text-xs leading-relaxed font-medium">{term}</li>
             ))}
           </ul>
         </InfoCard>

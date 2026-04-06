@@ -32,6 +32,10 @@ export const QK = {
     architectQuotations: (uid: string, params?: object) => ['architect', uid, 'quotations', params],
     architectClients: (uid: string) => ['architect', uid, 'clients'],
     architectQuotation: (uid: string, id: string) => ['architect', uid, 'quotations', id],
+    architectProjects: (uid: string, params?: object) => ['architect', uid, 'projects', params],
+    architectProject: (uid: string, id: string) => ['architect', uid, 'projects', id],
+    architectJobCards: (uid: string, params?: object) => ['architect', uid, 'jobcards', params],
+    architectJobCard: (uid: string, id: string) => ['architect', uid, 'jobcards', id],
 };
 
 // ─── Users & Roles ────────────────────────────────────────────────────────────
@@ -748,6 +752,46 @@ export const useArchitectQuotationById = (id: string) => {
     return useQuery({
         queryKey: QK.architectQuotation(uid, id),
         queryFn: () => apiGet(`/architect/quotations/${id}`),
+        enabled: !!uid && !!id,
+    });
+};
+
+export const useArchitectProjects = (params: object = {}) => {
+    const { user } = useAuthStore();
+    const uid = (user as any)?._id || (user as any)?.id || '';
+    return useQuery({
+        queryKey: QK.architectProjects(uid, params),
+        queryFn: () => apiGet('/architect/projects', params),
+        enabled: !!uid,
+    });
+};
+
+export const useArchitectProjectById = (id: string) => {
+    const { user } = useAuthStore();
+    const uid = (user as any)?._id || (user as any)?.id || '';
+    return useQuery({
+        queryKey: QK.architectProject(uid, id),
+        queryFn: () => apiGet(`/architect/projects/${id}`),
+        enabled: !!uid && !!id,
+    });
+};
+
+export const useArchitectJobCards = (params: object = {}) => {
+    const { user } = useAuthStore();
+    const uid = (user as any)?._id || (user as any)?.id || '';
+    return useQuery({
+        queryKey: QK.architectJobCards(uid, params),
+        queryFn: () => apiGet('/architect/jobcards', params),
+        enabled: !!uid,
+    });
+};
+
+export const useArchitectJobCardById = (id: string) => {
+    const { user } = useAuthStore();
+    const uid = (user as any)?._id || (user as any)?.id || '';
+    return useQuery({
+        queryKey: QK.architectJobCard(uid, id),
+        queryFn: () => apiGet(`/architect/jobcards/${id}`),
         enabled: !!uid && !!id,
     });
 };

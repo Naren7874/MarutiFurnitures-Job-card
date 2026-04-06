@@ -12,8 +12,12 @@ import { ThemeProvider } from './components/theme-provider';
 // Architect Portal
 const ArchitectDashboardPage  = lazy(() => import('./pages/architect/ArchitectDashboardPage'));
 const ArchitectQuotationsPage = lazy(() => import('./pages/architect/ArchitectQuotationsPage'));
-const ArchitectClientsPage    = lazy(() => import('./pages/architect/ArchitectClientsPage'));
 const ArchitectQuotationDetailPage = lazy(() => import('./pages/architect/ArchitectQuotationDetailPage'));
+const ArchitectProjectsPage = lazy(() => import('./pages/architect/ArchitectProjectsPage'));
+const ArchitectProjectDetailPage = lazy(() => import('./pages/architect/ArchitectProjectDetailPage'));
+const ArchitectJobCardsPage = lazy(() => import('./pages/architect/ArchitectJobCardsPage'));
+const ArchitectJobCardDetailPage = lazy(() => import('./pages/architect/ArchitectJobCardDetailPage'));
+const ArchitectClientsPage    = lazy(() => import('./pages/architect/ArchitectClientsPage'));
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
@@ -182,6 +186,10 @@ export default function App() {
                     <Route index element={<ArchitectDashboardPage />} />
                     <Route path="quotations" element={<ArchitectQuotationsPage />} />
                     <Route path="quotations/:id" element={<ArchitectQuotationDetailPage />} />
+                    <Route path="projects" element={<ArchitectProjectsPage />} />
+                    <Route path="projects/:id" element={<ArchitectProjectDetailPage />} />
+                    <Route path="jobcards" element={<ArchitectJobCardsPage />} />
+                    <Route path="jobcards/:id" element={<ArchitectJobCardDetailPage />} />
                     <Route path="clients" element={<ArchitectClientsPage />} />
                   </Route>
                 </Route>
