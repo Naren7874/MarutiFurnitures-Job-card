@@ -11,11 +11,14 @@ const getTransporter = () => {
       ? {
           host:   process.env.EMAIL_HOST,
           port:   Number(process.env.EMAIL_PORT) || 587,
-          secure: process.env.EMAIL_PORT === '465',
+          secure: process.env.EMAIL_PORT === '465', // true for 465, false for others
           auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS,
           },
+          tls: {
+            rejectUnauthorized: false // Often needed for hosting SMTPs
+          }
         }
       : {
           service: 'gmail',
@@ -49,7 +52,9 @@ export const sendEmail = async ({ to, subject, html, attachments = [] }) => {
     html,
     attachments,
   };
-  return getTransporter().sendMail(mailOptions);
+  const info = await getTransporter().sendMail(mailOptions);
+  console.log(`[Email] Sent successfully to ${to}. MessageId: ${info.messageId}`);
+  return info;
 };
 
 // ── Email templates ─────────────────────────────────────────────────────────

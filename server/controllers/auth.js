@@ -190,15 +190,21 @@ export const getMe = async (req, res, next) => {
 export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
-
-    const user = await User.findOne({ email: email?.toLowerCase() });
-
+    const cleanEmail = email?.trim().toLowerCase();
+    
+    console.log(`[ForgotPassword] Request Email: "${email}"`);
+    console.log(`[ForgotPassword] Clean Email: "${cleanEmail}" (Length: ${cleanEmail?.length})`);
+    
+    const user = await User.findOne({ email: cleanEmail });
+    console.log(`[ForgotPassword] DB Search Result: ${user ? 'FOUND' : 'NOT FOUND'}`);
 
     // Always return 200 to avoid email enumeration
     if (!user) {
+      console.warn(`[ForgotPassword] No user found in DB for: ${cleanEmail}`);
       return res.status(200).json({ success: true, message: 'If that email exists, a reset link has been sent.' });
     }
 
+    console.log(`[ForgotPassword] User found: ${user.name} (${user.email})`);
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
@@ -206,11 +212,18 @@ export const forgotPassword = async (req, res, next) => {
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
-    await sendEmail({
-      to: user.email,
-      subject: 'Password Reset — Maruti Furniture',
-      html: passwordResetEmailHTML(user.name, resetUrl),
-    });
+    
+    console.log(`[ForgotPassword] Sending reset email to: ${user.email}`);
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Password Reset — Maruti Furniture',
+        html: passwordResetEmailHTML(user.name, resetUrl),
+      });
+      console.log(`[ForgotPassword] Reset email SENT successfully to: ${user.email}`);
+    } catch (sendError) {
+      console.error(`[ForgotPassword] FAILED to send reset email:`, sendError);
+    }
 
     res.status(200).json({ success: true, message: 'If that email exists, a reset link has been sent.' });
   } catch (err) {

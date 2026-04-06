@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { sendEmail } from './sendEmail.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -7,13 +8,7 @@ dotenv.config();
  * Centralized service for sending emails via Nodemailer.
  */
 
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
-});
+// No longer needed: centralized transporter in sendEmail.js is used via sendEmail helper
 
 /**
  * Sends a welcome email to a newly created user with their credentials.
@@ -51,7 +46,7 @@ export const sendWelcomeEmail = async (userData) => {
     };
 
     try {
-        const info = await transporter.sendMail(mailOptions);
+        const info = await sendEmail(mailOptions);
         console.log('[EmailService] Welcome email sent successfully:', info.messageId);
         return { success: true, messageId: info.messageId };
     } catch (error) {

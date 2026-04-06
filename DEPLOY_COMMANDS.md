@@ -15,11 +15,13 @@ docker build -t asia-south1-docker.pkg.dev/maruti-furniture-prod/maruti-furnitur
 # 3. Push the image up to Google Cloud Artifact Registry
 docker push asia-south1-docker.pkg.dev/maruti-furniture-prod/maruti-furniture-repo/maruti-backend:latest
 
-# 4. Tell Cloud Run to pull the new image and deploy it live
+# 4. Tell Cloud Run to pull the new image and deploy it live with Secure Secrets
+# NOTE: All secrets must be created in GCP Secret Manager before running this.
 gcloud run deploy maruti-furniture-backend \
   --image asia-south1-docker.pkg.dev/maruti-furniture-prod/maruti-furniture-repo/maruti-backend:latest \
   --region asia-south1 \
-  --project maruti-furniture-prod
+  --project maruti-furniture-prod \
+  --set-secrets="MONGO_URI=MONGO_URI:latest,JWT_SECRET=JWT_SECRET:latest,CLOUDINARY_CLOUD_NAME=CLOUDINARY_CLOUD_NAME:latest,CLOUDINARY_API_KEY=CLOUDINARY_API_KEY:latest,CLOUDINARY_API_SECRET=CLOUDINARY_API_SECRET:latest,EMAIL_USER=EMAIL_USER:latest,EMAIL_PASS=EMAIL_PASS:latest,EMAIL_HOST=EMAIL_HOST:latest,EMAIL_PORT=EMAIL_PORT:latest,FRONTEND_URL=FRONTEND_URL:latest"
 ```
 *(The backend deployment takes about 2-3 minutes total. There will be zero downtime for users while it's deploying.)*
 
