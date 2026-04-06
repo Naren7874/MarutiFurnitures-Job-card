@@ -6,7 +6,7 @@ import {
     ArrowRight, FileText, ClipboardList, Inbox, Layers, LayoutGrid,
     BarChart3, Banknote, Receipt, XCircle,
 } from 'lucide-react';
-import { useJobCards, useQuotations, useDashboardStats } from '../../hooks/useApi';
+import { useJobCards, useQuotations, useDashboardStats, useInvoices } from '../../hooks/useApi';
 import { cn } from '../../lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -278,28 +278,28 @@ const SalesDashboard = () => {
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
                 <StatCard
                     icon={LayoutGrid}
-                    label="Ongoing Projects"
+                    label="Active Projects"
                     value={stats?.projects.active || 0}
                     colorClass="bg-blue-500/10 text-blue-600"
                     delay={0.1}
                 />
                 <StatCard
                     icon={FileText}
-                    label="Pending Quotations"
+                    label="Pending Quotes"
                     value={(stats?.quotations.pending || 0) + (stats?.quotations.draft || 0)}
                     colorClass="bg-amber-500/10 text-amber-600"
                     delay={0.2}
                 />
                 <StatCard
                     icon={CheckCircle2}
-                    label="Approved Quotations"
+                    label="Approved Quotes"
                     value={stats?.quotations.approved || 0}
                     colorClass="bg-emerald-500/10 text-emerald-600"
                     delay={0.3}
                 />
                 <StatCard
                     icon={XCircle}
-                    label="Rejected Quotations"
+                    label="Rejected Quotes"
                     value={stats?.quotations.rejected || 0}
                     colorClass="bg-rose-500/10 text-rose-600"
                     delay={0.4}
@@ -351,26 +351,111 @@ const SalesDashboard = () => {
 };
 
 const AccountantDashboard = () => {
-    const { id: userId } = useAuthStore(state => state.user) || {};
-    const { all: rawAll, isLoading } = useAllJobCards();
-    const all = rawAll.filter(j => j.assignedTo?.accounts?.some((u: any) => (u._id || u.id || u) === userId));
+    const { data: statsRaw, isLoading } = useDashboardStats();
+    const { data: invRaw } = useInvoices({ limit: 10, sortBy: 'createdAt:desc' });
+    const stats = (statsRaw as any)?.data;
+    const recentInvoices: any[] = (invRaw as any)?.data ?? [];
 
-    const pending = all.filter(j => j.status === 'delivered');
-    const closed = all.filter(j => j.status === 'closed');
+    const fmt = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
+
+    const balance = (stats?.invoices.totalAmount || 0) - (stats?.invoices.received || 0);
+
+    const INV_STATUS: Record<string, string> = {
+        draft: 'bg-slate-500/10 text-slate-500 border-slate-500/20',
+        sent: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+        partially_paid: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+        paid: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+        overdue: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
+    };
+
     return (
         <div className="space-y-8">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-                <StatCard icon={Banknote} label="Delivered Awaiting Proforma Invoice" value={pending.length} colorClass="bg-emerald-500/10 text-emerald-500" delay={0.1} />
-                <StatCard icon={Receipt} label="Closed Jobs" value={closed.length} colorClass="bg-zinc-500/10 text-zinc-500" delay={0.2} />
-                <StatCard icon={BarChart3} label="Total Handled" value={all.length} colorClass="bg-primary/10 text-primary" delay={0.3} />
-                <StatCard icon={ClipboardList} label="Finance Queue" value={all.length} colorClass="bg-rose-500/10 text-rose-500" sub="Active" delay={0.4} />
+            {/* KPI Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+                <StatCard
+                    icon={Banknote}
+                    label="Total Invoiced"
+                    value={fmt(stats?.invoices.totalAmount || 0)}
+                    colorClass="bg-primary/10 text-primary"
+                    delay={0.1}
+                />
+                <StatCard
+                    icon={CheckCircle2}
+                    label="Received (MTD)"
+                    value={fmt(stats?.revenue.thisMonth || 0)}
+                    colorClass="bg-emerald-500/10 text-emerald-500"
+                    delay={0.2}
+                />
+                <StatCard
+                    icon={Receipt}
+                    label="Total Pending"
+                    value={fmt(balance)}
+                    colorClass="bg-amber-500/10 text-amber-500"
+                    delay={0.3}
+                />
+                <StatCard
+                    icon={AlertTriangle}
+                    label="Overdue Invoices"
+                    value={stats?.invoices.overdue || 0}
+                    colorClass="bg-rose-500/10 text-rose-600"
+                    sub={stats?.invoices.overdue > 0 ? 'Action Needed' : undefined}
+                    delay={0.4}
+                />
+                <StatCard
+                    icon={LayoutGrid}
+                    label="Active Projects"
+                    value={stats?.projects.active || 0}
+                    colorClass="bg-blue-500/10 text-blue-500"
+                    delay={0.5}
+                />
+                <StatCard
+                    icon={FileText}
+                    label="Pending Quotes"
+                    value={(stats?.quotations.pending || 0) + (stats?.quotations.draft || 0)}
+                    colorClass="bg-indigo-500/10 text-indigo-500"
+                    delay={0.6}
+                />
             </div>
+
+            {/* Recent Invoices */}
             <Card className="rounded-[28px] border-border/40 p-6 shadow-sm">
-                <SectionTitle title="Delivered Jobs — Awaiting Proforma Invoice" count={pending.length} />
-                {isLoading ? <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 rounded-2xl" />)}</div>
-                    : all.length === 0 ? <EmptyState label="No delivered jobs yet" />
-                        : <div className="space-y-1">{all.slice(0, 20).map((jc, i) => <JCRow key={jc._id} jc={jc} idx={i} />)}</div>
-                }
+                <SectionTitle title="Latest Proforma Invoices" count={recentInvoices.length} />
+                {isLoading
+                    ? <div className="space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16 rounded-2xl" />)}</div>
+                    : recentInvoices.length === 0
+                        ? <EmptyState label="No invoices found" />
+                        : (
+                            <div className="space-y-1">
+                                {recentInvoices.slice(0, 15).map((inv: any, i: number) => {
+                                    const cls = INV_STATUS[inv.status] || 'bg-muted text-muted-foreground border-border';
+                                    const balance = (inv.grandTotal || 0) - (inv.advancePaid || 0);
+                                    return (
+                                        <motion.div key={inv._id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.06 + i * 0.04 }}>
+                                            <Link to={`/invoices/${inv._id}`}>
+                                                <div className="flex items-center gap-4 px-4 py-3.5 rounded-2xl hover:bg-muted/40 border border-transparent hover:border-border/50 transition-all group cursor-pointer">
+                                                    <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border', cls)}>
+                                                        <Receipt size={16} />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">{inv.invoiceNumber}</p>
+                                                        <p className="text-[10px] font-semibold text-muted-foreground/50 truncate">
+                                                            {inv.clientId?.name || inv.clientId?.firmName || '—'} 
+                                                            {inv.projectId?.projectName ? ` · ${inv.projectId.projectName}` : ''}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <p className="text-sm font-black text-foreground">₹{(inv.grandTotal || 0).toLocaleString('en-IN')}</p>
+                                                        {balance > 0 && <p className="text-[10px] font-bold text-rose-500">Due: ₹{balance.toLocaleString('en-IN')}</p>}
+                                                    </div>
+                                                    <Badge variant="outline" className={cn('text-[9px] font-black uppercase tracking-wide border rounded-lg px-2 py-0.5 shrink-0', cls)}>{inv.status?.replace(/_/g, ' ')}</Badge>
+                                                    <ArrowRight size={12} className="text-muted-foreground/20 group-hover:text-primary/60 transition-colors shrink-0" />
+                                                </div>
+                                            </Link>
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+                        )}
                 <div className="mt-5 pt-4 border-t border-border/20">
                     <Link to="/invoices">
                         <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary hover:underline">

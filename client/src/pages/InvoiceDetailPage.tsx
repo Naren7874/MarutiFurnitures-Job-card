@@ -5,7 +5,7 @@ import {
     AlertCircle, Loader2, Plus, Wallet, Building2, CreditCard, CheckCircle2,
     Pencil, Trash2
 } from 'lucide-react';
-import { useInvoice, useRecordPayment, useUpdatePayment, useDeletePayment, useSendInvoice } from '../hooks/useApi';
+import { useInvoice, useRecordPayment, useUpdatePayment, useDeletePayment, useSendInvoice, useDeleteInvoice } from '../hooks/useApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { useAuthStore } from '../stores/authStore';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
     draft: { label: 'Draft', color: 'text-slate-500', bg: 'bg-slate-500/10', border: 'border-slate-500/20' },
@@ -40,22 +41,24 @@ export default function InvoiceDetailPage() {
     const { data: raw, isLoading, refetch } = useInvoice(id!);
     const inv: any = (raw as any)?.data;
 
-    const paymentMut = useRecordPayment(id!);
-    const sendMut = useSendInvoice(id!);
-
-    const updatePaymentMut = useUpdatePayment(id!);
-    const deletePaymentMut = useDeletePayment(id!);
-
     const [showPayment, setShowPayment] = useState(false);
     const [editingPayment, setEditingPayment] = useState<any>(null);
     const [payForm, setPayForm] = useState({ amount: '', mode: 'upi', reference: '' });
     const [payError, setPayError] = useState('');
-    const [confirm, setConfirm] = useState<'send' | null>(null);
+    const [confirm, setConfirm] = useState<'send' | 'delete' | null>(null);
     const [pdfLoading, setPdfLoading] = useState(false);
+    
     const { hasPermission, user } = useAuthStore();
+
+    const paymentMut = useRecordPayment(id!);
+    const sendMut = useSendInvoice(id!);
+    const deleteMut = useDeleteInvoice(id!);
+    const updatePaymentMut = useUpdatePayment(id!);
+    const deletePaymentMut = useDeletePayment(id!);
 
     const canEdit = hasPermission('invoice.edit');
     const canPay  = hasPermission('invoice.payment');
+    const canDelete = hasPermission('invoice.delete');
     const isSales = user?.role === 'sales';
 
     const handleDownloadPDF = async () => {
@@ -96,6 +99,15 @@ export default function InvoiceDetailPage() {
             refetch();
         } catch (e: any) {
             setPayError(e?.response?.data?.message || 'Failed to save payment');
+        }
+    };
+
+    const handleDeleteInvoice = async () => {
+        try {
+            await deleteMut.mutateAsync();
+            navigate('/invoices');
+        } catch (e) {
+            // Error handled by hook toast
         }
     };
 
@@ -168,7 +180,12 @@ export default function InvoiceDetailPage() {
 
                     {canEdit && (
                         <Button variant="outline" onClick={() => navigate(`/invoices/${id}/edit`)} className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-border/60">
-                            <Plus size={13} className="rotate-45" /> Edit
+                            <Pencil size={13} /> Edit
+                        </Button>
+                    )}
+                    {canDelete && (
+                        <Button variant="outline" onClick={() => setConfirm('delete')} className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-rose-500/30 text-rose-500 hover:bg-rose-500/10">
+                            <Trash2 size={13} /> Delete
                         </Button>
                     )}
                     {inv.status === 'draft' && canEdit && (
@@ -198,6 +215,16 @@ export default function InvoiceDetailPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <ConfirmationDialog
+                open={confirm === 'delete'}
+                onOpenChange={(open) => !open && setConfirm(null)}
+                title="Delete Proforma Invoice?"
+                description={`This will permanently remove ${inv.invoiceNumber}. This action cannot be undone.`}
+                onConfirm={handleDeleteInvoice}
+                confirmText="Delete"
+                variant="destructive"
+            />
 
             {/* Main Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

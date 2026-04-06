@@ -62,7 +62,8 @@ export default function JobCardsPage() {
     const isSuperAdmin = user?.role === 'super_admin';
     const isManager = user?.role === 'admin' || user?.role === 'management';
     const isSales = user?.role === 'sales';
-    const canSeeAll = isSuperAdmin || isManager || isSales;
+    const isAccountant = user?.role === 'accountant';
+    const canSeeAll = isSuperAdmin || isManager || isSales || isAccountant;
     const canViewFinancial = hasPermission('reports.view_financial');
 
     // Filter job cards if not super_admin, manager, or sales

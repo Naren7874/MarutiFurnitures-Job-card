@@ -256,14 +256,14 @@ function AdminDashboard() {
                     <>
                         <StatCard
                             icon={LayoutGrid}
-                            label="Ongoing Projects"
+                            label="Active Projects"
                             value={stats?.projects.active || 0}
                             colorClass="bg-blue-500/10 text-blue-600 dark:text-blue-400"
                             delay={0.1}
                         />
                         <StatCard
                             icon={ClipboardCheck}
-                            label="Active Job Cards"
+                            label="Job Cards"
                             value={stats?.jobCards.total || 0}
                             colorClass="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
                             delay={0.2}
@@ -272,7 +272,7 @@ function AdminDashboard() {
                 )}
                 <StatCard
                     icon={FileText}
-                    label="Pending Quotations"
+                    label="Pending Quotes"
                     value={(stats?.quotations.pending || 0) + (stats?.quotations.draft || 0)}
                     colorClass="bg-amber-500/10 text-amber-600 dark:text-amber-400"
                     delay={0.3}
@@ -280,7 +280,7 @@ function AdminDashboard() {
                 {canDoQC && (
                     <StatCard
                         icon={ShieldCheck}
-                        label="Quality Check Pending"
+                        label="Pending QC"
                         value={stats?.jobCards.qcPending || 0}
                         colorClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                         delay={0.4}
@@ -296,7 +296,7 @@ function AdminDashboard() {
                 {canViewFinancial && (
                     <StatCard
                         icon={FileX}
-                        label="Rejected Quotations"
+                        label="Rejected Quotes"
                         value={stats?.quotations.rejected || 0}
                         colorClass="bg-rose-500/10 text-rose-600 dark:text-rose-400"
                         delay={0.6}

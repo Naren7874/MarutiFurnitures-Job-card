@@ -64,6 +64,7 @@ export const getInvoices = async (req, res, next) => {
     const [invoices, total] = await Promise.all([
       Invoice.find(filter)
         .populate('clientId', 'name firmName phone')
+        .populate('projectId', 'projectName')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(Number(limit))
@@ -353,3 +354,25 @@ export const updateInvoice = async (req, res, next) => {
   }
 };
 
+
+// ── DELETE /api/invoices/:id ────────────────────────────────────────────────
+export const deleteInvoice = async (req, res, next) => {
+  try {
+    const invoice = await Invoice.findOne({ _id: req.params.id, ...req.companyFilter });
+    if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+
+    await Invoice.deleteOne({ _id: invoice._id });
+
+    auditLog(req, {
+      action: 'delete',
+      resourceType: 'Invoice',
+      resourceId: invoice._id,
+      resourceLabel: invoice.invoiceNumber,
+      metadata: { grandTotal: invoice.grandTotal, clientId: invoice.clientId },
+    });
+
+    res.status(200).json({ success: true, message: 'Invoice deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+};

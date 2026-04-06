@@ -80,7 +80,8 @@ export default function ProjectDetailPage() {
 
     const isManager = user?.role === 'admin' || user?.role === 'management';
     const isSales = user?.role === 'sales';
-    const canSeeAll = isSuperAdmin || isManager || isSales;
+    const isAccountant = user?.role === 'accountant';
+    const canSeeAll = isSuperAdmin || isManager || isSales || isAccountant;
 
     if (!canSeeAll && !isAssigned) {
         return (

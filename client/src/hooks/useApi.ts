@@ -576,6 +576,21 @@ export const useUpdateInvoice = (id: string) => {
     });
 };
 
+export const useDeleteInvoice = (id: string) => {
+    const qc = useQueryClient();
+    const { company } = useAuthStore();
+    const cid = company?.id || '';
+    return useMutation({
+        mutationFn: () => apiDelete(`/invoices/${id}`),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['invoices', cid] });
+            qc.invalidateQueries({ queryKey: ['dashboard', cid] });
+            toast.success('Proforma Invoice deleted successfully');
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to delete invoice'),
+    });
+};
+
 export const useSendInvoice = (id: string) => {
     const qc = useQueryClient();
     const { company } = useAuthStore();

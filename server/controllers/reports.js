@@ -40,7 +40,7 @@ export const getFinancialReport = async (req, res, next) => {
           $group: {
             _id: null,
             totalInvoiced: { $sum: '$grandTotal' },
-            totalReceived: { $sum: '$totalPaid' },
+            totalReceived: { $sum: '$advancePaid' },
             count:         { $sum: 1 },
           },
         },
@@ -61,11 +61,11 @@ export const getFinancialReport = async (req, res, next) => {
         $group: {
           _id: null,
           totalInvoiced:  { $sum: '$grandTotal' },
-          totalReceived:  { $sum: '$totalPaid' },
-          totalOverdue:   { $sum: { $cond: [{ $eq: ['$status', 'overdue'] }, '$grandTotal', 0] } },
+          totalReceived:  { $sum: '$advancePaid' },
+          totalOverdue:   { $sum: { $cond: [{ $eq: ['$status', 'overdue'] }, '$balanceDue', 0] } },
           countPaid:      { $sum: { $cond: [{ $eq: ['$status', 'paid'] }, 1, 0] } },
           countOverdue:   { $sum: { $cond: [{ $eq: ['$status', 'overdue'] }, 1, 0] } },
-          countPending:   { $sum: { $cond: [{ $in: ['$status', ['sent', 'partial']] }, 1, 0] } },
+          countPending:   { $sum: { $cond: [{ $in: ['$status', ['sent', 'partially_paid']] }, 1, 0] } },
         },
       },
     ]);
@@ -89,7 +89,7 @@ export const getOutstandingReport = async (req, res, next) => {
     const companyId = req.user.companyId;
     const invoices = await Invoice.find({
       companyId,
-      status: { $in: ['sent', 'partial', 'overdue'] },
+      status: { $in: ['sent', 'partially_paid', 'overdue'] },
     })
       .populate('clientId', 'name phone email')
       .populate('projectId', 'projectName')
@@ -97,7 +97,7 @@ export const getOutstandingReport = async (req, res, next) => {
 
     const now = Date.now();
     const aging = invoices.map(inv => {
-      const balance = (inv.grandTotal || 0) - (inv.totalPaid || 0);
+      const balance = (inv.grandTotal || 0) - (inv.advancePaid || 0);
       const daysOverdue = inv.dueDate
         ? Math.max(0, Math.floor((now - new Date(inv.dueDate).getTime()) / 86400000))
         : 0;
@@ -107,7 +107,7 @@ export const getOutstandingReport = async (req, res, next) => {
         phone:         inv.clientId?.phone,
         project:       inv.projectId?.projectName || '',
         grandTotal:    inv.grandTotal,
-        totalPaid:     inv.totalPaid || 0,
+        totalPaid:     inv.advancePaid || 0,
         balance,
         dueDate:       inv.dueDate,
         daysOverdue,
@@ -246,8 +246,8 @@ export const exportReport = async (req, res, next) => {
       phone:          inv.clientId?.phone,
       project:        inv.projectId?.projectName,
       grandTotal:     inv.grandTotal,
-      totalPaid:      inv.totalPaid || 0,
-      balance:        (inv.grandTotal || 0) - (inv.totalPaid || 0),
+      totalPaid:      inv.advancePaid || 0,
+      balance:        (inv.grandTotal || 0) - (inv.advancePaid || 0),
       status:         inv.status,
       createdAt:      inv.createdAt?.toISOString().split('T')[0],
       dueDate:        inv.dueDate?.toISOString?.()?.split('T')[0] || '',
@@ -307,9 +307,9 @@ export const getDashboardStats = async (req, res, next) => {
           $group: {
             _id: null,
             totalAmount:   { $sum: '$grandTotal' },
-            received:      { $sum: '$totalPaid' },
+            received:      { $sum: '$advancePaid' },
             overdueCount:  { $sum: { $cond: [{ $eq: ['$status', 'overdue'] }, 1, 0] } },
-            overdueAmount: { $sum: { $cond: [{ $eq: ['$status', 'overdue'] }, '$grandTotal', 0] } },
+            overdueAmount: { $sum: { $cond: [{ $eq: ['$status', 'overdue'] }, '$balanceDue', 0] } },
           },
         },
       ]),
@@ -345,15 +345,15 @@ export const getDashboardStats = async (req, res, next) => {
 
     // 2. Revenue (Invoiced vs Received) for MTD
     const { start: mStart, end: mEnd } = monthRange(0);
-    const [monthlyStats] = await Invoice.aggregate([
+    const [monthlyInvoicedAgg] = await Invoice.aggregate([
       { $match: { companyId: oid, createdAt: { $gte: mStart, $lte: mEnd } } },
-      {
-        $group: {
-          _id: null,
-          invoiced: { $sum: '$grandTotal' },
-          received: { $sum: '$totalPaid' },
-        },
-      },
+      { $group: { _id: null, total: { $sum: '$grandTotal' } } },
+    ]);
+    const [monthlyReceivedAgg] = await Invoice.aggregate([
+      { $match: { companyId: oid } },
+      { $unwind: '$payments' },
+      { $match: { 'payments.paidAt': { $gte: mStart, $lte: mEnd } } },
+      { $group: { _id: null, total: { $sum: '$payments.amount' } } },
     ]);
 
     // 3. Historical Trend
@@ -361,21 +361,21 @@ export const getDashboardStats = async (req, res, next) => {
     const trend = [];
     for (let i = trendMonths - 1; i >= 0; i--) {
       const { start, end } = monthRange(i);
-      const [agg] = await Invoice.aggregate([
+      const [invAgg] = await Invoice.aggregate([
         { $match: { companyId: oid, createdAt: { $gte: start, $lte: end } } },
-        {
-          $group: {
-            _id: null,
-            totalInvoiced: { $sum: '$grandTotal' },
-            totalReceived: { $sum: '$totalPaid' },
-          },
-        },
+        { $group: { _id: null, total: { $sum: '$grandTotal' } } },
+      ]);
+      const [recAgg] = await Invoice.aggregate([
+        { $match: { companyId: oid } },
+        { $unwind: '$payments' },
+        { $match: { 'payments.paidAt': { $gte: start, $lte: end } } },
+        { $group: { _id: null, total: { $sum: '$payments.amount' } } },
       ]);
       const label = start.toLocaleString('en-IN', { month: 'short' });
       trend.push({
         label,
-        totalInvoiced: agg?.totalInvoiced || 0,
-        totalReceived: agg?.totalReceived || 0,
+        totalInvoiced: invAgg?.total || 0,
+        totalReceived: recAgg?.total || 0,
       });
     }
 
@@ -402,8 +402,8 @@ export const getDashboardStats = async (req, res, next) => {
           overdueAmount: inv.overdueAmount || 0,
         },
         revenue: {
-          thisMonth: monthlyStats?.received || 0,
-          totalInvoicedThisMonth: monthlyStats?.invoiced || 0,
+          thisMonth: monthlyReceivedAgg?.total || 0,
+          totalInvoicedThisMonth: monthlyInvoicedAgg?.total || 0,
         },
         trend,
         quotations: {
