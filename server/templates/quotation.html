@@ -498,9 +498,7 @@
   <table class="meta-table">
     <tr>
       <td class="label">Quotation No.</td>
-      <td><strong>
-          <%= quotation.quotationNumber %>
-        </strong></td>
+      <td><strong><%= quotation.quotationNumber %></strong></td>
       <td class="label">Date & Time</td>
       <td>
         <% var dateObj = new Date(quotation.createdAt); %>
@@ -512,12 +510,11 @@
       <td class="label">Client Name</td>
       <td>
         <%= client.name %>
-          <% if(client.firmName){ %> — <%= client.firmName %>
-              <% } %>
+        <% if(client.firmName){ %> — <%= client.firmName %><% } %>
       </td>
-      <td class="label">Delivery Time</td>
+      <td class="label">Architect / Ref</td>
       <td>
-        <%= quotation.deliveryDays ? (quotation.deliveryDays.toLowerCase().includes('day') ? quotation.deliveryDays : quotation.deliveryDays + ' Days') : '—' %>
+        <%= quotation.architect || '—' %>
       </td>
     </tr>
     <tr>
@@ -525,23 +522,33 @@
       <td>
         <%= quotation.projectName %> <%= quotation.siteAddress?.location ? '— ' + quotation.siteAddress.location : '' %>
       </td>
-      <td class="label">Architect / Ref</td>
+      <td class="label">Valid Until</td>
       <td>
-        <%= quotation.architect || '—' %>
+        <%= quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—' %>
       </td>
     </tr>
-    <% if (client.phone) { %>
-      <tr>
-        <td class="label">Contact</td>
-        <td>
-          <%= client.phone %>
-        </td>
-        <td class="label">Valid Until</td>
-        <td>
-          <%= quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—' %>
-        </td>
-      </tr>
-      <% } %>
+    <tr>
+      <td class="label">Contact</td>
+      <td>
+        <%= client.phone || '—' %>
+      </td>
+      <td class="label">Delivery Date</td>
+      <td>
+        <% 
+          var delDays = 0;
+          if (quotation.deliveryDays) {
+            var match = quotation.deliveryDays.match(/\d+/);
+            if (match) delDays = parseInt(match[0]);
+          }
+          var delDate = new Date(quotation.createdAt);
+          delDate.setHours(0,0,0,0); // Start from beginning of day
+          delDate.setDate(delDate.getDate() + delDays);
+          var formattedDelDate = delDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+          var daysLabel = delDays + (delDays === 1 ? ' Day' : ' Days');
+        %>
+        <strong><%= formattedDelDate %></strong> (<%= daysLabel %>)
+      </td>
+    </tr>
   </table>
 
   <!-- ITEMS TABLE -->
