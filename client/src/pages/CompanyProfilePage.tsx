@@ -115,8 +115,8 @@ export default function CompanyProfilePage() {
 
             <form key={fullCompany?._id || 'loading'} onSubmit={handleSubmit} className="space-y-8">
                 {/* Branding & Essentials */}
-                <Card className="border-border bg-card shadow-xl rounded-3xl overflow-hidden">
-                    <CardHeader className="bg-muted/30 pb-6 border-b border-border/40">
+                <Card className="border-border bg-card shadow-xl rounded-3xl overflow-hidden flex flex-col">
+                    <CardHeader className="pb-6 border-b border-border/40">
                         <div className="flex items-center gap-4">
                             <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
                                 <Building2 className="text-primary size-6" />
@@ -127,7 +127,7 @@ export default function CompanyProfilePage() {
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent className="p-8 space-y-8">
+                    <CardContent className="p-8 space-y-8 flex-1">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-4">
                                 <label className="text-muted-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] block">Company Name</label>
@@ -153,9 +153,9 @@ export default function CompanyProfilePage() {
                 </Card>
 
                 {/* Contact & Address */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <Card className="border-border bg-card shadow-xl rounded-3xl overflow-hidden">
-                        <CardHeader className="bg-muted/30 pb-6 border-b border-border/40">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+                    <Card className="border-border bg-card shadow-xl rounded-3xl overflow-hidden flex flex-col h-full">
+                        <CardHeader className="pb-6 border-b border-border/40">
                             <div className="flex items-center gap-4">
                                 <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                                     <Phone className="text-primary size-5" />
@@ -163,7 +163,7 @@ export default function CompanyProfilePage() {
                                 <CardTitle className="text-lg font-black tracking-tight">Contact Channels</CardTitle>
                             </div>
                         </CardHeader>
-                        <CardContent className="p-8 space-y-6">
+                        <CardContent className="p-8 space-y-6 flex-1">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Official Email</label>
                                 <div className="relative">
@@ -188,8 +188,8 @@ export default function CompanyProfilePage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="border-border bg-card shadow-xl rounded-3xl overflow-hidden">
-                        <CardHeader className="bg-muted/30 pb-6 border-b border-border/40">
+                    <Card className="border-border bg-card shadow-xl rounded-3xl overflow-hidden flex flex-col h-full">
+                        <CardHeader className="pb-6 border-b border-border/40">
                             <div className="flex items-center gap-4">
                                 <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                                     <MapPin className="text-primary size-5" />
@@ -197,7 +197,7 @@ export default function CompanyProfilePage() {
                                 <CardTitle className="text-lg font-black tracking-tight">Physical Address</CardTitle>
                             </div>
                         </CardHeader>
-                        <CardContent className="p-8 space-y-4">
+                        <CardContent className="p-8 space-y-4 flex-1">
                             <input name="addressLine1" placeholder="Address Line 1" defaultValue={fullCompany?.address?.line1} className="w-full bg-muted/20 border border-border/40 p-3 rounded-xl text-foreground font-medium focus:ring-2 ring-primary/20" />
                             <input name="addressLine2" placeholder="Address Line 2 (Optional)" defaultValue={fullCompany?.address?.line2} className="w-full bg-muted/20 border border-border/40 p-3 rounded-xl text-foreground font-medium focus:ring-2 ring-primary/20" />
                             <div className="grid grid-cols-2 gap-4">
@@ -210,8 +210,8 @@ export default function CompanyProfilePage() {
                 </div>
 
                 {/* Social Links */}
-                <Card className="border-border bg-card shadow-xl rounded-3xl overflow-hidden">
-                    <CardHeader className="bg-muted/30 pb-6 border-b border-border/40">
+                <Card className="border-border bg-card shadow-xl rounded-3xl overflow-hidden flex flex-col">
+                    <CardHeader className="pb-6 border-b border-border/40">
                         <div className="flex items-center gap-4">
                             <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                                 <MessageSquare className="text-primary size-5" />
@@ -240,9 +240,9 @@ export default function CompanyProfilePage() {
                 </Card>
 
                 {/* Banking & GST */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <Card className="border-border bg-card shadow-xl rounded-3xl overflow-hidden">
-                        <CardHeader className="bg-muted/30 pb-6 border-b border-border/40">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+                    <Card className="border-border bg-card shadow-xl rounded-3xl overflow-hidden flex flex-col h-full">
+                        <CardHeader className="pb-6 border-b border-border/40">
                             <div className="flex items-center gap-4">
                                 <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                                     <Landmark className="text-primary size-5" />
@@ -250,7 +250,7 @@ export default function CompanyProfilePage() {
                                 <CardTitle className="text-lg font-black tracking-tight">Banking Details</CardTitle>
                             </div>
                         </CardHeader>
-                        <CardContent className="p-8 space-y-4">
+                        <CardContent className="p-8 space-y-4 flex-1">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-bold text-muted-foreground/60 uppercase ml-1">Bank Name</label>
@@ -276,8 +276,8 @@ export default function CompanyProfilePage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="border-border bg-card shadow-xl rounded-3xl overflow-hidden">
-                        <CardHeader className="bg-muted/30 pb-6 border-b border-border/40">
+                    <Card className="border-border bg-card shadow-xl rounded-3xl overflow-hidden flex flex-col h-full">
+                        <CardHeader className="pb-6 border-b border-border/40">
                             <div className="flex items-center gap-4">
                                 <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                                     <Hash className="text-primary size-5" />
@@ -285,7 +285,7 @@ export default function CompanyProfilePage() {
                                 <CardTitle className="text-lg font-black tracking-tight">Document Configuration</CardTitle>
                             </div>
                         </CardHeader>
-                        <CardContent className="p-8 space-y-6">
+                        <CardContent className="p-8 space-y-6 flex-1">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-bold text-muted-foreground/60 uppercase ml-1">Quotation SQ</label>

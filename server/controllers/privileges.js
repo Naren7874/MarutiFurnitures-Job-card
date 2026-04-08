@@ -36,7 +36,7 @@ export const createRole = async (req, res, next) => {
     const { name, permissions = [], dataScope = 'own' } = req.body;
     if (!name) return res.status(400).json({ success: false, message: 'Role name is required' });
 
-    const existing = await Role.findOne({ name: name.trim() });
+    const existing = await Role.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } });
     if (existing) return res.status(400).json({ success: false, message: 'A role with this name already exists' });
 
     const role = await Role.create({
@@ -62,7 +62,17 @@ export const updateRole = async (req, res, next) => {
 
     const { name, permissions, dataScope, isActive } = req.body;
     const changes = {};
-    if (name        !== undefined) { changes.name = { from: role.name, to: name }; role.name = name.trim(); }
+    if (name        !== undefined) { 
+      const trimmedName = name.trim();
+      const existing = await Role.findOne({ 
+        name: { $regex: new RegExp(`^${trimmedName}$`, 'i') },
+        _id: { $ne: req.params.id }
+      });
+      if (existing) return res.status(400).json({ success: false, message: 'A role with this name already exists' });
+
+      changes.name = { from: role.name, to: name }; 
+      role.name = trimmedName; 
+    }
     if (permissions !== undefined) { changes.permissions = { from: role.permissions, to: permissions }; role.permissions = permissions; }
     if (dataScope   !== undefined) { role.dataScope = dataScope; }
     if (isActive    !== undefined) { role.isActive = isActive; }
