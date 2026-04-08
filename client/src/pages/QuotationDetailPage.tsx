@@ -457,7 +457,7 @@ export default function QuotationDetailPage() {
                                                             <div className="flex gap-4">
                                                                 {/* Images: main, fabric, and extra photos */}
                                                                 {(item.photo || item.fabricPhoto || item.photos?.length > 0) && (
-                                                                    <div className="flex gap-2 shrink-0 flex-wrap">
+                                                                    <div className="grid grid-cols-2 gap-2 shrink-0">
                                                                         {item.photo && (
                                                                             <div className="w-16 h-16">
                                                                                 <ImagePreview src={item.photo} alt="Main" />
