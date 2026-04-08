@@ -19,6 +19,7 @@ import {
     useCreateQuotation, useUpdateQuotation,
     useClients, useQuotation, useClient,
 } from '../../hooks/useApi';
+import { useAuthStore } from '../../stores/authStore';
 import CreateClientModal from '../clients/CreateClientModal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -110,6 +111,8 @@ const dbItemToLocal = (dbItem: any): Item => ({
 export default function QuotationForm({ quotationId }: QuotationFormProps) {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const { user } = useAuthStore();
+    const isSuperAdmin = user?.role === 'super_admin' || user?.isSuperAdmin;
     const urlClientId = searchParams.get('clientId');
     const isEditMode = !!quotationId;
 
@@ -852,8 +855,8 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                             <p className="font-black text-primary text-xl">₹{finalAmt.toLocaleString('en-IN')}</p>
                         </div>
 
-                        {/* Architect Commission — shown only when architect is set */}
-                        {(project.architectId || project.architectName) && (
+                        {/* Architect Commission — shown only to super_admin when architect is set */}
+                        {isSuperAdmin && (project.architectId || project.architectName) && (
                             <div className="mt-4 pt-4 border-t border-primary/20 space-y-3">
                                 <div className="flex items-center justify-between">
                                     <div>

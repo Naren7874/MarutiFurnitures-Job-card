@@ -108,6 +108,7 @@ const buildRoles = () => [
     isSystem: true,
     permissions: [
       'client.view', 'client.create', 'client.edit', 'client.verify_gst',
+      'user.view',
       'quotation.view', 'quotation.create', 'quotation.edit', 'quotation.send', 'quotation.approve', 'quotation.delete',
       'project.view', 'project.create', 'project.edit',
       'jobcard.view', 'jobcard.create', 'jobcard.edit', 'jobcard.assign',
@@ -180,6 +181,7 @@ const buildRoles = () => [
     permissions: [
       // Operational (same as Sales)
       'client.view', 'client.create', 'client.edit', 'client.verify_gst',
+      'user.view',
       'quotation.view', 'quotation.create', 'quotation.edit', 'quotation.send',
       'project.view', 'project.create', 'project.edit',
       'jobcard.view', 'jobcard.create', 'jobcard.edit', 'jobcard.assign',

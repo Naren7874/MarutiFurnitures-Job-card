@@ -51,7 +51,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     { title: 'Reports',           url: '/reports',           icon: BarChart3,    permission: ['reports.view_financial', 'reports.view_production'] },
 
     // ── Admin-only ──────────────────────────────────────────────────────
-    { title: 'Users',             url: '/users',             icon: UserCog,      permission: 'user.view' },
+    { title: 'Users',             url: '/users',             icon: UserCog,      permission: 'user.create' },
     { title: 'Roles & Permissions',url: '/roles',            icon: ShieldCheck,  permission: 'privilege.view' },
     { title: 'Settings',          url: '/settings',          icon: Settings,     permission: 'settings.view' },
 ];

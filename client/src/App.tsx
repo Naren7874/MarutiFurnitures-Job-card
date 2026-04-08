@@ -158,8 +158,8 @@ export default function App() {
                     {/* Notifications — all logged-in users */}
                     <Route path="notifications" element={<NotificationsPage />} />
 
-                    {/* Users & Roles — super_admin / user.view */}
-                    <Route element={<PermissionRoute permission="user.view" />}>
+                    {/* Users & Roles — super_admin / user.create */}
+                    <Route element={<PermissionRoute permission="user.create" />}>
                       <Route path="users" element={<UsersPage />} />
                       <Route path="users/:id" element={<UserDetailPage />} />
                     </Route>
