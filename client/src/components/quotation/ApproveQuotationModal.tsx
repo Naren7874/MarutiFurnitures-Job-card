@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
     Dialog,
@@ -22,6 +22,7 @@ import { motion } from 'motion/react';
 import { Badge } from '@/components/ui/badge';
 import { StaffMultiSelect } from '../shared/StaffMultiSelect';
 import { DatePicker } from '@/components/ui/date-picker';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 interface TeamAssignment {
     production: string[];
@@ -47,6 +48,8 @@ interface ApproveQuotationModalProps {
     quotation: any;
     isSubmitting: boolean;
 }
+
+const EXCLUDED_ROLES = ['Factory Manager', 'Project Designer', 'Architecture', 'project_designer', 'architect', 'client'];
 
 export default function ApproveQuotationModal({
     open,
@@ -74,6 +77,15 @@ export default function ApproveQuotationModal({
         enabled: open,
     });
     const allUsers: any[] = (usersRaw as any)?.data ?? [];
+
+    const staffOptions = useMemo(() => {
+        return allUsers
+            .filter(u => !EXCLUDED_ROLES.includes(u.role))
+            .map(u => ({
+                value: u._id,
+                label: u.name,
+            }));
+    }, [allUsers]);
 
     useEffect(() => {
         if (open && quotation?.items) {
@@ -193,43 +205,31 @@ export default function ApproveQuotationModal({
                                         <label className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/80 ml-1 flex items-center gap-2">
                                             <Users size={12} className="text-primary" /> Sales Person
                                         </label>
-                                        <Select
+                                        <SearchableSelect
+                                            options={staffOptions}
                                             value={globalConfig.salesperson.id}
-                                            onValueChange={(val) => {
+                                            onChange={(val) => {
                                                 const user = allUsers.find(u => u._id === val);
                                                 setGlobalConfig(prev => ({ ...prev, salesperson: { id: val, name: user?.name || '' } }));
                                             }}
-                                        >
-                                            <SelectTrigger className="h-12 rounded-2xl bg-background/50 border-border/60 text-sm font-bold shadow-sm focus:ring-primary/20 hover:border-primary/40 transition-colors">
-                                                <SelectValue placeholder="Select staff..." />
-                                            </SelectTrigger>
-                                            <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
-                                                {allUsers.filter(u => ['sales', 'management'].includes(u.role)).map(user => (
-                                                    <SelectItem key={user._id} value={user._id} className="text-sm font-bold rounded-xl py-3 focus:bg-primary/10">{user.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                            placeholder="Select salesperson..."
+                                            className="h-12 bg-background/50 border-border/60"
+                                        />
                                     </div>
                                     <div className="space-y-2.5">
                                         <label className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/80 ml-1 flex items-center gap-2">
                                             <User2 size={12} className="text-primary" /> Contact Person
                                         </label>
-                                        <Select
+                                        <SearchableSelect
+                                            options={staffOptions}
                                             value={globalConfig.contactPerson.id}
-                                            onValueChange={(val) => {
+                                            onChange={(val) => {
                                                 const user = allUsers.find(u => u._id === val);
                                                 setGlobalConfig(prev => ({ ...prev, contactPerson: { id: val, name: user?.name || '' } }));
                                             }}
-                                        >
-                                            <SelectTrigger className="h-12 rounded-2xl bg-background/50 border-border/60 text-sm font-bold shadow-sm focus:ring-primary/20 hover:border-primary/40 transition-colors">
-                                                <SelectValue placeholder="Select staff..." />
-                                            </SelectTrigger>
-                                            <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
-                                                {allUsers.map(user => (
-                                                    <SelectItem key={user._id} value={user._id} className="text-sm font-bold rounded-xl py-3 focus:bg-primary/10">{user.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                            placeholder="Select contact..."
+                                            className="h-12 bg-background/50 border-border/60"
+                                        />
                                     </div>
                                     <div className="space-y-2.5">
                                         <label className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/80 ml-1 flex items-center gap-2">
@@ -418,43 +418,31 @@ export default function ApproveQuotationModal({
                                                 <label className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1 flex items-center gap-2">
                                                     <Users size={12} className="text-primary/60" /> Sales Person
                                                 </label>
-                                                <Select
+                                                <SearchableSelect
+                                                    options={staffOptions}
                                                     value={config.salesperson.id}
-                                                    onValueChange={(val) => {
+                                                    onChange={(val) => {
                                                         const user = allUsers.find(u => u._id === val);
                                                         handleUpdateItem(idx, 'salesperson', { id: val, name: user?.name || '' });
                                                     }}
-                                                >
-                                                    <SelectTrigger className="h-12 rounded-2xl bg-muted/40 border-border/40 text-sm font-bold shadow-inner group-hover/card:bg-background transition-colors">
-                                                        <SelectValue placeholder="Select staff..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
-                                                        {allUsers.filter(u => ['sales', 'management'].includes(u.role)).map(user => (
-                                                            <SelectItem key={user._id} value={user._id} className="text-sm font-bold rounded-xl py-3 focus:bg-primary/10">{user.name}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                                    placeholder="Select salesperson..."
+                                                    className="h-12 bg-muted/40 border-border/40"
+                                                />
                                             </div>
                                             <div className="space-y-3">
                                                 <label className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1 flex items-center gap-2">
                                                     <User2 size={12} className="text-primary/60" /> Contact Person
                                                 </label>
-                                                <Select
+                                                <SearchableSelect
+                                                    options={staffOptions}
                                                     value={config.contactPerson.id}
-                                                    onValueChange={(val) => {
+                                                    onChange={(val) => {
                                                         const user = allUsers.find(u => u._id === val);
                                                         handleUpdateItem(idx, 'contactPerson', { id: val, name: user?.name || '' });
                                                     }}
-                                                >
-                                                    <SelectTrigger className="h-12 rounded-2xl bg-muted/40 border-border/40 text-sm font-bold shadow-inner group-hover/card:bg-background transition-colors">
-                                                        <SelectValue placeholder="Select staff..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
-                                                        {allUsers.map(user => (
-                                                            <SelectItem key={user._id} value={user._id} className="text-sm font-bold rounded-xl py-3 focus:bg-primary/10">{user.name}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                                    placeholder="Select contact..."
+                                                    className="h-12 bg-muted/40 border-border/40"
+                                                />
                                             </div>
                                             <div className="space-y-3">
                                                 <label className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1 flex items-center gap-2">

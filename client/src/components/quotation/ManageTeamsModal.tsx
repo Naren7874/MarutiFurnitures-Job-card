@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
     Dialog,
@@ -7,8 +7,6 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Loader2, CheckCircle2, User2, CalendarDays, Users, Package,
     ArrowRight, Shield, Wrench, Truck, Settings2,
@@ -21,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { StaffMultiSelect } from '../shared/StaffMultiSelect';
 import { toast } from 'sonner';
 import { DatePicker } from '@/components/ui/date-picker';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 interface TeamAssignment {
     production: string[];
@@ -46,6 +45,8 @@ interface ManageTeamsModalProps {
     jobCards: any[];
 }
 
+const EXCLUDED_ROLES = ['Factory Manager', 'Project Designer', 'Architecture', 'project_designer', 'architect', 'client'];
+
 export default function ManageTeamsModal({
     open,
     onOpenChange,
@@ -67,6 +68,15 @@ export default function ManageTeamsModal({
         enabled: open,
     });
     const allUsers: any[] = (usersRaw as any)?.data ?? [];
+
+    const staffOptions = useMemo(() => {
+        return allUsers
+            .filter(u => !EXCLUDED_ROLES.includes(u.role))
+            .map(u => ({
+                value: u._id,
+                label: u.name,
+            }));
+    }, [allUsers]);
 
     useEffect(() => {
         if (open && jobCards?.length) {
@@ -185,32 +195,30 @@ export default function ManageTeamsModal({
                                         <label className="text-[11px] font-black uppercase tracking-widest text-foreground/70 ml-1 flex items-center gap-2">
                                             <Users size={12} className="text-primary" /> Sales Person
                                         </label>
-                                        <Select 
-                                            value={globalConfig.salesperson?.id} 
-                                            onValueChange={(val) => {
+                                        <SearchableSelect
+                                            options={staffOptions}
+                                            value={globalConfig.salesperson?.id}
+                                            onChange={(val) => {
                                                 const user = allUsers.find(u => u._id === val);
                                                 setGlobalConfig(prev => ({ ...prev, salesperson: { id: val, name: user?.name || '' } }));
                                             }}
-                                        >
-                                            <SelectTrigger className="h-11 rounded-xl bg-background border-border/60 text-sm font-semibold focus:ring-primary/20 hover:border-primary/40 transition-colors">
-                                                <SelectValue placeholder="Select staff..." />
-                                            </SelectTrigger>
-                                            <SelectContent className="rounded-xl border-border/40 shadow-xl">
-                                                {allUsers.filter(u => ['sales', 'management'].includes(u.role)).map(user => (
-                                                    <SelectItem key={user._id} value={user._id} className="text-sm font-semibold rounded-lg py-2.5 focus:bg-primary/10">{user.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                            placeholder="Select salesperson..."
+                                            className="h-11 bg-background border-border/60"
+                                        />
                                     </div>
                                     <div className="space-y-2.5">
                                         <label className="text-[11px] font-black uppercase tracking-widest text-foreground/70 ml-1 flex items-center gap-2">
                                             <User2 size={12} className="text-primary" /> Contact Person
                                         </label>
-                                        <Input 
-                                            value={globalConfig.contactPerson} 
-                                            onChange={e => setGlobalConfig(prev => ({ ...prev, contactPerson: e.target.value }))}
-                                            placeholder="Name of client contact"
-                                            className="h-11 rounded-xl bg-background border-border/60 text-sm font-semibold focus:ring-primary/20 hover:border-primary/40 transition-colors"
+                                        <SearchableSelect
+                                            options={staffOptions}
+                                            value={allUsers.find(u => u.name === globalConfig.contactPerson)?._id || ''}
+                                            onChange={(val) => {
+                                                const user = allUsers.find(u => u._id === val);
+                                                setGlobalConfig(prev => ({ ...prev, contactPerson: user?.name || '' }));
+                                            }}
+                                            placeholder="Select contact..."
+                                            className="h-11 bg-background border-border/60"
                                         />
                                     </div>
                                     <div className="space-y-2.5">
@@ -322,32 +330,30 @@ export default function ManageTeamsModal({
                                                         <label className="text-[10px] font-black uppercase tracking-widest text-foreground/60 ml-1 flex items-center gap-2">
                                                             <Users size={12} className="text-primary/70" /> Sales Person
                                                         </label>
-                                                        <Select 
-                                                            value={config.salesperson.id} 
-                                                            onValueChange={(val) => {
+                                                        <SearchableSelect
+                                                            options={staffOptions}
+                                                            value={config.salesperson.id}
+                                                            onChange={(val) => {
                                                                 const user = allUsers.find(u => u._id === val);
                                                                 updateSingle(idx, 'salesperson', { id: val, name: user?.name || '' });
                                                             }}
-                                                        >
-                                                            <SelectTrigger className="h-11 rounded-xl bg-background border-border/40 text-sm font-medium transition-colors">
-                                                                <SelectValue placeholder="Select staff..." />
-                                                            </SelectTrigger>
-                                                            <SelectContent className="rounded-xl border-border/40 shadow-xl">
-                                                                {allUsers.filter(u => ['sales', 'management'].includes(u.role)).map(user => (
-                                                                    <SelectItem key={user._id} value={user._id} className="text-sm font-medium rounded-lg py-2.5">{user.name}</SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
+                                                            placeholder="Select salesperson..."
+                                                            className="h-11 bg-background border-border/40"
+                                                        />
                                                     </div>
                                                     <div className="space-y-2.5">
                                                         <label className="text-[10px] font-black uppercase tracking-widest text-foreground/60 ml-1 flex items-center gap-2">
                                                             <User2 size={12} className="text-primary/70" /> Contact Person
                                                         </label>
-                                                        <Input 
-                                                            value={config.contactPerson} 
-                                                            onChange={e => updateSingle(idx, 'contactPerson', e.target.value)}
-                                                            placeholder="Assign a lead..."
-                                                            className="h-11 rounded-xl bg-background border-border/40 text-sm font-medium transition-colors"
+                                                        <SearchableSelect
+                                                            options={staffOptions}
+                                                            value={allUsers.find(u => u.name === config.contactPerson)?._id || ''}
+                                                            onChange={(val) => {
+                                                                const user = allUsers.find(u => u._id === val);
+                                                                updateSingle(idx, 'contactPerson', user?.name || '');
+                                                            }}
+                                                            placeholder="Select contact..."
+                                                            className="h-11 bg-background border-border/40"
                                                         />
                                                     </div>
                                                     <div className="space-y-2.5">

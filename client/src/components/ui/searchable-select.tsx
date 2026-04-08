@@ -269,14 +269,14 @@ export function SearchableSelect({
                         transition={{ duration: 0.15, ease: 'easeOut' }}
                         className={cn(
                             'absolute left-0 right-0 z-9999 overflow-hidden',
-                            'rounded-xl border border-border bg-popover shadow-2xl shadow-black/20',
-                            'backdrop-blur-md',
-                            resolvedSide === 'bottom' ? 'top-[calc(100%+6px)]' : 'bottom-[calc(100%+6px)]'
+                            'rounded-2xl border border-white/10 bg-black/80 shadow-2xl shadow-black/40',
+                            'backdrop-blur-xl',
+                            resolvedSide === 'bottom' ? 'top-[calc(100%+8px)]' : 'bottom-[calc(100%+8px)]'
                         )}
                     >
                         {/* Search input */}
-                        <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
-                            <Search className="size-3.5 shrink-0 text-muted-foreground/50" />
+                        <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3 bg-white/5">
+                            <Search className="size-4 shrink-0 text-muted-foreground/40" />
                             <input
                                 ref={inputRef}
                                 type="text"
@@ -285,13 +285,13 @@ export function SearchableSelect({
                                 value={query}
                                 onChange={e => { setQuery(e.target.value); setActiveIdx(0); }}
                                 placeholder={searchPlaceholder}
-                                className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/45 dark:placeholder:text-muted-foreground/70 outline-none"
+                                className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/30 outline-none"
                             />
                             {query && (
                                 <button
                                     type="button"
                                     onClick={() => { setQuery(''); setActiveIdx(0); inputRef.current?.focus(); }}
-                                    className="rounded text-muted-foreground/40 hover:text-foreground transition-colors"
+                                    className="rounded-full p-1 text-muted-foreground/40 hover:bg-white/10 hover:text-foreground transition-colors"
                                 >
                                     <X className="size-3" />
                                 </button>
@@ -304,13 +304,17 @@ export function SearchableSelect({
                             id={`${uid}-listbox`}
                             role="listbox"
                             aria-label="Options"
-                            className="overflow-y-auto py-1.5"
+                            className={cn(
+                                "overflow-y-auto px-1.5 py-2",
+                                "scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent hover:scrollbar-thumb-white/20",
+                                "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-track]:bg-transparent"
+                            )}
                             style={{ maxHeight }}
                         >
                             {flatFiltered.length === 0 ? (
-                                <li className="flex flex-col items-center gap-2 py-8 text-muted-foreground/50">
-                                    <AlertCircle className="size-5" />
-                                    <span className="text-xs">{emptyText}</span>
+                                <li className="flex flex-col items-center gap-2 py-10 text-muted-foreground/30">
+                                    <AlertCircle className="size-6" />
+                                    <span className="text-xs font-medium">{emptyText}</span>
                                 </li>
                             ) : (
                                 Array.from(groups.entries()).map(([groupName, groupOpts]) => (
@@ -318,7 +322,7 @@ export function SearchableSelect({
                                         {groupName !== '__none__' && (
                                             <li
                                                 role="presentation"
-                                                className="mx-2 mb-1 mt-2 text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40 first:mt-0"
+                                                className="mx-3 mb-1.5 mt-3 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 first:mt-0"
                                             >
                                                 {groupName}
                                             </li>
