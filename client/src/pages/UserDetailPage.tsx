@@ -78,7 +78,7 @@ function getRoleColor(name: string) { return SYSTEM_ROLE_COLORS[name] || '#767A8
 function RoleBadge({ role }: { role: string }) {
     const color = getRoleColor(role)
     return (
-        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border"
+        <span className="px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest border"
             style={{ color, borderColor: `${color}30`, backgroundColor: `${color}10` }}>
             {role}
         </span>
@@ -106,8 +106,8 @@ function PillActionPopup({
 
     return (
         <motion.div ref={ref} initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -4 }} className="absolute z-50 bottom-full left-0 mb-2 bg-card border border-border shadow-2xl rounded-xl p-2 min-w-[160px]">
-            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 px-2 pb-1.5 border-b border-border mb-1.5">{perm}</p>
+            exit={{ opacity: 0, scale: 0.95, y: -4 }} className="absolute z-50 bottom-full left-0 mb-2 bg-card border border-border shadow-2xl rounded-xl p-3 min-w-[180px]">
+            <p className="text-sm font-black uppercase tracking-widest text-muted-foreground/60 px-2 pb-2 border-b border-border mb-2">{perm}</p>
             {(isDenyOverride || isGrantOverride) && (
                 <button onClick={() => onAction('remove')} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-bold text-muted-foreground hover:bg-muted/40 transition-colors"><Trash2 className="size-3" /> Remove override</button>
             )}
@@ -173,15 +173,15 @@ function PermissionsGrid({
     return (
         <div className="space-y-6">
             {(canGrant || canDeny) && (
-                <div className="flex gap-4 p-3 rounded-xl bg-muted/20 border border-border/50 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-500" /> Grant</span>
-                    <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-red-500" /> Deny</span>
-                    <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#6366F1]" /> Role</span>
+                <div className="flex gap-6 p-4 rounded-2xl bg-muted/20 border border-border/50 text-xs font-black uppercase tracking-widest text-muted-foreground/60">
+                    <span className="flex items-center gap-2.5"><span className="size-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" /> Grant</span>
+                    <span className="flex items-center gap-2.5"><span className="size-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" /> Deny</span>
+                    <span className="flex items-center gap-2.5"><span className="size-2.5 rounded-full bg-[#6366F1] shadow-[0_0_8px_rgba(99,102,241,0.5)]" /> Role</span>
                 </div>
             )}
             {Object.entries(ALL_PERMISSIONS).map(([mod, ps]) => (
-                <div key={mod} className="space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{mod}</p>
+                <div key={mod} className="space-y-3">
+                    <p className="text-[13px] font-black uppercase tracking-widest text-muted-foreground/40">{mod}</p>
                     <div className="flex flex-wrap gap-1.5">
                         {ps.map(p => {
                             const type = activeOverrides.get(p)
@@ -196,8 +196,8 @@ function PermissionsGrid({
                             return (
                                 <div key={p} className="relative">
                                     <button onClick={() => (canGrant || canDeny) && setOpenPopup(p)} disabled={isPending}
-                                        className={cn('inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all', pillClass, (canGrant || canDeny) && 'hover:scale-105 cursor-pointer', isPending && 'opacity-50')}>
-                                        {isPending ? <Loader2 className="size-3 animate-spin" /> : <div className="size-1.5 rounded-full" style={{ backgroundColor: dotColor }} />}
+                                        className={cn('inline-flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-black border transition-all', pillClass, (canGrant || canDeny) && 'hover:scale-105 cursor-pointer', isPending && 'opacity-50')}>
+                                        {isPending ? <Loader2 className="size-4 animate-spin" /> : <div className="size-2 rounded-full" style={{ backgroundColor: dotColor }} />}
                                         {p.split('.')[1].replace(/_/g, ' ')}
                                     </button>
                                     <AnimatePresence>
@@ -238,8 +238,8 @@ function OverridesTab({ userId, overrides, canGrant, canDeny, onRemove }: { user
                             {o.type === 'grant' ? <ShieldCheck className="size-4" /> : <ShieldX className="size-4" />}
                         </div>
                         <div>
-                            <p className="text-xs font-black text-foreground uppercase">{o.permission}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">By {o.grantedBy?.name || 'Admin'} · {new Date(o.grantedAt).toLocaleDateString('en-GB')}</p>
+                            <p className="text-base font-black text-foreground uppercase tracking-tight">{o.permission}</p>
+                            <p className="text-sm text-muted-foreground mt-1">By {o.grantedBy?.name || 'Admin'} · {new Date(o.grantedAt).toLocaleDateString('en-GB')}</p>
                         </div>
                     </div>
                     {(canGrant || canDeny) && (
@@ -285,15 +285,15 @@ export default function UserDetailPage() {
     const canDeny = hasPermission('privilege.deny')
 
     return (
-        <div className="max-w-6xl mx-auto p-6 space-y-6">
-            <button onClick={() => navigate('/users')} className="flex items-center gap-2 text-[10px] font-black text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest"><ArrowLeft className="size-3" /> Back to users</button>
+        <div className="max-w-6xl mx-auto p-6 space-y-8">
+            <button onClick={() => navigate('/users')} className="flex items-center gap-2.5 text-sm font-black text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest"><ArrowLeft className="size-4" /> Back to users</button>
             <Card className="rounded-3xl shadow-xl border-border bg-card overflow-hidden">
                 <CardContent className="p-8 flex items-center justify-between gap-6">
-                    <div className="flex items-center gap-6">
-                        <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20"><User className="size-8" /></div>
+                    <div className="flex items-center gap-8">
+                        <div className="size-20 rounded-[2rem] bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-xl shadow-primary/5"><User className="size-10" /></div>
                         <div>
-                            <div className="flex items-center gap-3 mb-1"><h1 className="text-xl font-black text-foreground">{user.name}</h1><RoleBadge role={user.role} /></div>
-                            <p className="text-xs text-muted-foreground font-medium flex items-center gap-4"><span className="flex items-center gap-1.5"><Mail className="size-3" /> {user.email}</span> {user.phone && <span className="flex items-center gap-1.5"><Phone className="size-3" /> {user.phone}</span>}</p>
+                            <div className="flex items-center gap-4 mb-2"><h1 className="text-3xl font-black text-foreground tracking-tight">{user.name}</h1><RoleBadge role={user.role} /></div>
+                            <p className="text-sm text-muted-foreground font-bold flex items-center gap-6 opacity-70"><span className="flex items-center gap-2"><Mail className="size-4" /> {user.email}</span> {user.phone && <span className="flex items-center gap-2"><Phone className="size-4" /> {user.phone}</span>}</p>
                         </div>
                     </div>
                     {canDelete && user.role !== 'super_admin' && (
@@ -309,10 +309,10 @@ export default function UserDetailPage() {
                 </CardContent>
             </Card>
 
-            <div className="flex gap-6 border-b border-border">
+            <div className="flex gap-8 border-b border-border">
                 {[{ id: 'perms', label: 'Permissions', icon: Shield }, { id: 'overrides', label: `Overrides (${overrides.length})`, icon: ShieldAlert }, { id: 'history', label: 'Audit Log', icon: History }].map(t => (
-                    <button key={t.id} onClick={() => setActiveTab(t.id as any)} className={cn('flex items-center gap-2 py-4 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all', activeTab === t.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground')}>
-                        <t.icon className="size-3.5" /> {t.label}
+                    <button key={t.id} onClick={() => setActiveTab(t.id as any)} className={cn('flex items-center gap-3 py-6 text-sm font-black uppercase tracking-widest border-b-[3px] transition-all', activeTab === t.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground')}>
+                        <t.icon className="size-5" /> {t.label}
                     </button>
                 ))}
             </div>
@@ -332,9 +332,9 @@ export default function UserDetailPage() {
                     <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                         <div className="space-y-3">
                             {history?.map(h => (
-                                <div key={h._id} className="p-4 rounded-xl border border-border bg-card/50 flex gap-4">
-                                    <div className="size-8 rounded-lg bg-muted flex items-center justify-center shrink-0"><History className="size-4 opacity-40" /></div>
-                                    <div><p className="text-xs font-black uppercase tracking-tight">{h.action.replace(/_/g, ' ')}</p><p className="text-[10px] text-muted-foreground">By {h.actorName} · {new Date(h.createdAt).toLocaleString('en-GB')}</p></div>
+                                <div key={h._id} className="p-5 rounded-2xl border border-border bg-card/50 flex gap-5 transition-all hover:bg-card">
+                                    <div className="size-10 rounded-xl bg-muted flex items-center justify-center shrink-0"><History className="size-5 opacity-40" /></div>
+                                    <div><p className="text-base font-black uppercase tracking-tight">{h.action.replace(/_/g, ' ')}</p><p className="text-sm text-muted-foreground font-medium mt-0.5">By {h.actorName} · {new Date(h.createdAt).toLocaleString('en-GB')}</p></div>
                                 </div>
                             ))}
                         </div>
