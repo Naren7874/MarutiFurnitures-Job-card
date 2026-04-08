@@ -278,59 +278,94 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         setShowCreateModal(false);
     };
 
+    // ── Validation ────────────────────────────────────────────────────────────
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+    const validateForm = () => {
+        const errors: Record<string, string> = {};
+        if (!selectedClient) errors.clientId = 'Please select or create a client';
+        if (!project.projectName) errors.projectName = 'Project Name is required';
+        
+        items.forEach((item) => {
+            if (!item.description?.trim()) {
+                errors[`item_${item.id}_description`] = 'Description is required';
+            }
+            if (!item.qty || item.qty < 1) {
+                errors[`item_${item.id}_qty`] = 'Quantity must be at least 1';
+            }
+        });
+
+        setValidationErrors(errors);
+        
+        if (Object.keys(errors).length > 0) {
+            // Scroll to the first error
+            const firstErrorKey = Object.keys(errors)[0];
+            const element = document.getElementById(firstErrorKey);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            toast.error('Please fix the validation errors before saving.');
+            return false;
+        }
+        return true;
+    };
+
     // ── Build payload ─────────────────────────────────────────────────────────
-    const buildPayload = () => ({
-        clientId: selectedClient?._id,
-        ...project,
-        validUntil: project.validUntil || null,
-        items: items.map(({ id, totalPrice, uploading, uploadingFabric, uploadingExtra, size, polish, material, fabrics, priority, ...rest }) => ({
-            ...rest,
-            specifications: {
-                size,
-                polish,
-                material,
-                priority,
-                fabrics: fabrics.filter(f => f.trim() !== ''),
-            },
-            totalPrice: rest.qty * (rest.sellingPrice || 0),
-        })),
-        discount,
-        gstType,
-        advancePercent,
-        additionalTerms: additionalTerms.filter(t => t.trim() !== ''),
-        assignedStaff,
-    });
+    const buildPayload = () => {
+        const payload: any = {
+            ...project,
+            clientId: selectedClient?._id,
+            validUntil: project.validUntil || null,
+            items: items.map(({ id, totalPrice, uploading, uploadingFabric, uploadingExtra, size, polish, material, fabrics, priority, ...rest }) => ({
+                ...rest,
+                specifications: {
+                    size: size || null,
+                    polish: polish || null,
+                    material: material || null,
+                    priority: priority || 'medium',
+                    fabrics: fabrics.filter(f => f.trim() !== ''),
+                },
+                totalPrice: rest.qty * (rest.sellingPrice || 0),
+            })),
+            discount,
+            gstType,
+            advancePercent,
+            additionalTerms: additionalTerms.filter(t => t.trim() !== ''),
+            assignedStaff,
+        };
+
+        // Clean up empty strings for ObjectIds to avoid Mongoose casting errors
+        if (!payload.architectId) payload.architectId = null;
+        if (!payload.clientId) delete payload.clientId; // Should be handled by validation but safe to have
+
+        return payload;
+    };
 
     // ── Item-Level Save ───────────────────────────────────────────────────────
     const [savingItemId, setSavingItemId] = useState<string | null>(null);
     const [savedItemId, setSavedItemId] = useState<string | null>(null);
 
     const handleSaveItem = async (itemId: string) => {
-        if (!selectedClient) {
-            toast.error('Please select or create a client before saving items.');
-            return;
-        }
-        if (!project.projectName) {
-            toast.error('Please enter a Project Name before saving items.');
-            return;
-        }
+        if (!validateForm()) return;
 
         setSavingItemId(itemId);
         try {
             const payload = buildPayload();
             if (isEditMode) {
                 await updateQuotation.mutateAsync(payload);
+                // After successful update, we stay here but toast success (handled by hook)
             } else {
                 const res: any = await createQuotation.mutateAsync(payload);
                 if (res?.data?._id) {
-                    navigate(`/quotations/${res.data._id}/edit`, { replace: true });
+                    toast.success('Quotation created successfully');
+                    navigate(`/quotations/${res.data._id}`, { replace: true });
                 }
             }
             setSavedItemId(itemId);
             setTimeout(() => setSavedItemId(null), 2000);
         } catch (e) {
             console.error('Failed to save item', e);
-            toast.error('Failed to save item. Please check the network.');
+            // Error toast is handled by hook
         } finally {
             setSavingItemId(null);
         }
@@ -339,13 +374,25 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     // ── Submit ────────────────────────────────────────────────────────────────
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedClient) { toast.error('Please select or create a client.'); return; }
-        if (isEditMode) {
-            await updateQuotation.mutateAsync(buildPayload());
-            navigate(`/quotations/${quotationId}`);
-        } else {
-            await createQuotation.mutateAsync(buildPayload());
-            navigate('/quotations');
+        if (!validateForm()) return;
+
+        try {
+            const payload = buildPayload();
+            if (isEditMode) {
+                await updateQuotation.mutateAsync(payload);
+                toast.success('Quotation updated successfully');
+                navigate(`/quotations/${quotationId}`);
+            } else {
+                const res: any = await createQuotation.mutateAsync(payload);
+                if (res?.data?._id) {
+                    toast.success('Quotation created successfully');
+                    navigate(`/quotations/${res.data._id}`);
+                } else {
+                    navigate('/quotations');
+                }
+            }
+        } catch (err) {
+            console.error('Submit failed', err);
         }
     };
 
@@ -492,12 +539,30 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
                                 </div>
                             )}
+                            {validationErrors.clientId && (
+                                <p className="text-[10px] font-bold text-rose-500 mt-2 ml-1 animate-in fade-in slide-in-from-top-1">{validationErrors.clientId}</p>
+                            )}
                         </div>
 
                         {/* Project fields */}
-                        <div>
+                        <div id="projectName">
                             <label className={labelCls}>Project Name *</label>
-                            <Input required value={project.projectName} onChange={e => setProject(p => ({ ...p, projectName: e.target.value }))} placeholder="e.g. GMP Office — 3rd Floor" className={inputCls} />
+                            <Input
+                                value={project.projectName}
+                                onChange={e => {
+                                    setProject(p => ({ ...p, projectName: e.target.value }));
+                                    if (validationErrors.projectName) setValidationErrors(prev => {
+                                        const n = { ...prev };
+                                        delete n.projectName;
+                                        return n;
+                                    });
+                                }}
+                                placeholder="e.g. GMP Office — 3rd Floor"
+                                className={cn(inputCls, validationErrors.projectName && 'border-rose-500/50 bg-rose-50/5') }
+                            />
+                            {validationErrors.projectName && (
+                                <p className="text-[10px] font-bold text-rose-500 mt-2 ml-1 animate-in fade-in slide-in-from-top-1">{validationErrors.projectName}</p>
+                            )}
                         </div>
 
                         <div>
@@ -728,9 +793,24 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                                 <label className={labelCls}>Category</label>
                                                 <Input value={item.category} onChange={e => updateItem(item.id, 'category', e.target.value)} placeholder="e.g. Reception Area" className={smallInputCls} />
                                             </div>
-                                            <div className="col-span-2">
+                                            <div className="col-span-2" id={`item_${item.id}_description`}>
                                                 <label className={labelCls}>Description *</label>
-                                                <Input value={item.description} onChange={e => updateItem(item.id, 'description', e.target.value)} placeholder="e.g. 2 Seater Sofa" className={smallInputCls} />
+                                                <Input
+                                                    value={item.description}
+                                                    onChange={e => {
+                                                        updateItem(item.id, 'description', e.target.value);
+                                                        if (validationErrors[`item_${item.id}_description`]) setValidationErrors(prev => {
+                                                            const n = { ...prev };
+                                                            delete n[`item_${item.id}_description`];
+                                                            return n;
+                                                        });
+                                                    }}
+                                                    placeholder="e.g. 2 Seater Sofa"
+                                                    className={cn(smallInputCls, validationErrors[`item_${item.id}_description`] && 'border-rose-500/50 bg-rose-50/5')}
+                                                />
+                                                {validationErrors[`item_${item.id}_description`] && (
+                                                    <p className="text-[9px] font-bold text-rose-500 mt-1.5 ml-1">{validationErrors[`item_${item.id}_description`]}</p>
+                                                )}
                                             </div>
                                             <div>
                                                 <label className={labelCls}>Size</label>
@@ -805,9 +885,25 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
                                     {/* Pricing */}
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 pt-2 border-t border-border/30">
-                                        <div>
-                                            <label className={labelCls}>Qty</label>
-                                            <Input type="number" min="1" value={item.qty} onChange={e => updateItem(item.id, 'qty', Number(e.target.value))} className={smallInputCls} />
+                                        <div id={`item_${item.id}_qty`}>
+                                            <label className={labelCls}>Qty *</label>
+                                            <Input
+                                                type="number"
+                                                min="1"
+                                                value={item.qty}
+                                                onChange={e => {
+                                                    updateItem(item.id, 'qty', Number(e.target.value));
+                                                    if (validationErrors[`item_${item.id}_qty`]) setValidationErrors(prev => {
+                                                        const n = { ...prev };
+                                                        delete n[`item_${item.id}_qty`];
+                                                        return n;
+                                                    });
+                                                }}
+                                                className={cn(smallInputCls, validationErrors[`item_${item.id}_qty`] && 'border-rose-500/50 bg-rose-50/5')}
+                                            />
+                                            {validationErrors[`item_${item.id}_qty`] && (
+                                                <p className="text-[9px] font-bold text-rose-500 mt-1.5 ml-1">{validationErrors[`item_${item.id}_qty`]}</p>
+                                            )}
                                         </div>
                                         <div>
                                             <label className={labelCls}>MRP (₹)</label>

@@ -123,11 +123,12 @@ export const failQC = async (req, res, next) => {
 
     const jobCard = await JobCard.findById(stage.jobCardId);
     const prevStatus = jobCard.status;
-    jobCard.status = 'in_production';  // Send back to production
+    jobCard.status = 'qc_failed';  // Set to qc_failed so dashboard picks it up
+    jobCard.reworkCount = (jobCard.reworkCount || 0) + 1;
     await jobCard.save();
 
     await JobCard.findByIdAndUpdate(stage.jobCardId, {
-      $push: { activityLog: { action: 'qc_failed', doneBy: req.user.userId, prevStatus, newStatus: 'in_production', note: `Rework #${stage.reworkCount}: ${failReason}`, timestamp: new Date() } },
+      $push: { activityLog: { action: 'qc_failed', doneBy: req.user.userId, prevStatus, newStatus: 'qc_failed', note: `Rework #${stage.reworkCount}: ${failReason}`, timestamp: new Date() } },
     });
 
     auditLog(req, {
@@ -135,7 +136,7 @@ export const failQC = async (req, res, next) => {
       resourceType: 'JobCard',
       resourceId: stage.jobCardId,
       resourceLabel: req.params.id,
-      changes: { status: { from: prevStatus, to: 'in_production' } },
+      changes: { status: { from: prevStatus, to: 'qc_failed' }, reworkCount: jobCard.reworkCount },
       metadata: { action: 'qc_failed_sent_to_rework', reworkCount: stage.reworkCount, failReason, escalated: stage.escalated },
     });
 

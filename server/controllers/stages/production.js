@@ -223,3 +223,51 @@ export const markProductionDone = async (req, res, next) => {
     res.status(200).json({ success: true, data: { stage, qcStage } });
   } catch (err) { next(err); }
 };
+
+/** PATCH /api/jobcards/:id/production/reset — Reset substages for rework */
+export const resetProduction = async (req, res, next) => {
+  try {
+    const stage = await ProductionStage.findOne({ jobCardId: req.params.id });
+    if (!stage) return res.status(404).json({ success: false, message: 'Production stage not found' });
+
+    // Reset substages to pending
+    stage.substages.forEach(s => {
+      s.status = 'pending';
+      s.workerName = '';
+      s.startedAt = undefined;
+      s.completedAt = undefined;
+    });
+    
+    // Clear overall production status
+    stage.status = 'in_progress';
+    stage.materialShortage = false;
+    stage.shortageNote = '';
+
+    await stage.save();
+
+    await JobCard.findByIdAndUpdate(req.params.id, {
+      status: 'in_production',
+      $push: { 
+        activityLog: { 
+          action: 'production_reset', 
+          doneBy: req.user.userId, 
+          prevStatus: 'qc_failed',
+          newStatus: 'in_production',
+          note: 'Production substages reset for rework cycle', 
+          timestamp: new Date() 
+        } 
+      },
+    });
+
+    auditLog(req, {
+      action: 'update',
+      resourceType: 'ProductionStage',
+      resourceId: stage._id,
+      resourceLabel: req.params.id,
+      changes: { 'jobCard.status': { from: 'qc_failed', to: 'in_production' } },
+      metadata: { action: 'production_reset_for_rework' },
+    });
+
+    res.status(200).json({ success: true, data: stage, message: 'Production substages reset successfully' });
+  } catch (err) { next(err); }
+};

@@ -5,6 +5,7 @@ import {
     Plus, FileText, Users, Package, Truck, MessageCircle, BarChart3, Settings
 } from "lucide-react"
 import { motion } from "motion/react"
+import { useAuthStore } from "@/stores/authStore"
 
 const actions = [
     { label: 'Create Job Card', icon: Plus, color: '#1315E5', bg: '#1315E515', path: '/jobcards/new' },
@@ -19,6 +20,11 @@ const actions = [
 
 export function QuickActions() {
     const navigate = useNavigate()
+    const { user } = useAuthStore()
+    const role = user?.role?.toLowerCase().replace(' ', '_');
+
+    // Factory managers have no create/edit capabilities — hide this panel entirely
+    if (role === 'factory_manager' || role === 'factorymanager') return null;
 
     return (
         <Card className="flex flex-col border-border bg-card shadow-sm">

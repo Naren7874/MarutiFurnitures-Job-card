@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
     Wrench, Shield, Truck,
@@ -22,6 +23,7 @@ const ROLE_META: Record<string, { from: string; to: string; ring: string; icon: 
     accountant: { from: 'from-rose-600', to: 'to-pink-900', ring: 'ring-rose-400/30', icon: Receipt, label: 'Finance Dashboard' },
     admin: { from: 'from-slate-700', to: 'to-slate-900', ring: 'ring-slate-400/30', icon: Layers, label: 'Admin Dashboard' },
     management: { from: 'from-slate-700', to: 'to-slate-900', ring: 'ring-slate-400/30', icon: BarChart3, label: 'Management Dashboard' },
+    factory_manager: { from: 'from-orange-600', to: 'to-amber-900', ring: 'ring-orange-400/30', icon: Wrench, label: 'Factory Manager' },
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -535,10 +537,38 @@ const RoleBanner = ({ meta, name }: { meta: typeof ROLE_META[string]; name: stri
     );
 };
 
+// ── Factory Manager backstop (they should be at /factory) ────────────────────
+const FactoryManagerDashboard = () => {
+    const navigate = useNavigate();
+    useEffect(() => {
+        // Auto redirect to factory portal if they land here
+        navigate('/factory', { replace: true });
+    }, [navigate]);
+
+    return (
+        <div className="flex flex-col items-center justify-center py-24 gap-6">
+            <div className="w-20 h-20 rounded-3xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+                <Wrench size={40} className="text-orange-500/50" />
+            </div>
+            <div className="text-center">
+                <p className="font-black text-xl text-foreground mb-2">Factory Manager Portal</p>
+                <p className="text-muted-foreground/60 text-sm max-w-sm mb-6">
+                    Your production workspace is in the Factory Manager portal.
+                </p>
+                <a href="/factory"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-orange-500 text-white font-black text-sm hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20">
+                    Go to Production Portal →
+                </a>
+            </div>
+        </div>
+    );
+};
+
 // ── Main Export ────────────────────────────────────────────────────────────────
 
-export default function StaffDashboard({ role, name }: { role: string; name: string }) {
-    const meta = ROLE_META[role] || ROLE_META.production;
+export default function StaffDashboard({ role: rawRole, name }: { role: string; name: string }) {
+    const role = rawRole.toLowerCase().replace(' ', '_');
+    const meta = ROLE_META[role] || ROLE_META[rawRole] || ROLE_META.production;
 
     return (
         <div className="p-5 md:p-7 space-y-8 max-w-[1600px] mx-auto">
@@ -550,6 +580,7 @@ export default function StaffDashboard({ role, name }: { role: string; name: str
             {role === 'dispatch' && <DispatchDashboard />}
             {role === 'sales' && <SalesDashboard />}
             {role === 'accountant' && <AccountantDashboard />}
+            {(role === 'factory_manager' || role === 'factorymanager') && <FactoryManagerDashboard />}
         </div>
     );
 }

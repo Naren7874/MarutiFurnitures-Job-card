@@ -29,6 +29,12 @@ export const StaffMultiSelect = ({
         if (!roleFilter) return true;
         if (Array.isArray(roleFilter)) return roleFilter.includes(u.role);
         
+        // Robust filtering for production (includes factory_manager)
+        if (roleFilter === 'production') {
+            const role = u.role?.toLowerCase().replace(' ', '_');
+            return role === 'production' || role === 'factory_manager' || role === 'factorymanager';
+        }
+
         // Robust filtering for accounts (handles role: accountant AND department: accounts)
         if (roleFilter === 'accountant') {
             return u.role === 'accountant' || u.department === 'accounts';

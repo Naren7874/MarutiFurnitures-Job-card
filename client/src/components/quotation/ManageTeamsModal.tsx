@@ -45,7 +45,7 @@ interface ManageTeamsModalProps {
     jobCards: any[];
 }
 
-const EXCLUDED_ROLES = ['Factory Manager', 'Project Designer', 'Architecture', 'project_designer', 'architect', 'client'];
+const EXCLUDED_ROLES = ['Project Designer', 'Architecture', 'project_designer', 'architect', 'client'];
 
 export default function ManageTeamsModal({
     open,

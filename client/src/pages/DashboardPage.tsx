@@ -24,7 +24,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions";
 import { DashboardCalendar } from "@/components/dashboard/dashboard-calendar";
 import { DUMMY_ACTIVITIES, DUMMY_USERS } from "@/lib/dummy-data";
 
-const STAFF_ROLES = ['production', 'qc', 'dispatch', 'sales', 'accountant'];
+const STAFF_ROLES = ['production', 'qc', 'dispatch', 'sales', 'accountant', 'factory_manager'];
 
 const StatCard = ({ icon: Icon, label, value, sub, colorClass, delay = 0 }: any) => (
     <motion.div
@@ -91,6 +91,7 @@ const statusColorMap: Record<string, string> = {
     closed: "#1E293B",
     on_hold: "#F97316",
     cancelled: "#F43F5E",
+    qc_failed: "#F43F5E",
 };
 
 // ── Admin Dashboard ────────────────────────────────────────────────────────────
@@ -329,9 +330,15 @@ function AdminDashboard() {
                             {[
                                 { label: 'Production', status: 'in_production', color: '#3B82F6' },
                                 { label: 'QC Pending', status: 'qc_pending', color: '#F59E0B' },
+                                { label: 'Rework', status: 'rework', color: '#F43F5E' },
                                 { label: 'Dispatch', status: 'dispatched', color: '#8B5CF6' },
                             ].map(s => {
-                                const count = stats?.jobCards.byStage?.[s.status] || 0;
+                                let count = 0;
+                                if (s.status === 'rework') {
+                                    count = stats?.jobCards.reworkActive || 0;
+                                } else {
+                                    count = stats?.jobCards.byStage?.[s.status] || 0;
+                                }
                                 const total = stats?.jobCards.total || 1;
                                 return (
                                     <div key={s.label} className="space-y-2">
@@ -432,11 +439,11 @@ function AdminDashboard() {
 
 export default function DashboardPage() {
     const { user } = useAuthStore();
-    const role = user?.role;
+    const role = user?.role?.toLowerCase().replace(' ', '_');
 
     // Staff roles get their own focused dashboard
-    if (role && STAFF_ROLES.includes(role)) {
-        return <StaffDashboard role={role} name={user?.name || 'User'} />;
+    if (role && (STAFF_ROLES.includes(role) || role === 'factorymanager')) {
+        return <StaffDashboard role={user!.role} name={user?.name || 'User'} />;
     }
 
     // Super admin / fallback gets the full admin view

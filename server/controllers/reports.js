@@ -286,6 +286,7 @@ export const getDashboardStats = async (req, res, next) => {
       // Trend data (Current 30 days)
       currProjects,
       currJobCards,
+      reworkActive,
       currSentQuotes,
       currQCPending,
       // Trend data (Previous 30 days)
@@ -322,6 +323,13 @@ export const getDashboardStats = async (req, res, next) => {
 
       Project.countDocuments({ companyId, createdAt: { $gte: thirtyDaysAgo } }),
       JobCard.countDocuments({ companyId, createdAt: { $gte: thirtyDaysAgo } }),
+      JobCard.countDocuments({ 
+        companyId, 
+        $or: [
+          { status: 'qc_failed' },
+          { status: 'in_production', reworkCount: { $gt: 0 } }
+        ]
+      }),
       Quotation.countDocuments({ companyId, status: 'sent', updatedAt: { $gte: thirtyDaysAgo } }),
       JobCard.countDocuments({ companyId, status: 'qc_pending', updatedAt: { $gte: thirtyDaysAgo } }),
 
@@ -392,6 +400,7 @@ export const getDashboardStats = async (req, res, next) => {
           byStage: statusMap,
           total: Object.values(statusMap).reduce((a, b) => a + b, 0),
           change: calcChange(currJobCards, prevJobCards),
+          reworkActive,
           qcPending: statusMap['qc_pending'] || 0,
           qcPendingChange: calcChange(currQCPending, prevQCPending)
         },

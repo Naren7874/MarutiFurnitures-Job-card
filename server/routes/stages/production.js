@@ -1,6 +1,6 @@
 import express from 'express';
 import {
-  getProduction, updateSubstage, addProgressNote, flagShortage, markProductionDone, startProduction
+  getProduction, updateSubstage, addProgressNote, flagShortage, markProductionDone, startProduction, resetProduction
 } from '../../controllers/stages/production.js';
 import { checkPermission } from '../../middleware/permission.js';
 
@@ -12,5 +12,6 @@ router.patch('/substage',     checkPermission('productionStage.edit'), updateSub
 router.post('/note',          checkPermission('productionStage.edit'), addProgressNote);
 router.patch('/shortage',     checkPermission('productionStage.edit'), flagShortage);
 router.patch('/done',         checkPermission('productionStage.edit'), markProductionDone);
+router.patch('/reset',        checkPermission('productionStage.edit'), resetProduction);
 
 export default router;

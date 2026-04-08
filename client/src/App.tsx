@@ -1,9 +1,10 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { SocketProvider } from './context/SocketContext';
-import { ProtectedRoute, PublicRoute, PermissionRoute, ArchitectRoute } from './components/ProtectedRoute';
+import { ProtectedRoute, PublicRoute, PermissionRoute, ArchitectRoute, FactoryManagerRoute } from './components/ProtectedRoute';
 import AppLayout from './components/AppLayout';
 import ArchitectLayout from './components/ArchitectLayout';
+import FactoryManagerLayout from './components/FactoryManagerLayout';
 import { ThemeProvider } from './components/theme-provider';
 // useAuthStore imported by ArchitectLayout directly — not needed here
 
@@ -18,6 +19,11 @@ const ArchitectProjectDetailPage = lazy(() => import('./pages/architect/Architec
 const ArchitectJobCardsPage = lazy(() => import('./pages/architect/ArchitectJobCardsPage'));
 const ArchitectJobCardDetailPage = lazy(() => import('./pages/architect/ArchitectJobCardDetailPage'));
 const ArchitectClientsPage    = lazy(() => import('./pages/architect/ArchitectClientsPage'));
+
+// Factory Manager Portal
+const FactoryManagerDashboardPage  = lazy(() => import('./pages/factory-manager/FactoryManagerDashboardPage'));
+const FactoryManagerJobCardsPage   = lazy(() => import('./pages/factory-manager/FactoryManagerJobCardsPage'));
+const FactoryManagerJobCardDetailPage = lazy(() => import('./pages/factory-manager/FactoryManagerJobCardDetailPage'));
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
@@ -191,6 +197,16 @@ export default function App() {
                     <Route path="jobcards" element={<ArchitectJobCardsPage />} />
                     <Route path="jobcards/:id" element={<ArchitectJobCardDetailPage />} />
                     <Route path="clients" element={<ArchitectClientsPage />} />
+                  </Route>
+                </Route>
+
+                {/* ── Factory Manager Portal ───────────────────── */}
+                {/* FactoryManagerRoute ensures ONLY factory_manager users can access /factory/* */}
+                <Route element={<FactoryManagerRoute />}>
+                  <Route path="/factory" element={<FactoryManagerLayout />}>
+                    <Route index element={<FactoryManagerDashboardPage />} />
+                    <Route path="jobcards" element={<FactoryManagerJobCardsPage />} />
+                    <Route path="jobcards/:id" element={<FactoryManagerJobCardDetailPage />} />
                   </Route>
                 </Route>
 

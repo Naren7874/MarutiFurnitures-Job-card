@@ -9,7 +9,7 @@ import {
     Package, Loader2, Clock, CheckCheck,
     Truck, Shield, Wrench, TriangleAlert, User,
     CalendarCheck, MapPin, Camera, FileText, Users, MessageSquare, Download,
-    ShieldCheck, Zap, Maximize2, Fingerprint, Wind, EyeOff, History,
+    ShieldCheck, Zap, Maximize2, Fingerprint, Wind, EyeOff, History, Layers,
     Archive, ArchiveRestore, AlertCircle, Sparkles, PackageCheck, X
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -672,11 +672,21 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
     const [note, setNote] = useState('');
     const [noteWorker, setNoteWorker] = useState('');
 
-    const isLocked = jc.status !== 'in_production';
+    const isLocked = !['in_production', 'qc_failed', 'active'].includes(jc.status);
     const effectiveCanEdit = canEdit && !isLocked;
 
     const lastRework = qcStage?.reworkHistory?.[qcStage.reworkHistory.length - 1];
-    const showReworkAlert = jc.status === 'in_production' && qcStage?.verdict === 'fail';
+    const showReworkAlert = (jc.status === 'in_production' || jc.status === 'qc_failed') && qcStage?.verdict === 'fail';
+
+    const resetProdMut = useMutation({
+        mutationFn: () => apiPatch(`/jobcards/${id}/production/reset`),
+        onSuccess: () => {
+            qcClient.invalidateQueries({ queryKey: ['jobcard', id] });
+            qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'production'] });
+            toast.success('Production reset! Ready for rework.');
+        },
+        onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to reset production'),
+    });
 
     const subStageMut = useMutation({
         mutationFn: ({ substage, status, workerName }: any) => apiPatch(`/jobcards/${id}/production/substage`, { name: substage, status, workerName }),
@@ -720,28 +730,101 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
                     Stage Locked — Job Card is currently {jc.status?.replace(/_/g, ' ')}
                 </div>
             )}
+            {/* Rework Banner (Premium) */}
             {showReworkAlert && lastRework && (
                 <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
-                    className="p-5 rounded-[22px] bg-rose-500/10 border border-rose-500/20 shadow-sm relative overflow-hidden group mb-4">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-2xl bg-rose-500/20 flex items-center justify-center text-rose-500">
-                            <AlertTriangle size={20} />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-500/60">Rework Required</p>
-                            <p className="text-sm font-black text-rose-600">QC Failed · Attempt #{qcStage.reworkHistory.length}</p>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <div className="p-4 rounded-xl bg-white/40 dark:bg-black/20 border border-rose-500/20">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-500/40 mb-1">Inspector's Failure Reason</p>
-                            <p className="text-xs font-bold text-rose-700/80 dark:text-rose-400/80 leading-relaxed italic">"{lastRework.failReason || 'No specific reason provided'}"</p>
-                        </div>
-                        {lastRework.defectSummary && (
-                            <div className="p-4 rounded-xl bg-white/40 dark:bg-black/20 border border-rose-500/20">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-rose-500/40 mb-1">Defect Summary</p>
-                                <p className="text-xs font-bold text-rose-700/80 dark:text-rose-400/80 leading-relaxed">{lastRework.defectSummary}</p>
+                    className="p-6 rounded-[32px] bg-rose-500/10 border border-rose-500/20 shadow-xl mb-4 relative overflow-hidden group">
+                    {/* Ambient Glow */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/5 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-rose-500/10 transition-colors duration-700" />
+                    
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-rose-500/20 flex items-center justify-center text-rose-500 shadow-inner">
+                                <AlertTriangle size={28} />
                             </div>
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-rose-500/60 leading-none mb-1.5">Attention Required</p>
+                                <h3 className="text-xl font-black text-rose-600 tracking-tight">Rework Blueprint · Attempt #{qcStage.reworkCount || qcStage.reworkHistory?.length}</h3>
+                            </div>
+                        </div>
+                        <Badge variant="outline" className="bg-rose-500/20 text-rose-600 border-rose-500/30 text-[10px] font-black py-1 px-4 rounded-full animate-pulse uppercase tracking-widest">
+                            QC Failed
+                        </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 relative z-10">
+                        <div className="space-y-4">
+                            <div className="p-5 rounded-2xl bg-white/40 dark:bg-black/20 border border-rose-500/20 shadow-sm">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-rose-500/40 mb-2 flex items-center gap-2">
+                                    <MessageSquare size={12} /> Failure Reason
+                                </p>
+                                <p className="text-sm font-bold text-rose-700/80 dark:text-rose-400/80 leading-relaxed italic">
+                                    "{lastRework.failReason || 'No specific reason provided'}"
+                                </p>
+                            </div>
+
+                            {lastRework.defectSummary && (
+                                <div className="p-5 rounded-2xl bg-white/40 dark:bg-black/20 border border-rose-500/20 shadow-sm">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-rose-500/40 mb-2 flex items-center gap-2">
+                                        <Layers size={12} /> Defect Summary
+                                    </p>
+                                    <p className="text-xs font-bold text-rose-700/70 dark:text-rose-400/70 leading-relaxed">
+                                        {lastRework.defectSummary}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Failed Checklist Items */}
+                            {qcStage.checklist?.some((item: any) => item.passed === false) && (
+                                <div className="p-5 rounded-2xl bg-white/40 dark:bg-black/20 border border-rose-500/20 shadow-sm">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-rose-500/40 mb-3 flex items-center gap-2">
+                                        <Shield size={12} /> Failed Parameters
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {qcStage.checklist.filter((item: any) => item.passed === false).map((item: any, i: number) => (
+                                            <Badge key={i} variant="outline" className="bg-rose-500/5 text-rose-500 border-rose-500/20 text-[9px] font-black px-3 py-1 rounded-lg">
+                                                {item.parameter}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Defect Gallery */}
+                        {qcStage?.defectPhotos?.length > 0 && (
+                            <div className="space-y-2">
+                                <div className="p-5 rounded-2xl bg-white/40 dark:bg-black/20 border border-rose-500/20 shadow-sm h-full">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-rose-500/40 mb-3 flex items-center gap-2">
+                                        <Camera size={12} /> Visual Evidence
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {qcStage.defectPhotos.map((photo: any, i: number) => (
+                                            <div key={i} className="group/photo relative aspect-square rounded-xl overflow-hidden border border-rose-500/20 bg-muted/20">
+                                                <ImagePreview src={photo.url} alt={`Defect ${i + 1}`} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-rose-500/10 pt-6 relative z-10">
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-rose-500/30 pl-1">
+                            <Clock size={12} /> Sent back {new Date(lastRework.sentBackAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}
+                        </div>
+
+                        {/* Acknowledge & Start Rework Button */}
+                        {canEdit && doneCount > 0 && (
+                            <Button
+                                onClick={() => resetProdMut.mutate()}
+                                disabled={resetProdMut.isPending}
+                                className="bg-rose-600 hover:bg-rose-700 text-white font-black px-6 h-11 rounded-xl shadow-lg shadow-rose-600/20 border-none uppercase tracking-widest text-[10px] active:scale-95 transition-all"
+                            >
+                                {resetProdMut.isPending ? <Loader2 size={14} className="mr-2 animate-spin" /> : <Zap size={14} className="mr-2 fill-current" />}
+                                Acknowledge & Start Rework
+                            </Button>
                         )}
                     </div>
                 </motion.div>

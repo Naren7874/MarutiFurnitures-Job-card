@@ -113,6 +113,8 @@ const jobCardSchema = new mongoose.Schema(
     qcStageId:         { type: mongoose.Schema.Types.ObjectId, ref: "QcStage" },
     dispatchStageId:   { type: mongoose.Schema.Types.ObjectId, ref: "DispatchStage" },
 
+    reworkCount: { type: Number, default: 0 },
+
     // Dates
     orderDate:        { type: Date, default: Date.now },
     expectedDelivery: { type: Date },

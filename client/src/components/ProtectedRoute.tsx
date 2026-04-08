@@ -7,8 +7,15 @@ const isArchitectRole = (role?: string | null) => {
     return lower.includes('architect') || lower === 'project_designer' || lower === 'project designer';
 };
 
+const isFactoryManagerRole = (role?: string | null) => {
+    if (!role) return false;
+    const lower = role.toLowerCase().replace(' ', '_');
+    return lower === 'factory_manager' || lower === 'factorymanager';
+};
+
 /** Redirects to /login if not authenticated.
- *  Redirects architects away from non-architect routes → /architect */
+ *  Redirects architects away from non-architect routes → /architect
+ *  Redirects factory managers away from main app → /factory */
 export const ProtectedRoute = () => {
     const { isLoggedIn, user } = useAuthStore();
     const { pathname } = useLocation();
@@ -20,6 +27,11 @@ export const ProtectedRoute = () => {
         return <Navigate to="/architect" replace />;
     }
 
+    // Factory managers must stay inside /factory/*
+    if (isFactoryManagerRole(user?.role) && !pathname.startsWith('/factory')) {
+        return <Navigate to="/factory" replace />;
+    }
+
     return <Outlet />;
 };
 
@@ -27,8 +39,10 @@ export const ProtectedRoute = () => {
 export const PublicRoute = () => {
     const { isLoggedIn, user } = useAuthStore();
     if (!isLoggedIn) return <Outlet />;
-    // Architects go directly to their portal
-    return <Navigate to={isArchitectRole(user?.role) ? '/architect' : '/'} replace />;
+    // Route each portal role to their dedicated portal
+    if (isArchitectRole(user?.role)) return <Navigate to="/architect" replace />;
+    if (isFactoryManagerRole(user?.role)) return <Navigate to="/factory" replace />;
+    return <Navigate to="/" replace />;
 };
 
 /** Guards architect-only routes — redirects non-architects away */
@@ -36,6 +50,14 @@ export const ArchitectRoute = () => {
     const { isLoggedIn, user } = useAuthStore();
     if (!isLoggedIn) return <Navigate to="/login" replace />;
     if (!isArchitectRole(user?.role)) return <Navigate to="/" replace />;
+    return <Outlet />;
+};
+
+/** Guards factory-manager-only routes — redirects others away */
+export const FactoryManagerRoute = () => {
+    const { isLoggedIn, user } = useAuthStore();
+    if (!isLoggedIn) return <Navigate to="/login" replace />;
+    if (!isFactoryManagerRole(user?.role)) return <Navigate to="/" replace />;
     return <Outlet />;
 };
 
