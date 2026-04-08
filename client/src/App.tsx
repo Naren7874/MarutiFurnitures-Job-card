@@ -150,8 +150,8 @@ export default function App() {
                     </Route>
 
 
-                    {/* Reports — requires reports.view_financial */}
-                    <Route element={<PermissionRoute permission="reports.view_financial" />}>
+                    {/* Reports — requires reports.view_financial or reports.view_production */}
+                    <Route element={<PermissionRoute permission={['reports.view_financial', 'reports.view_production']} />}>
                       <Route path="reports" element={<ReportsPage />} />
                     </Route>
 

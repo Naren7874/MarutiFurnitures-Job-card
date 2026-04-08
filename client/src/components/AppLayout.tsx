@@ -26,7 +26,7 @@ const ALL_NAV = [
     { label: 'Projects', icon: Folder, path: '/projects', permission: 'project.view' },
     { label: 'Job Cards', icon: ClipboardList, path: '/jobcards', permission: 'jobcard.view' },
     { label: 'Proforma Invoices', icon: Receipt, path: '/invoices', permission: 'invoice.view' },
-    { label: 'Reports', icon: BarChart3, path: '/reports', permission: 'reports.view_financial' },
+    { label: 'Reports', icon: BarChart3, path: '/reports', permission: ['reports.view_financial', 'reports.view_production'] },
     { label: 'Users', icon: Users, path: '/users', permission: 'user.view' },
     { label: 'Roles', icon: ShieldCheck, path: '/roles', permission: 'privilege.view' },
     { label: 'Settings', icon: Settings, path: '/settings', permission: 'settings.view' },

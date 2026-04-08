@@ -26,7 +26,7 @@ export interface NavItem {
     url: string;
     icon: React.ElementType;
     /** Permission key required to show this item. null = always visible. */
-    permission: string | null;
+    permission: string | string[] | null;
 }
 
 export const ALL_NAV_ITEMS: NavItem[] = [
@@ -48,7 +48,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     { title: 'Purchase Orders',   url: '/purchase-orders',   icon: ShoppingCart, permission: 'purchaseOrder.view' },
 
     // ── Analytics ───────────────────────────────────────────────────────
-    { title: 'Reports',           url: '/reports',           icon: BarChart3,    permission: 'reports.view_financial' },
+    { title: 'Reports',           url: '/reports',           icon: BarChart3,    permission: ['reports.view_financial', 'reports.view_production'] },
 
     // ── Admin-only ──────────────────────────────────────────────────────
     { title: 'Users',             url: '/users',             icon: UserCog,      permission: 'user.view' },

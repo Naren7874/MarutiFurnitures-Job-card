@@ -43,7 +43,7 @@ export const ArchitectRoute = () => {
  * Route-level permission guard.
  * Wrap a <Route> with this as the element to redirect to / if user lacks the permission.
  */
-export const PermissionRoute = ({ permission }: { permission: string }) => {
+export const PermissionRoute = ({ permission }: { permission: string | string[] }) => {
     const hasPermission = useAuthStore((s) => s.hasPermission);
     if (!hasPermission(permission)) {
         return <Navigate to="/" replace />;
