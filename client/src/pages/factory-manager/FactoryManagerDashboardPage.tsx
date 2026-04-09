@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     Wrench, AlertTriangle, CheckCircle, Clock,
-    ArrowRight, Factory, XCircle, Package,
+    ArrowRight, XCircle, Package,
 } from 'lucide-react';
 import { useJobCards } from '../../hooks/useApi';
 import { useAuthStore } from '../../stores/authStore';

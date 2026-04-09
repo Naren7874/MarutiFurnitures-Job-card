@@ -336,6 +336,13 @@ function AdminDashboard() {
                                 let count = 0;
                                 if (s.status === 'rework') {
                                     count = stats?.jobCards.reworkActive || 0;
+                                } else if (s.status === 'in_production') {
+                                    // Subtract reworks that are currently in production to keep bars exclusive
+                                    const totalInProd = stats?.jobCards.byStage?.['in_production'] || 0;
+                                    const reworkInProd = allJobCards.filter((j: any) => j.status === 'in_production' && (j.reworkCount || 0) > 0).length;
+                                    // Note: if allJobCards is limited to 100, this might be slightly off for very large queues, 
+                                    // but it's better than nothing and usually matches the visible list.
+                                    count = Math.max(0, totalInProd - reworkInProd);
                                 } else {
                                     count = stats?.jobCards.byStage?.[s.status] || 0;
                                 }
