@@ -10,7 +10,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 
-const PHONE_REGEX = /^[6-9]\d{9}$/;
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
+import '../../styles/PhoneInput.css';
+
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface ClientFormProps {
@@ -104,9 +107,9 @@ export default function ClientForm({
         e.preventDefault();
 
         // ── Validation ────────────────────────────────────────────────────────
-        if (!PHONE_REGEX.test(form.phone)) {
+        if (!form.phone || form.phone.length < 7) {
             toast.error('Invalid Phone Number', {
-                description: 'Please enter a valid 10-digit Indian mobile number starting with 6-9.'
+                description: 'Please enter a valid phone number with country code.'
             });
             return;
         }
@@ -118,9 +121,9 @@ export default function ClientForm({
             return;
         }
 
-        if (!isSameAsWhatsapp && form.whatsappNumber && !PHONE_REGEX.test(form.whatsappNumber)) {
+        if (!isSameAsWhatsapp && form.whatsappNumber && form.whatsappNumber.length < 7) {
             toast.error('Invalid WhatsApp Number', {
-                description: 'The WhatsApp number must also be a valid 10-digit mobile number.'
+                description: 'Please enter a valid WhatsApp number.'
             });
             return;
         }
@@ -214,19 +217,16 @@ export default function ClientForm({
                         <div className="grid gap-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end">
                                 <FormField label="Phone Number *">
-                                    <div className="relative">
-                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/30" size={16} />
-                                        <Input
-                                            required
-                                            type="tel"
-                                            maxLength={10}
+                                    <div className="phone-wrapper">
+                                        <PhoneInput
+                                            country={'in'}
                                             value={form.phone}
-                                            onChange={(e) => {
-                                                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                                                set('phone', val);
-                                            }}
-                                            placeholder="10-digit Mobile Number"
-                                            className={cn(inputCls, 'pl-12')}
+                                            onChange={phone => set('phone', phone)}
+                                            containerClass="phone-input-container"
+                                            inputClass="phone-input-control"
+                                            buttonClass="phone-input-button"
+                                            dropdownClass="phone-input-dropdown"
+                                            placeholder="Enter phone number"
                                         />
                                     </div>
                                 </FormField>
@@ -242,17 +242,18 @@ export default function ClientForm({
 
                             {!isSameAsWhatsapp && (
                                 <FormField label="WhatsApp Number">
-                                    <Input
-                                        type="tel"
-                                        maxLength={10}
-                                        value={form.whatsappNumber}
-                                        onChange={(e) => {
-                                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                                            set('whatsappNumber', val);
-                                        }}
-                                        placeholder="WhatsApp Number"
-                                        className={inputCls}
-                                    />
+                                    <div className="phone-wrapper">
+                                        <PhoneInput
+                                            country={'in'}
+                                            value={form.whatsappNumber}
+                                            onChange={phone => set('whatsappNumber', phone)}
+                                            containerClass="phone-input-container"
+                                            inputClass="phone-input-control"
+                                            buttonClass="phone-input-button"
+                                            dropdownClass="phone-input-dropdown"
+                                            placeholder="WhatsApp Number"
+                                        />
+                                    </div>
                                 </FormField>
                             )}
 

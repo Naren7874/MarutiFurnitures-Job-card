@@ -29,9 +29,10 @@ const clientSchema = new mongoose.Schema({
         trim: true,
         validate: {
             validator: function(v) {
-                return /^[6-9]\d{9}$/.test(v);
+                // Allow international formats starting with + or standard digits
+                return /^(\+?\d{1,4}|\d{1,4})?\d{7,15}$/.test(v.replace(/[\s\-()]/g, ''));
             },
-            message: props => `${props.value} is not a valid 10-digit Indian mobile number!`
+            message: props => `${props.value} is not a valid phone number!`
         }
     },
     whatsappNumber: {
@@ -40,9 +41,9 @@ const clientSchema = new mongoose.Schema({
         validate: {
             validator: function(v) {
                 if (!v) return true;
-                return /^[6-9]\d{9}$/.test(v);
+                return /^(\+?\d{1,4}|\d{1,4})?\d{7,15}$/.test(v.replace(/[\s\-()]/g, ''));
             },
-            message: props => `${props.value} is not a valid 10-digit mobile number!`
+            message: props => `${props.value} is not a valid mobile number!`
         }
     },
     email: {

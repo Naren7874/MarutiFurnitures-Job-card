@@ -1,0 +1,130 @@
+/* Premium Phone Input Custom Styling */
+:root {
+    --phone-bg: rgba(255, 255, 255, 0.05);
+    --phone-border: rgba(255, 255, 255, 0.1);
+    --phone-focus: #F59E0B; /* Primary color (Amber) */
+}
+
+.dark {
+    --phone-bg: rgba(0, 0, 0, 0.2);
+    --phone-border: rgba(255, 255, 255, 0.05);
+}
+
+.react-tel-input {
+    font-family: inherit !important;
+}
+
+.react-tel-input .form-control {
+    width: 100% !important;
+    height: 64px !important; /* Larger, more premium height */
+    background: var(--phone-bg) !important;
+    border: 2px solid var(--phone-border) !important;
+    border-radius: 24px !important; /* Extra rounded */
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: var(--foreground) !important;
+    padding-left: 80px !important; /* Space for flag and code */
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.react-tel-input .form-control:focus {
+    border-color: var(--phone-focus) !important;
+    background: rgba(var(--phone-focus), 0.03) !important;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1) !important;
+    outline: none !important;
+}
+
+.react-tel-input .flag-dropdown {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 24px 0 0 24px !important;
+    padding: 0 10px !important;
+}
+
+.react-tel-input .selected-flag {
+    width: 70px !important;
+    height: 100% !important;
+    padding: 0 0 0 20px !important;
+    background: transparent !important;
+    border-radius: 24px 0 0 24px !important;
+    transition: all 0.3s ease !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.react-tel-input .selected-flag:hover,
+.react-tel-input .flag-dropdown.open .selected-flag {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.react-tel-input .selected-flag .arrow {
+    border-top-color: var(--muted-foreground) !important;
+    transition: transform 0.3s ease !important;
+    margin-left: 8px !important;
+}
+
+.react-tel-input .flag-dropdown.open .selected-flag .arrow {
+    transform: rotate(180deg) !important;
+    border-bottom-color: var(--muted-foreground) !important;
+    border-top-color: transparent !important;
+}
+
+.react-tel-input .country-list {
+    background: rgba(23, 23, 23, 0.9) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5) !important;
+    padding: 12px !important;
+    margin-top: 12px !important;
+    width: 320px !important;
+    animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.react-tel-input .country-list .country {
+    padding: 12px 16px !important;
+    border-radius: 16px !important;
+    transition: all 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.react-tel-input .country-list .country .country-name {
+    color: var(--foreground) !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+}
+
+.react-tel-input .country-list .country .dial-code {
+    color: var(--muted-foreground) !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    margin-left: auto !important;
+}
+
+.react-tel-input .country-list .country.highlight {
+    background: rgba(245, 158, 11, 0.1) !important;
+}
+
+.react-tel-input .country-list .country:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Scrollbar styling for country list */
+.react-tel-input .country-list::-webkit-scrollbar {
+    width: 6px;
+}
+.react-tel-input .country-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.react-tel-input .country-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
