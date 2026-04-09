@@ -7,10 +7,11 @@ import {
 } from 'lucide-react';
 import { useJobCards } from '../../hooks/useApi';
 import { useAuthStore } from '../../stores/authStore';
-import { cn } from '../../lib/utils';
+import { cn, getGreeting } from '../../lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -173,13 +174,22 @@ export default function FactoryManagerDashboardPage() {
     return (
         <div className="p-6 md:p-8 space-y-8 w-full">
             {/* Header */}
-            <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-                <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight">
-                    Production Dashboard
-                </h1>
-                <p className="text-muted-foreground/60 text-sm mt-1 font-medium">
-                    Welcome back, {user?.name?.split(' ')[0]} · {new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
+            <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-center gap-4">
+                <Avatar className="size-14 border-2 border-primary/20 shadow-2xl">
+                    <AvatarImage src={user?.profilePhoto} />
+                    <AvatarFallback className="text-lg font-black bg-primary/10 text-primary">{user?.name?.[0] || 'U'}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="text-foreground text-4xl font-black tracking-tight leading-none mb-1.5">
+                      {getGreeting()}, {user?.name?.split(' ')[0]}
+                  </h1>
+                  <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <p className="text-muted-foreground font-medium">
+                          Here’s your production overview
+                      </p>
+                  </div>
+                </div>
             </motion.div>
 
             {/* KPI Grid */}

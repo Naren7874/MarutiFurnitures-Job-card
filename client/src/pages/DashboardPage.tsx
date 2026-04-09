@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useJobCards, useDashboardStats } from '../hooks/useApi';
 import { FileX, LayoutGrid, ClipboardCheck, FileText, ShieldCheck, CheckCircle2 as CheckCircleIcon, Package, History } from 'lucide-react';
 import { motion } from 'motion/react';
-import { cn } from '../lib/utils';
+import { cn, getGreeting } from '../lib/utils';
 import { apiGet } from '../lib/axios';
 
 import { Button } from '@/components/ui/button';
@@ -211,8 +211,7 @@ function AdminDashboard() {
             timestamp: new Date(n.createdAt).toLocaleTimeString()
         }));
 
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+    const greeting = getGreeting();
 
     if (statsLoading) {
         return (

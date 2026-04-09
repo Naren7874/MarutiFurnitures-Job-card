@@ -8,10 +8,12 @@ import {
     BarChart3, Banknote, Receipt, XCircle,
 } from 'lucide-react';
 import { useJobCards, useQuotations, useDashboardStats, useInvoices } from '../../hooks/useApi';
-import { cn } from '../../lib/utils';
+import { cn, getGreeting } from '../../lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DashboardCalendar } from "@/components/dashboard/dashboard-calendar";
 import { useAuthStore } from '../../stores/authStore';
 
 // ── colour theme per role ──────────────────────────────────────────────────────
@@ -500,39 +502,34 @@ const ManagementDashboard = () => {
 // ── Banner Header ──────────────────────────────────────────────────────────────
 
 const RoleBanner = ({ meta, name }: { meta: typeof ROLE_META[string]; name: string }) => {
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
-    const Icon = meta.icon;
+    const { user } = useAuthStore();
+    const greeting = getGreeting();
+    const { all: jobCards } = useAllJobCards();
+    
     return (
         <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className={cn('rounded-[30px] p-8 bg-linear-to-br text-white shadow-2xl relative overflow-hidden', meta.from, meta.to)}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex flex-col md:flex-row md:items-end justify-between gap-4"
         >
-            <div className={cn('absolute inset-0 rounded-[30px] ring-2 ring-inset opacity-40', meta.ring)} />
-            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                <div className="flex items-center gap-5">
-                    <div className="w-16 h-16 rounded-[22px] bg-white/15 backdrop-blur-sm flex items-center justify-center ring-4 ring-white/10 shadow-xl">
-                        <Icon size={30} className="text-white" strokeWidth={2} />
+            <div className="flex items-center gap-4">
+                <Avatar className="size-14 border-2 border-primary/20 shadow-2xl">
+                    <AvatarImage src={user?.profilePhoto} />
+                    <AvatarFallback className="text-lg font-black bg-primary/10 text-primary">{name?.[0] || 'U'}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <h1 className="text-foreground text-4xl font-black tracking-tight leading-none mb-1.5">
+                        {greeting}, {name?.split(' ')[0]}
+                    </h1>
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <p className="text-muted-foreground font-medium">
+                            Here’s your {meta.label.toLowerCase()} overview
+                        </p>
                     </div>
-                    <div>
-                        <p className="text-white/50 text-[9px] font-black uppercase tracking-[0.35em] mb-1">{greeting}</p>
-                        <h1 className="text-2xl font-black tracking-tight text-white leading-none mb-1">
-                            {name?.split(' ')[0] || 'User'}
-                        </h1>
-                        <p className="text-white/60 text-xs font-semibold">{meta.label}</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 px-5 py-3 rounded-2xl">
-                    <Clock size={14} className="text-white/60" />
-                    <span className="text-white text-xs font-bold">
-                        {new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata' })}
-                    </span>
                 </div>
             </div>
-            <div className="absolute -bottom-16 -right-16 w-56 h-56 bg-white/5 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -top-10 -left-10 w-40 h-40 bg-white/5 rounded-full blur-2xl pointer-events-none" />
+            <DashboardCalendar jobCards={jobCards} />
         </motion.div>
     );
 };

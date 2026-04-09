@@ -2,11 +2,12 @@ import { motion } from 'framer-motion';
 import { FileText, CheckCircle, Clock, Building2, ArrowRight, Factory, AlertTriangle, Coins } from 'lucide-react';
 import { useArchitectDashboard } from '../../hooks/useApi';
 import { useAuthStore } from '../../stores/authStore';
-import { cn } from '@/lib/utils';
+import { cn, getGreeting } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -99,10 +100,22 @@ export default function ArchitectDashboardPage() {
   return (
     <div className="p-6 md:p-8 space-y-8 w-full">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight">
-          {isProjectDesigner ? 'Project Designer Dashboard' : 'Architect Dashboard'}
-        </h1>
+      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-center gap-4">
+        <Avatar className="size-14 border-2 border-primary/20 shadow-2xl">
+          <AvatarImage src={user?.profilePhoto} />
+          <AvatarFallback className="text-lg font-black bg-primary/10 text-primary">{user?.name?.[0] || 'U'}</AvatarFallback>
+        </Avatar>
+        <div>
+          <h1 className="text-foreground text-4xl font-black tracking-tight leading-none mb-1.5">
+            {getGreeting()}, {user?.name?.split(' ')[0]}
+          </h1>
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <p className="text-muted-foreground font-medium">
+              Here’s your dashboard overview
+            </p>
+          </div>
+        </div>
       </motion.div>
 
       {/* Unified KPI Grid */}
