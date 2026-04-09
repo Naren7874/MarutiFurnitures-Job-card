@@ -10,6 +10,7 @@ import {
   getDeliveryReport,
   exportReport,
   getDashboardStats,
+  getArchitectPayoutsReport,
 } from '../controllers/reports.js';
 
 router.use(authenticateJWT, injectCompanyScope);
@@ -17,6 +18,7 @@ router.use(authenticateJWT, injectCompanyScope);
 router.get('/dashboard-stats', checkPermission(['reports.view_financial', 'reports.view_production', 'reports.view_delivery']), getDashboardStats);
 router.get('/financial',  checkPermission('reports.view_financial'),  getFinancialReport);
 router.get('/outstanding', checkPermission('reports.view_financial'), getOutstandingReport);
+router.get('/architect-payouts', checkPermission('reports.view_financial'), getArchitectPayoutsReport);
 router.get('/production', checkPermission('reports.view_production'), getProductionReport);
 router.get('/delivery',   checkPermission('reports.view_delivery'),   getDeliveryReport);
 router.get('/export',     checkPermission('reports.export'),          exportReport);

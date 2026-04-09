@@ -55,11 +55,13 @@ export const createQuotation = async (req, res, next) => {
 
 export const getQuotations = async (req, res, next) => {
   try {
-    const { status, clientId, search, page = 1, limit = 20 } = req.query;
+    const { status, clientId, architectId, architectName, search, page = 1, limit = 20 } = req.query;
     const filter = { ...req.companyFilter };
 
     if (status)   filter.status   = status;
     if (clientId) filter.clientId = clientId;
+    if (architectId) filter.architectId = architectId;
+    if (architectName) filter.architectName = architectName;
     if (search) {
       filter.$or = [
         { quotationNumber: new RegExp(search, 'i') },

@@ -271,6 +271,8 @@ export const useUpdateCommissionPaid = (id: string) => {
         mutationFn: (paid: boolean) => apiPatch(`/quotations/${id}/commission-paid`, { paid }),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: QK.quotation(cid, id) });
+            qc.invalidateQueries({ queryKey: ['reports'] });
+            qc.invalidateQueries({ queryKey: ['quotations'] });
             // Invalidate architect dashboard to reflect paid status
             qc.invalidateQueries({ queryKey: ['architect-dashboard'] });
         },
@@ -692,6 +694,15 @@ export const useDeliveryReport = (params: object = {}) => {
     return useQuery({ 
         queryKey: QK.reports(company?.id || '', 'delivery', params), 
         queryFn: () => apiGet('/reports/delivery', params),
+        enabled: !!company?.id
+    });
+};
+
+export const useArchitectPayouts = () => {
+    const { company } = useAuthStore();
+    return useQuery({
+        queryKey: QK.reports(company?.id || '', 'architect-payouts'),
+        queryFn: () => apiGet('/reports/architect-payouts'),
         enabled: !!company?.id
     });
 };

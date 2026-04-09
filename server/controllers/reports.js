@@ -430,3 +430,57 @@ export const getDashboardStats = async (req, res, next) => {
     });
   } catch (err) { next(err); }
 };
+
+// ── GET /api/reports/architect-payouts ───────────────────────────────────────
+export const getArchitectPayoutsReport = async (req, res, next) => {
+  try {
+    const companyId = req.user.companyId;
+
+    const payouts = await Quotation.aggregate([
+      { $match: { companyId: toOid(companyId), $or: [{ architectId: { $ne: null } }, { architectName: { $ne: null } }] } },
+      {
+        $group: {
+          _id: { $ifNull: ["$architectId", "$architectName"] },
+          architectId: { $first: "$architectId" },
+          architectName: { $first: "$architectName" },
+          totalCommission: { $sum: "$architectCommissionAmount" },
+          paidAmount: {
+            $sum: { $cond: [{ $eq: ["$architectCommissionPaid", true] }, "$architectCommissionAmount", 0] }
+          },
+          pendingAmount: {
+            $sum: { $cond: [{ $eq: ["$architectCommissionPaid", false] }, "$architectCommissionAmount", 0] }
+          },
+          quotationCount: { $sum: 1 },
+          unpaidCount: { $sum: { $cond: [{ $eq: ["$architectCommissionPaid", false] }, 1, 0] } }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "architectId",
+          foreignField: "_id",
+          as: "architectDetails"
+        }
+      },
+      {
+        $unwind: { path: "$architectDetails", preserveNullAndEmptyArrays: true }
+      },
+      {
+        $project: {
+          _id: 1,
+          architectId: 1,
+          architectName: { $ifNull: ["$architectDetails.name", "$architectName"] },
+          architectFirm: "$architectDetails.firmName",
+          totalCommission: 1,
+          paidAmount: 1,
+          pendingAmount: 1,
+          quotationCount: 1,
+          unpaidCount: 1,
+        }
+      },
+      { $sort: { pendingAmount: -1, totalCommission: -1 } }
+    ]);
+
+    res.json({ success: true, data: payouts });
+  } catch (err) { next(err); }
+};

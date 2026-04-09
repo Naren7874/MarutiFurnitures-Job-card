@@ -4,7 +4,7 @@ import {
     LayoutDashboard, Users, FileText, Folder, ClipboardList,
     Receipt, Settings, LogOut, Bell,
     Building2, Check,
-    ShieldCheck, BarChart3, PanelLeft
+    ShieldCheck, BarChart3, PanelLeft, Banknote
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
@@ -27,6 +27,7 @@ const ALL_NAV = [
     { label: 'Job Cards', icon: ClipboardList, path: '/jobcards', permission: 'jobcard.view' },
     { label: 'Proforma Invoices', icon: Receipt, path: '/invoices', permission: 'invoice.view' },
     { label: 'Reports', icon: BarChart3, path: '/reports', permission: ['reports.view_financial', 'reports.view_production'] },
+    { label: 'Architect Payouts', icon: Banknote, path: '/architect-payouts', permission: 'reports.view_financial' },
     { label: 'Users', icon: Users, path: '/users', permission: 'user.create' },
     { label: 'Roles', icon: ShieldCheck, path: '/roles', permission: 'privilege.view' },
     { label: 'Settings', icon: Settings, path: '/settings', permission: 'settings.view' },

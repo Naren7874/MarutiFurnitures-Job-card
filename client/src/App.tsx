@@ -64,6 +64,7 @@ const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 
 // Reports
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const ArchitectPayoutsPage = lazy(() => import('./pages/ArchitectPayoutsPage'));
 
 // Public (no auth)
 
@@ -159,6 +160,11 @@ export default function App() {
                     {/* Reports — requires reports.view_financial or reports.view_production */}
                     <Route element={<PermissionRoute permission={['reports.view_financial', 'reports.view_production']} />}>
                       <Route path="reports" element={<ReportsPage />} />
+                    </Route>
+                    
+                    {/* Architect Payouts — requires reports.view_financial */}
+                    <Route element={<PermissionRoute permission="reports.view_financial" />}>
+                      <Route path="architect-payouts" element={<ArchitectPayoutsPage />} />
                     </Route>
 
                     {/* Notifications — all logged-in users */}
