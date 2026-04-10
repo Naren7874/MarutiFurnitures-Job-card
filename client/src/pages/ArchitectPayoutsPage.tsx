@@ -64,7 +64,7 @@ export default function ArchitectPayoutsPage() {
                         <span className="p-3 rounded-2xl bg-primary/10 text-primary shadow-xl shadow-primary/10">
                             <Banknote size={28} strokeWidth={3} />
                         </span>
-                        Architect Payouts
+                        OOROO
                     </h1>
                     <p className="text-muted-foreground font-medium mt-2 flex items-center gap-2">
                         <Users size={14} className="opacity-50" />

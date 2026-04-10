@@ -33,7 +33,12 @@ export const StaffMultiSelect = ({
             return role === 'factorymanager';
         }
 
-        // For all other departments (QC, Dispatch, Accounts, etc.)
+        // Only Accountant is allowed for accounts stage assignment
+        if (roleFilter === 'accountant') {
+            return role === 'accountant';
+        }
+
+        // For all other departments (QC, Dispatch, etc.)
         // Show all internal staff EXCEPT Factory Manager, Project Designer, and Architecture
         const excludedRoles = ['factorymanager', 'projectdesigner', 'architecture', 'architect', 'client'];
         return !excludedRoles.includes(role);

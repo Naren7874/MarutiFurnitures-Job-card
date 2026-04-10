@@ -98,7 +98,11 @@ export default function DirectJobCardForm() {
                     return role === 'factorymanager';
                 }
 
-                // For all other departments (QC, Dispatch, Accounts)
+                if (department === 'accounts') {
+                    return role === 'accountant';
+                }
+
+                // For all other departments (QC, Dispatch)
                 // Show all internal staff EXCEPT Factory Manager, Project Designer, and Architecture
                 const excludedRoles = ['factorymanager', 'projectdesigner', 'architecture', 'architect', 'client'];
                 return !excludedRoles.includes(role);
