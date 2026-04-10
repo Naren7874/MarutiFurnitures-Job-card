@@ -27,7 +27,7 @@ const roleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-roleSchema.index({ name: 1 }, { unique: true });
+roleSchema.index({ companyId: 1, name: 1 }, { unique: true });
 
 export const Role = mongoose.model("Role", roleSchema);
 

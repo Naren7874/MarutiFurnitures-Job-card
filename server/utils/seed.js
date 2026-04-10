@@ -140,18 +140,6 @@ const buildRoles = () => [
   },
   {
     companyId: null,
-    name: 'production',
-    isSystem: true,
-    permissions: [
-      'jobcard.view',
-      'productionStage.view', 'productionStage.edit',
-      'notification.view',
-    ],
-    dataScope: 'department',
-    isActive: true,
-  },
-  {
-    companyId: null,
     name: 'qc',
     isSystem: true,
     permissions: [
