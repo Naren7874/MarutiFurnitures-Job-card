@@ -23,7 +23,8 @@ import { Link } from 'react-router-dom';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const fmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+const OOROO_RATE = 1000;
+const fmt = (n: number) => `${(Number(n || 0) / OOROO_RATE).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}`;
 
 // ── Components ────────────────────────────────────────────────────────────────
 
@@ -81,7 +82,7 @@ export default function ArchitectPayoutsPage() {
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatCard 
-                    label="Outstanding Payout" 
+                    label="Outstanding Payout (Points)" 
                     value={fmt(stats.pending)} 
                     icon={Clock} 
                     color="text-amber-500" 
@@ -89,14 +90,14 @@ export default function ArchitectPayoutsPage() {
                     trend="+12% from last month"
                 />
                 <StatCard 
-                    label="Cleared Payouts" 
+                    label="Cleared Payouts (Points)" 
                     value={fmt(stats.paid)} 
                     icon={CheckCircle2} 
                     color="text-emerald-500" 
                     bg="bg-emerald-500/10"
                 />
                 <StatCard 
-                    label="Total Accumulated" 
+                    label="Total Accumulated (Points)" 
                     value={fmt(stats.total)} 
                     icon={TrendingUp} 
                     color="text-primary" 
@@ -140,7 +141,7 @@ export default function ArchitectPayoutsPage() {
                     <table className="w-full">
                         <thead>
                             <tr className="bg-muted/30 border-b border-border/40">
-                                {['Architect Details', 'Quots', 'Total Commission', 'Paid', 'Outstanding', 'Action'].map(h => (
+                                {['Architect Details', 'Quots', 'Total Commission (OP)', 'Paid (OP)', 'Outstanding (OP)', 'Action'].map(h => (
                                     <th key={h} className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">{h}</th>
                                 ))}
                             </tr>
@@ -214,11 +215,11 @@ export default function ArchitectPayoutsPage() {
 
                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border/30">
                             <div>
-                                <p className="text-[9px] font-black uppercase text-muted-foreground/40 tracking-widest mb-1">Total</p>
+                                <p className="text-[9px] font-black uppercase text-muted-foreground/40 tracking-widest mb-1">Total (OP)</p>
                                 <p className="font-bold text-sm">{fmt(p.totalCommission)}</p>
                             </div>
                             <div>
-                                <p className="text-[9px] font-black uppercase text-muted-foreground/40 tracking-widest mb-1">Outstanding</p>
+                                <p className="text-[9px] font-black uppercase text-muted-foreground/40 tracking-widest mb-1">Outstanding (OP)</p>
                                 <p className={cn("font-black text-sm", p.pendingAmount > 0 ? "text-amber-500" : "text-emerald-500/40")}>
                                     {p.pendingAmount > 0 ? fmt(p.pendingAmount) : 'Settled'}
                                 </p>
@@ -293,7 +294,7 @@ function PayoutDetailsDrawer({ architect, open, onClose }: any) {
                 <div className="p-8 bg-muted/20 border-t border-border/40">
                     <div className="flex justify-between items-center bg-background p-5 rounded-2xl border border-border/40 shadow-inner">
                         <div className="space-y-0.5">
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-tight">Total Outstanding</p>
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-tight">Total Outstanding (OP)</p>
                             <p className="text-2xl font-black text-amber-500 leading-tight">{fmt(architect?.pendingAmount)}</p>
                         </div>
                         <CheckCircle2 size={32} className="text-amber-500/20" />
