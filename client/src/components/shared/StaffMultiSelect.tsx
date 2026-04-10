@@ -26,21 +26,17 @@ export const StaffMultiSelect = ({
     roleFilter
 }: StaffMultiSelectProps) => {
     const filteredUsers = allUsers.filter(u => {
-        if (!roleFilter) return true;
-        if (Array.isArray(roleFilter)) return roleFilter.includes(u.role);
+        const role = u.role?.toLowerCase().replace(/[\s_]/g, '') || '';
         
-        // Only Factory Manager is allowed for production stage assignment
+        // Only Factory Manager is allowed for production/factory manager stage assignment
         if (roleFilter === 'production') {
-            const r = u.role?.toLowerCase().replace(/[\s_]/g, '');
-            return r === 'factorymanager';
+            return role === 'factorymanager';
         }
 
-        // Robust filtering for accounts (handles role: accountant AND department: accounts)
-        if (roleFilter === 'accountant') {
-            return u.role === 'accountant' || u.department === 'accounts';
-        }
-        
-        return u.role === roleFilter;
+        // For all other departments (QC, Dispatch, Accounts, etc.)
+        // Show all internal staff EXCEPT Factory Manager, Project Designer, and Architecture
+        const excludedRoles = ['factorymanager', 'projectdesigner', 'architecture', 'architect', 'client'];
+        return !excludedRoles.includes(role);
     });
 
     const selectedUsers = allUsers.filter(u => selectedIds.includes(u._id));

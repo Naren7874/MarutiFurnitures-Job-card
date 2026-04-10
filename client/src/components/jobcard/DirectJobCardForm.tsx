@@ -92,14 +92,16 @@ export default function DirectJobCardForm() {
     const getStaffOptions = (department: string) => {
         return allUsers
             .filter(u => {
-                if (department === 'accounts') {
-                    return u.role?.toLowerCase() === 'accountant' || u.department?.toLowerCase() === 'accounts';
-                }
+                const role = u.role?.toLowerCase().replace(/[\s_]/g, '') || '';
+                
                 if (department === 'production') {
-                    const r = u.role?.toLowerCase().replace(/[\s_]/g, '');
-                    return r === 'factorymanager';
+                    return role === 'factorymanager';
                 }
-                return u.role?.toLowerCase() === department.toLowerCase();
+
+                // For all other departments (QC, Dispatch, Accounts)
+                // Show all internal staff EXCEPT Factory Manager, Project Designer, and Architecture
+                const excludedRoles = ['factorymanager', 'projectdesigner', 'architecture', 'architect', 'client'];
+                return !excludedRoles.includes(role);
             })
             .map(u => ({ value: u._id, label: u.name }));
     };
