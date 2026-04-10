@@ -240,7 +240,7 @@ export default function ManageTeamsModal({
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
                                         <StaffMultiSelect 
-                                            label="Production" icon={Wrench} 
+                                            label="Factory Manager" icon={Wrench} 
                                             selectedIds={globalConfig.assignedTo?.production || []} 
                                             allUsers={allUsers}
                                             roleFilter="production"
@@ -373,7 +373,7 @@ export default function ManageTeamsModal({
                                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
                                                         <StaffMultiSelect 
-                                                            label="Production" icon={Wrench} 
+                                                            label="Factory Manager" icon={Wrench} 
                                                             selectedIds={config.assignedTo.production}
                                                             allUsers={allUsers}
                                                             roleFilter="production"

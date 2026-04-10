@@ -95,6 +95,10 @@ export default function DirectJobCardForm() {
                 if (department === 'accounts') {
                     return u.role?.toLowerCase() === 'accountant' || u.department?.toLowerCase() === 'accounts';
                 }
+                if (department === 'production') {
+                    const r = u.role?.toLowerCase().replace(/[\s_]/g, '');
+                    return r === 'factorymanager';
+                }
                 return u.role?.toLowerCase() === department.toLowerCase();
             })
             .map(u => ({ value: u._id, label: u.name }));
@@ -525,7 +529,9 @@ export default function DirectJobCardForm() {
                                     
                                     return (
                                         <div key={dept} className="space-y-3">
-                                            <label className={cn(labelCls, 'mb-1')}>{dept}</label>
+                                            <label className={cn(labelCls, 'mb-1')}>
+                                                {dept === 'production' ? 'Factory Manager' : dept}
+                                            </label>
                                             
                                             <div className="space-y-2">
                                                 {selectedStaff.map(userId => {

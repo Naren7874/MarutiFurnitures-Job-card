@@ -5,6 +5,7 @@ import Notification from '../models/Notification.js';
 import { Invoice } from '../models/Invoice.js';
 import Quotation from '../models/Quotation.js';
 import Client from '../models/Client.js';
+import User from '../models/User.js';
 import mongoose from 'mongoose';
 import { generateJobCardNumber, generateQuotationNumber, generateProjectNumber, generateInvoiceNumber } from '../utils/autoNumber.js';
 import { generateAndUploadPDF } from '../utils/generatePDF.js';
@@ -113,6 +114,21 @@ export const createDirectJobCard = async (req, res, next) => {
 
     if (!clientData) {
       return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    // Role-based validation for production stage
+    if (assignedTo?.production?.length > 0) {
+      const prodStaff = await User.find({ _id: { $in: assignedTo.production } }).select('role');
+      const hasNonManagers = prodStaff.some(u => {
+        const r = u.role?.toLowerCase().replace(/[\s_]/g, '');
+        return r !== 'factorymanager';
+      });
+      if (hasNonManagers) {
+        return res.status(400).json({
+          success: false,
+          message: 'Direct creation failed: Only users with the Factory Manager role can be assigned to the production stage.'
+        });
+      }
     }
 
     // 1. Calculate Single Item Totals
@@ -669,6 +685,21 @@ export const assignJobCard = async (req, res, next) => {
 
     if (!VALID_STAGES.includes(stage)) {
       return res.status(400).json({ success: false, message: 'Invalid stage for assignment' });
+    }
+
+    // Role-based validation for production stage
+    if (stage === 'production' && userIds?.length > 0) {
+      const staff = await User.find({ _id: { $in: userIds } }).select('role');
+      const hasNonManagers = staff.some(u => {
+        const r = u.role?.toLowerCase().replace(/[\s_]/g, '');
+        return r !== 'factorymanager';
+      });
+      if (hasNonManagers) {
+        return res.status(400).json({
+          success: false,
+          message: 'Assignment restricted: Only users with the Factory Manager role can be assigned to the production stage.'
+        });
+      }
     }
 
     const jobCard = await JobCard.findOne({ _id: req.params.id, ...req.companyFilter });

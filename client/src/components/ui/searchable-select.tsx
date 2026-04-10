@@ -269,13 +269,13 @@ export function SearchableSelect({
                         transition={{ duration: 0.15, ease: 'easeOut' }}
                         className={cn(
                             'absolute left-0 right-0 z-9999 overflow-hidden',
-                            'rounded-2xl border border-white/10 bg-black/80 shadow-2xl shadow-black/40',
+                            'rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl',
                             'backdrop-blur-xl',
                             resolvedSide === 'bottom' ? 'top-[calc(100%+8px)]' : 'bottom-[calc(100%+8px)]'
                         )}
                     >
                         {/* Search input */}
-                        <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3 bg-white/5">
+                        <div className="flex items-center gap-2 border-b border-border/50 px-4 py-3 bg-muted/20">
                             <Search className="size-4 shrink-0 text-muted-foreground/40" />
                             <input
                                 ref={inputRef}
@@ -291,7 +291,7 @@ export function SearchableSelect({
                                 <button
                                     type="button"
                                     onClick={() => { setQuery(''); setActiveIdx(0); inputRef.current?.focus(); }}
-                                    className="rounded-full p-1 text-muted-foreground/40 hover:bg-white/10 hover:text-foreground transition-colors"
+                                    className="rounded-full p-1 text-muted-foreground/40 hover:bg-muted hover:text-foreground transition-colors"
                                 >
                                     <X className="size-3" />
                                 </button>
@@ -306,8 +306,8 @@ export function SearchableSelect({
                             aria-label="Options"
                             className={cn(
                                 "overflow-y-auto px-1.5 py-2",
-                                "scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent hover:scrollbar-thumb-white/20",
-                                "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-track]:bg-transparent"
+                                "scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/20",
+                                "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/10 [&::-webkit-scrollbar-track]:bg-transparent"
                             )}
                             style={{ maxHeight }}
                         >

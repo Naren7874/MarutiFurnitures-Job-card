@@ -29,10 +29,10 @@ export const StaffMultiSelect = ({
         if (!roleFilter) return true;
         if (Array.isArray(roleFilter)) return roleFilter.includes(u.role);
         
-        // Robust filtering for production (includes factory_manager)
+        // Only Factory Manager is allowed for production stage assignment
         if (roleFilter === 'production') {
-            const role = u.role?.toLowerCase().replace(' ', '_');
-            return role === 'production' || role === 'factory_manager' || role === 'factorymanager';
+            const r = u.role?.toLowerCase().replace(/[\s_]/g, '');
+            return r === 'factorymanager';
         }
 
         // Robust filtering for accounts (handles role: accountant AND department: accounts)

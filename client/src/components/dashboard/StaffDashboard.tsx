@@ -483,7 +483,7 @@ const ManagementDashboard = () => {
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-                <StatCard icon={Wrench} label="Production" value={active.length} colorClass="bg-blue-500/10 text-blue-500" delay={0.1} />
+                <StatCard icon={Wrench} label="Factory Manager" value={active.length} colorClass="bg-blue-500/10 text-blue-500" delay={0.1} />
                 <StatCard icon={Shield} label="In QC" value={qc.length} colorClass="bg-purple-500/10 text-purple-500" delay={0.2} />
                 <StatCard icon={Truck} label="Logistics" value={dispatch.length} colorClass="bg-emerald-500/10 text-emerald-500" delay={0.3} />
                 <StatCard icon={AlertTriangle} label="Delayed" value={overdue.length} colorClass="bg-rose-500/10 text-rose-500" delay={0.4} />

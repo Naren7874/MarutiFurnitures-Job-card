@@ -249,7 +249,7 @@ export default function ApproveQuotationModal({
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                         <StaffMultiSelect
-                                            label="Production"
+                                            label="Factory Manager"
                                             icon={Wrench}
                                             selectedIds={globalConfig.assignedTo.production}
                                             allUsers={allUsers}
@@ -465,7 +465,7 @@ export default function ApproveQuotationModal({
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                                 <StaffMultiSelect
-                                                    label="Production"
+                                                    label="Factory Manager"
                                                     icon={Wrench}
                                                     selectedIds={config.assignedTo.production}
                                                     allUsers={allUsers}

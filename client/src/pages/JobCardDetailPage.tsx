@@ -120,7 +120,7 @@ export default function JobCardDetailPage() {
     // Build visible tabs list based on permissions + role-based focus
     const ALL_TABS = [
         { value: 'overview', label: 'Overview', icon: FileText, show: true },
-        { value: 'production', label: 'Production', icon: Wrench, show: canSeeProd },
+        { value: 'production', label: 'Factory Manager', icon: Wrench, show: canSeeProd },
         { value: 'qc', label: 'QC', icon: Shield, show: canSeeQC },
         { value: 'dispatch', label: 'Dispatch', icon: Truck, show: canSeeDispatch },
         { value: 'closure', label: 'Closure', icon: Archive, show: isSuperAdmin || isManager || user?.role === 'sales' || user?.role === 'accountant' },
@@ -850,7 +850,7 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
                             {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pending assignment'}
                         </p>
                     </div>
-                    <AssignedStaffList users={jc.assignedTo?.production} roleLabel="Production Team" color="bg-primary" />
+                    <AssignedStaffList users={jc.assignedTo?.production} roleLabel="Factory Manager" color="bg-primary" />
                     <div className="col-span-1 sm:col-span-2 sm:flex sm:justify-end">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-2 sm:text-right">Stage Status</p>
