@@ -636,6 +636,14 @@ export const useDeletePayment = (id: string) => {
 
 
 // ─── Users & Roles ────────────────────────────────────────────────────────────
+export const useUsers = (params: object = {}) => {
+    const { company } = useAuthStore();
+    return useQuery({ 
+        queryKey: QK.users(company?.id || '', params), 
+        queryFn: () => apiGet('/users', params),
+        enabled: !!company?.id 
+    });
+};
 
 export const useDeleteUser = () => {
     const qc = useQueryClient();

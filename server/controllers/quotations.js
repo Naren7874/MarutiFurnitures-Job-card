@@ -284,17 +284,7 @@ export const updateQuotation = async (req, res, next) => {
       linkedInvoice.subtotal = newSubtotal;
       linkedInvoice.discount = newDiscount;
       linkedInvoice.amountAfterDiscount = newSubtotal - newDiscount;
-      const gstFactor = 0.09; // 9% each for CGST + SGST
-      if (linkedInvoice.gstType === 'igst') {
-        linkedInvoice.igst  = +(linkedInvoice.amountAfterDiscount * 0.18).toFixed(2);
-        linkedInvoice.cgst  = 0;
-        linkedInvoice.sgst  = 0;
-      } else {
-        linkedInvoice.igst  = 0;
-        linkedInvoice.cgst  = +(linkedInvoice.amountAfterDiscount * gstFactor).toFixed(2);
-        linkedInvoice.sgst  = +(linkedInvoice.amountAfterDiscount * gstFactor).toFixed(2);
-      }
-      linkedInvoice.gstAmount  = linkedInvoice.igst + linkedInvoice.cgst + linkedInvoice.sgst;
+      linkedInvoice.gstAmount  = +(linkedInvoice.amountAfterDiscount * 0.18).toFixed(2);
       linkedInvoice.grandTotal = +(linkedInvoice.amountAfterDiscount + linkedInvoice.gstAmount).toFixed(2);
       const totalPaidSoFar = linkedInvoice.payments.reduce((sum, p) => sum + p.amount, 0);
       linkedInvoice.advancePaid = totalPaidSoFar;
@@ -537,10 +527,8 @@ export const approveQuotation = async (req, res, next) => {
     const invoiceSubtotal = invoiceItems.reduce((s, i) => s + (i.qty * i.rate), 0);
     const invoiceDiscount = prev.discount || 0;
     const invoiceAfterDiscount = invoiceSubtotal - invoiceDiscount;
-    // Default GST: use 18% CGST+SGST for domestic
-    const invoiceCgst = +(invoiceAfterDiscount * 0.09).toFixed(2);
-    const invoiceSgst = +(invoiceAfterDiscount * 0.09).toFixed(2);
-    const invoiceGrandTotal = +(invoiceAfterDiscount + invoiceCgst + invoiceSgst).toFixed(2);
+    const invoiceGstAmount = +(invoiceAfterDiscount * 0.18).toFixed(2);
+    const invoiceGrandTotal = +(invoiceAfterDiscount + invoiceGstAmount).toFixed(2);
 
     // Build initial payments array if advance was provided
     const { advancePayment } = req.body;
@@ -565,7 +553,7 @@ export const approveQuotation = async (req, res, next) => {
       projectId:            project._id,
       quotationId:          prev._id,
       jobCardIds:           jobCards.map(jc => jc._id),
-      gstType:             'cgst_sgst',
+      gstAmount:            invoiceGstAmount,
       placeOfSupply:        company.address?.state || '',
       clientGstinSnapshot:  clientData?.gstin || '',
       companyGstinSnapshot: company.gstin || '',
@@ -573,10 +561,6 @@ export const approveQuotation = async (req, res, next) => {
       subtotal:             invoiceSubtotal,
       discount:             invoiceDiscount,
       amountAfterDiscount:  invoiceAfterDiscount,
-      cgst:                 invoiceCgst,
-      sgst:                 invoiceSgst,
-      igst:                 0,
-      gstAmount:            invoiceCgst + invoiceSgst,
       grandTotal:           invoiceGrandTotal,
       advancePaid:          totalPaidAtCreation,
       balanceDue:           invoiceBalanceDue,

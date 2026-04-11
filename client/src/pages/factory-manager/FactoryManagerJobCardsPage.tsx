@@ -202,14 +202,20 @@ export default function FactoryManagerJobCardsPage() {
                                             isRework && 'bg-rose-500/3 hover:bg-rose-500/5'
                                         )}>
                                             {/* Status icon dot */}
-                                            <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 border', statusCls)}>
-                                                {isRework ? <XCircle size={18} /> : jc.jobCardNumber?.slice(-4) || '#'}
-                                            </div>
+                                            {jc.items?.[0]?.photo && !isRework ? (
+                                                <div className={cn('w-12 h-12 rounded-xl overflow-hidden shrink-0 border backdrop-blur-sm', statusCls.replace('bg-', 'bg-opacity-10 '))}>
+                                                    <img src={jc.items[0].photo} alt={jc.jobCardNumber} className="w-full h-full object-cover" />
+                                                </div>
+                                            ) : (
+                                                <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 border', statusCls)}>
+                                                    {isRework ? <XCircle size={18} /> : jc.jobCardNumber?.slice(-4) || '#'}
+                                                </div>
+                                            )}
 
                                             {/* Info */}
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    <p className="font-bold text-sm text-foreground group-hover:text-orange-500 transition-colors truncate">
+                                                    <p className="font-black text-[15px] text-foreground group-hover:text-orange-500 transition-colors truncate tracking-tight">
                                                         {jc.title || jc.jobCardNumber}
                                                     </p>
                                                     {isRework && (
@@ -218,8 +224,8 @@ export default function FactoryManagerJobCardsPage() {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-[11px] font-medium text-muted-foreground/50 truncate">
-                                                    <span className="font-black text-muted-foreground/40">{jc.jobCardNumber}</span>
+                                                <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/40 truncate">
+                                                    <span className="text-orange-500/50">{jc.jobCardNumber}</span>
                                                     {jc.clientId?.name ? ` · ${jc.clientId.name}` : ''}
                                                     {jc.projectId?.projectName ? ` · ${jc.projectId.projectName}` : ''}
                                                 </p>

@@ -15,6 +15,7 @@ interface PriorityQueueItem {
     stage: string
     completionPercent?: number
     estimatedValue?: number
+    photo?: string
 }
 
 interface PriorityQueueProps {
@@ -102,6 +103,11 @@ export function PriorityQueue({ items }: PriorityQueueProps) {
                                                     className="w-1 h-10 rounded-full shrink-0"
                                                     style={{ backgroundColor: stageColor }}
                                                 />
+                                                {item.photo && (
+                                                    <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-border shadow-sm">
+                                                        <img src={item.photo} alt={item.jobNumber} className="w-full h-full object-cover" />
+                                                    </div>
+                                                )}
                                                 <div className="min-w-0">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <span className="font-bold text-sm text-foreground">{item.jobNumber}</span>

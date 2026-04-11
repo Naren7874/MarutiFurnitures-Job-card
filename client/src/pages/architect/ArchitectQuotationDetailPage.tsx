@@ -186,7 +186,7 @@ export default function ArchitectQuotationDetailPage() {
             <InfoRow label="Valid Until" value={q.validUntil ? format(new Date(q.validUntil), 'dd MMM yyyy') : null} />
             <InfoRow label="Delivery" value={q.deliveryDays || null} />
             <InfoRow label="Advance" value={q.advancePercent != null ? `${q.advancePercent}%` : null} />
-            <InfoRow label="GST Type" value={q.gstType?.replace('_', ' + ').toUpperCase() || null} />
+
           </div>
         </InfoCard>
 
@@ -195,7 +195,7 @@ export default function ArchitectQuotationDetailPage() {
           <InfoCard icon={FileText} title="Project Terms">
             <div className="space-y-2">
               <InfoRow label="Advance" value={q.advancePercent != null ? `${q.advancePercent}%` : null} />
-              <InfoRow label="GST Type" value={q.gstType?.replace('_', ' + ').toUpperCase() || null} />
+
               <InfoRow label="Delivery" value={q.deliveryDays || null} />
             </div>
           </InfoCard>

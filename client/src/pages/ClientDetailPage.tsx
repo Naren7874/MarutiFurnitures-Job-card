@@ -11,10 +11,10 @@ const FIELD = ({ label, value, icon: Icon }: { label: string; value?: string | n
     !value ? null : (
         <div className="group/field p-4 rounded-2xl bg-card border border-border/60 hover:bg-card/80 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-1 transition-all duration-300 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
-                {Icon && <Icon size={12} className="text-primary/40 group-hover/field:text-primary transition-colors" />}
-                <p className="text-muted-foreground/40 text-[9px] font-black uppercase tracking-widest">{label}</p>
+                {Icon && <Icon size={14} className="text-primary/40 group-hover/field:text-primary transition-colors" />}
+                <p className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-widest">{label}</p>
             </div>
-            <p className="text-foreground text-sm font-black tracking-tight">{value}</p>
+            <p className="text-foreground text-base font-black tracking-tight">{value}</p>
         </div >
     );
 
@@ -207,10 +207,10 @@ export default function ClientDetailPage() {
                             </div>
                             <div className="space-y-4">
                                 <div className="p-6 rounded-2xl bg-muted/20 border border-border/40">
-                                    <p className="text-foreground text-sm font-bold leading-relaxed">
+                                    <p className="text-foreground text-base font-bold leading-relaxed">
                                         {client.address?.line1 || client.address?.street}{client.address?.line2 ? `, ${client.address.line2}` : ''},<br />
                                         {client.address?.city}, {client.address?.state} {client.address?.pincode}<br />
-                                        <span className="text-primary/40 text-[10px] font-black uppercase tracking-widest">Postal Code: </span>
+                                        <span className="text-primary/40 text-xs font-black uppercase tracking-widest">Postal Code: </span>
                                         <span className="text-primary font-black tracking-widest">{client.address?.pincode}</span>
                                     </p>
                                 </div>
@@ -323,11 +323,22 @@ export default function ClientDetailPage() {
                         <div className="space-y-3">
                             {jobCards.slice(0, 3).map((jc: any) => (
                                 <Link key={jc._id} to={`/jobcards/${jc._id}`} className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 hover:bg-muted/40 transition-colors group">
-                                    <div>
-                                        <p className="text-sm font-black text-foreground group-hover:text-violet-500 transition-colors">{jc.jobCardNumber}</p>
-                                        <p className="text-[10px] text-muted-foreground font-bold">{jc.title}</p>
+                                    <div className="flex items-center gap-3">
+                                        {jc.items?.[0]?.photo ? (
+                                            <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-border shadow-sm">
+                                                <img src={jc.items[0].photo} alt={jc.jobCardNumber} className="w-full h-full object-cover" />
+                                            </div>
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center shrink-0 shadow-sm">
+                                                <ClipboardList size={16} />
+                                            </div>
+                                        )}
+                                        <div>
+                                            <p className="text-sm font-black text-foreground group-hover:text-violet-500 transition-colors">{jc.jobCardNumber}</p>
+                                            <p className="text-[10px] text-muted-foreground font-bold line-clamp-1 max-w-[200px]">{jc.title}</p>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
+                                    <div className="text-right shrink-0">
                                         <span className={cn(
                                             "text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest",
                                             jc.status === 'delivered' ? "bg-emerald-500/10 text-emerald-500" : "bg-violet-500/10 text-violet-500"

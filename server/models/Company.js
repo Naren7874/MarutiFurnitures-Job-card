@@ -42,11 +42,7 @@ const companySchema = new mongoose.Schema(
     projectPrefix:   { type: String, default: "PRJ" },  // PRJ-170326-100
     poPrefix:        { type: String, default: "PO" },   // PO-170326-100
 
-    gstRates: {
-      cgst: { type: Number, default: 9 },
-      sgst: { type: Number, default: 9 },
-      igst: { type: Number, default: 18 },
-    },
+    gstRate: { type: Number, default: 18 },
 
     defaultTermsAndConditions: [{ type: String }],
 

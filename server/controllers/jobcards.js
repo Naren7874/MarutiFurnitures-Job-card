@@ -139,12 +139,7 @@ export const createDirectJobCard = async (req, res, next) => {
     const disc = Number(discount) || 0;
     const amountAfterDiscount = Math.max(0, subtotal - disc);
     
-    // Default GST: 9% CGST 9% SGST or 18% IGST depending on type
-    const isIgst = gstType === 'igst';
-    const cgst = isIgst ? 0 : +(amountAfterDiscount * 0.09).toFixed(2);
-    const sgst = isIgst ? 0 : +(amountAfterDiscount * 0.09).toFixed(2);
-    const igst = isIgst ? +(amountAfterDiscount * 0.18).toFixed(2) : 0;
-    const gstAmount = cgst + sgst + igst;
+    const gstAmount = +(amountAfterDiscount * 0.18).toFixed(2);
     const grandTotal = +(amountAfterDiscount + gstAmount).toFixed(2);
 
     const advAmount = Number(advancePayment?.amount) || 0;
@@ -179,8 +174,7 @@ export const createDirectJobCard = async (req, res, next) => {
       subtotal,
       discount: disc,
       amountAfterDiscount,
-      gstType: gstType || 'cgst_sgst',
-      cgst, sgst, igst, gstAmount, grandTotal,
+      gstAmount, grandTotal,
       advancePercent: advancePayment?.percent || 0,
       advanceAmount: advAmount,
       approvedAt: new Date(),
@@ -264,7 +258,7 @@ export const createDirectJobCard = async (req, res, next) => {
       projectId: project._id,
       quotationId: quotation._id,
       jobCardIds: [jobCard._id],
-      gstType: gstType || 'cgst_sgst',
+
       items: [{
         srNo: 1,
         category: builtItem.category,
@@ -277,7 +271,7 @@ export const createDirectJobCard = async (req, res, next) => {
       subtotal,
       discount: disc,
       amountAfterDiscount,
-      cgst, sgst, igst, gstAmount, grandTotal,
+      gstAmount, grandTotal,
       advancePaid: advAmount,
       balanceDue,
       payments: invoicePayments,
@@ -345,9 +339,10 @@ export const getJobCards = async (req, res, next) => {
       JobCard.find(filter)
         .populate('clientId', 'name firmName address')
         .populate('projectId', 'projectName projectNumber')
+        .populate('assignedTo.production', 'name role profilePhoto')
         .populate('quotationId', 'grandTotal')
         .populate('dispatchStageId')
-        .select('-activityLog') // Don't return full log on list
+        .select('-activityLog') 
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(Number(limit))

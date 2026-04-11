@@ -213,6 +213,7 @@ export default function App() {
                     <Route index element={<FactoryManagerDashboardPage />} />
                     <Route path="jobcards" element={<FactoryManagerJobCardsPage />} />
                     <Route path="jobcards/:id" element={<FactoryManagerJobCardDetailPage />} />
+                    <Route path="notifications" element={<NotificationsPage />} />
                   </Route>
                 </Route>
 

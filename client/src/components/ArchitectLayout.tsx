@@ -1,11 +1,13 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, LogOut, Building2, Factory, FolderKanban } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, LogOut, Building2, Factory, FolderKanban, Bell } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '../lib/utils';
 import { PanelLeft } from 'lucide-react';
 import { useState } from 'react';
+import { useNotificationStore } from '../stores/notificationStore';
+import NotificationSheet from './NotificationSheet';
 
 const NAV = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/architect' },
@@ -19,6 +21,7 @@ export default function ArchitectLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const { unreadCount, setSheetOpen } = useNotificationStore();
 
   const handleLogout = () => {
     logout();
@@ -110,6 +113,20 @@ export default function ArchitectLayout() {
 
           <div className="flex items-center gap-2">
             <AnimatedThemeToggler />
+            
+            <div className="h-4 w-px bg-border mx-1" />
+
+            <button
+              onClick={() => setSheetOpen(true)}
+              className="relative w-9 h-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition"
+            >
+              <Bell size={18} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary text-primary-foreground text-[9px] font-bold rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(var(--primary),0.4)]">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
             <div className="flex items-center gap-2 pl-3 ml-1 border-l border-border">
               <Avatar className="size-8 border border-border">
                 <AvatarImage src={user?.profilePhoto} />
@@ -126,6 +143,8 @@ export default function ArchitectLayout() {
           <Outlet />
         </main>
       </div>
+      {/* Notification Sheet (slide-over from right) */}
+      <NotificationSheet />
     </div>
   );
 }

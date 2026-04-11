@@ -130,6 +130,7 @@ function AdminDashboard() {
                     priority: jc.priority?.toUpperCase() as any,
                     stage: (jc.status || 'ACTIVE').toUpperCase().replace(/_/g, ' '),
                     completionPercent: jc.status === 'delivered' ? 100 : jc.status === 'qc_passed' ? 90 : (jc.status === 'in_production' ? 60 : 30),
+                    photo: jc.items?.[0]?.photo,
                 }))
             : [];
     }, [allJobCards]);

@@ -8,8 +8,8 @@ import {
     ArrowLeft, AlertTriangle, Pencil, CheckCircle2, XCircle,
     Package, Loader2, Clock, CheckCheck,
     Truck, Shield, Wrench, TriangleAlert, User,
-    CalendarCheck, MapPin, Camera, FileText, Users, MessageSquare, Download,
-    ShieldCheck, Zap, Maximize2, Fingerprint, Wind, EyeOff, History, Layers,
+    CalendarCheck, MapPin, Camera, FileText, MessageSquare, Download,
+    ShieldCheck, Zap, Maximize2, Fingerprint, Wind, History, Layers,
     Archive, ArchiveRestore, AlertCircle, Sparkles, PackageCheck, X
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,6 +26,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import { useUsers } from '@/hooks/useApi';
 
 import { motion, AnimatePresence } from 'motion/react';
 import { PhotoUploadZone } from '@/components/ui/photo-upload-zone';
@@ -219,7 +221,10 @@ export default function JobCardDetailPage() {
                                 ? `${jc.items[0].category} - ${jc.title}` 
                                 : jc.title}
                         </h1>
-                        <p className="text-muted-foreground/60 text-sm font-medium">{jc.clientId?.name} <span className="mx-1.5 opacity-30">/</span> {jc.projectId?.projectName}</p>
+                        <div className="flex flex-col gap-0.5 mt-1">
+                            <p className="text-foreground text-base font-black tracking-tight">{jc.clientId?.name}</p>
+                            <p className="text-muted-foreground/50 text-[10px] font-black uppercase tracking-[0.15em]">{jc.projectId?.projectName || 'No Project'}</p>
+                        </div>
                     </div>
                     <div className="flex flex-col items-end gap-3">
                         <div className="flex items-center gap-3">
@@ -292,14 +297,33 @@ export default function JobCardDetailPage() {
                         </div>
                     ))}
                 </div>
+
+                {/* Assigned Team */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mt-6 pt-5 border-t border-border/40">
+                    {[
+                        { label: 'Sales Executive', value: jc.salesperson?.name },
+                        { label: 'Factory Manager', value: jc.assignedTo?.production?.map((u: any) => u.name).join(', ') },
+                        { label: 'QC Officer', value: jc.assignedTo?.qc?.map((u: any) => u.name).join(', ') },
+                        { label: 'Accountant', value: jc.assignedTo?.accounts?.map((u: any) => u.name).join(', ') },
+                    ].map(({ label, value }) => (
+                        <div key={label} className="space-y-1">
+                            <p className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-widest">{label}</p>
+                            {value ? (
+                                <p className="text-foreground text-sm font-bold truncate">{value}</p>
+                            ) : (
+                                <p className="text-muted-foreground/30 text-sm font-medium italic">Not Set</p>
+                            )}
+                        </div>
+                    ))}
+                </div>
             </motion.div>
 
             {/* Stage Tabs — filtered by role permissions */}
             <Tabs defaultValue="overview">
-                <TabsList className="flex flex-wrap sm:flex-nowrap bg-muted/20 border border-border/40 p-1.5 rounded-3xl w-full gap-1.5 h-14 mb-2 shadow-sm">
+                <TabsList className="flex flex-wrap sm:flex-nowrap  py-4 rounded-3xl w-full gap-1.5 h-14 mb-2 shadow-sm">
                     {visibleTabs.map(t => (
                         <TabsTrigger key={t.value} value={t.value}
-                            className="flex-1 h-full flex items-center justify-center gap-2 rounded-2xl font-black text-[12px] sm:text-xs data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md transition-all active:scale-95 px-2 sm:px-4">
+                            className="flex-1 h-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[12px] sm:text-xs text-white/70 data-[state=active]:bg-white data-[state=active]:text-red-500 data-[state=active]:shadow-md transition-all active:scale-95 px-2 sm:px-4">
                             <t.icon size={16} className="shrink-0" />
                             <span className="hidden sm:inline">{t.label}</span>
                             <span className="sm:hidden">{t.label.slice(0, 3)}</span>
@@ -467,67 +491,6 @@ function OverviewTab({ jc }: any) {
                 </div>
             </div>
 
-            {/* ── Block 2: PERSONNEL (6 Cols) ── */}
-            <div className="md:col-span-12 lg:col-span-6">
-                <motion.div whileHover={{ scale: 1.01 }}
-                    className="h-full bg-card/20 backdrop-blur-xl border border-border/10 rounded-[2.5rem] p-10 shadow-sm transition-all duration-500 hover:border-indigo-500/30 group">
-                    <div className="flex items-center gap-4 mb-10">
-                        <div className="p-3.5 rounded-2xl bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500"><Users size={20} /></div>
-                        <div>
-                            <h4 className="font-black text-sm uppercase tracking-[0.15em] text-foreground">Personnel</h4>
-                            <p className="text-[9px] text-muted-foreground/40 font-medium uppercase tracking-widest">Team Assignment</p>
-                        </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <div>
-                                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 mb-2">Sales Lead</p>
-                                <p className="text-sm font-black text-foreground/80 uppercase tracking-tight">{jc.salesperson?.name || 'Unassigned'}</p>
-                            </div>
-                            <MiniStaffBlock users={jc.assignedTo?.qc} label="Quality" icon={ShieldCheck} />
-                        </div>
-                        <div className="space-y-6">
-                            <div>
-                                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 mb-2">Originator</p>
-                                <p className="text-sm font-black text-foreground/80 uppercase tracking-tight">{jc.createdBy?.name || 'System'}</p>
-                            </div>
-                            <MiniStaffBlock users={jc.assignedTo?.production} label="Factory" icon={Wrench} />
-                            <MiniStaffBlock users={jc.assignedTo?.dispatch} label="Logistics" icon={Truck} />
-                        </div>
-                    </div>
-                </motion.div>
-            </div>
-
-            {/* ── Block 3: COMMUNICATION (6 Cols) ── */}
-            <div className="md:col-span-12 lg:col-span-6">
-                <motion.div whileHover={{ scale: 1.01 }}
-                    className="h-full bg-card/20 backdrop-blur-xl border border-emerald-500/10 rounded-[2.5rem] p-10 shadow-sm flex flex-col justify-center group">
-                    <div className="flex items-center gap-4 mb-10">
-                        <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500"><MessageSquare size={20} /></div>
-                        <div>
-                            <h4 className="font-black text-sm uppercase tracking-[0.15em] text-foreground">Communication</h4>
-                            <p className="text-[9px] text-muted-foreground/40 font-medium uppercase tracking-widest">Client Sync</p>
-                        </div>
-                    </div>
-                    
-                    {jc.whatsapp?.groupLink ? (
-                        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-8 text-center space-y-6">
-                            <p className="text-xl font-black text-foreground/80 tracking-tight uppercase leading-none">{jc.whatsapp.groupName}</p>
-                            <a href={jc.whatsapp.groupLink} target="_blank" rel="noreferrer" 
-                                className="inline-flex items-center justify-center w-full gap-3 text-[11px] font-black text-white bg-emerald-500 hover:bg-emerald-600 h-14 rounded-xl transition-all shadow-xl shadow-emerald-500/20 active:scale-95 uppercase tracking-widest">
-                                <Zap size={16} className="fill-current" /> Join Channel
-                            </a>
-                        </div>
-                    ) : (
-                        <div className="py-16 border border-dashed border-emerald-500/10 rounded-2xl flex flex-col items-center justify-center text-center px-8">
-                            <EyeOff size={32} className="text-emerald-500/10 mb-3" />
-                            <p className="text-[9px] font-black text-muted-foreground/20 uppercase tracking-[0.3em]">Channel Not Assigned</p>
-                        </div>
-                    )}
-                </motion.div>
-            </div>
-
             {/* ── Block 4: VISUAL ARCHIVE (12 Cols) ── */}
             {(item?.fabricPhoto || (item?.photos?.length > 0)) && (
                 <div className="md:col-span-12">
@@ -581,29 +544,6 @@ function OverviewTab({ jc }: any) {
 
 // ── Shared Bento Helpers ──────────────────────────────────────────────────────
 
-function MiniStaffBlock({ users, label, icon: Icon }: { users: any[]; label: string; icon: any }) {
-    const list = Array.isArray(users) ? users : users ? [users] : [];
-    
-    return (
-        <div className="space-y-2">
-            <div className="flex items-center gap-2 mb-1.5">
-                <Icon size={12} className="text-foreground/40" />
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/30 text-left leading-none">{label}</p>
-            </div>
-            <div className="min-h-[20px]">
-                {list.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                        {list.map((u, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded-lg bg-indigo-500/5 text-indigo-500/80 text-[9px] font-black tracking-tight uppercase border border-indigo-500/10">{u.name}</span>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-[8px] font-bold text-muted-foreground/20 italic pl-0.5 uppercase text-left leading-none">Unassigned</p>
-                )}
-            </div>
-        </div>
-    );
-}
 
 function VisualArchiveBlock({ photos, fabricPhoto }: { photos: string[], fabricPhoto?: string }) {
     const allPhotos = [...(fabricPhoto ? [fabricPhoto] : []), ...(photos || [])];
@@ -1230,6 +1170,15 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
     const { data: dRaw, isLoading } = useQuery({ queryKey: ['jobcard', id, 'dispatch'], queryFn: () => apiGet(`/jobcards/${id}/dispatch`) });
     const stage: any = (dRaw as any)?.data ?? null;
 
+    // Fetch dispatch users for searchable dropdown
+    const dispatchRes: any = useUsers({ role: 'dispatch', isActive: true });
+    const dispatchUsers = dispatchRes.data?.data || [];
+    const dispatchOptions = dispatchUsers.map((u: any) => ({
+        value: u._id,
+        label: u.name,
+        color: '#8ffb03' // Dispatch role color
+    }));
+
     const [form, setForm] = useState({ scheduledDate: '', timeSlot: 'morning', vehicleNo: '', driverName: '', driverPhone: '' });
     const [proofPhoto, setProofPhoto] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -1237,6 +1186,21 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
     const [uploadingPod, setUploadingPod] = useState(false);
     const [clientSignature, setClientSignature] = useState('');
     const [gpsLocation, setGpsLocation] = useState('');
+
+    // Sync form state when stage data loads
+    useEffect(() => {
+        if (stage) {
+            setForm({
+                scheduledDate: stage.scheduledDate ? format(parseISO(stage.scheduledDate), 'yyyy-MM-dd') : '',
+                timeSlot: stage.timeSlot || 'morning',
+                vehicleNo: stage.deliveryTeam?.[0]?.vehicle?.number || '',
+                driverName: stage.deliveryTeam?.[0]?.name || '',
+                driverPhone: stage.deliveryTeam?.[0]?.phone || ''
+            });
+            if (stage.clientSignature) setClientSignature(stage.clientSignature);
+            if (stage.gpsLocation) setGpsLocation(stage.gpsLocation);
+        }
+    }, [stage]);
 
     useEffect(() => {
         if (!proofPhoto) {
@@ -1429,9 +1393,27 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
                                 <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Vehicle License No.</Label>
                                 <Input value={form.vehicleNo} onChange={e => setForm(f => ({ ...f, vehicleNo: e.target.value }))} placeholder="e.g. GJ01-..." disabled={!effectiveCanEdit} className="rounded-2xl h-12 bg-background/50 border-border/30 font-bold text-xs px-5 focus:ring-cyan-500/10" />
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Driver In-Charge</Label>
-                                <Input value={form.driverName} onChange={e => setForm(f => ({ ...f, driverName: e.target.value }))} placeholder="Enter name" disabled={!effectiveCanEdit} className="rounded-2xl h-12 bg-background/50 border-border/30 font-bold text-xs px-5 focus:ring-cyan-500/10" />
+                             <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Delivery Person</Label>
+                                <SearchableSelect 
+                                    options={dispatchOptions}
+                                    value={dispatchUsers.find((u: any) => u.name === form.driverName)?._id || ''}
+                                    onChange={(val) => {
+                                        const user = dispatchUsers.find((u: any) => u._id === val);
+                                        if (user) {
+                                            const phone = user.phone || user.whatsappNumber || '';
+                                            setForm(f => ({ 
+                                                ...f, 
+                                                driverName: user.name, 
+                                                driverPhone: phone 
+                                            }));
+                                        }
+                                    }}
+                                    placeholder="Search Delivery Person"
+                                    searchPlaceholder="Type name..."
+                                    disabled={!effectiveCanEdit}
+                                    className="h-12 rounded-2xl border-border/30 bg-background/50 text-xs font-bold focus:ring-cyan-500/10"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Contact Phone</Label>

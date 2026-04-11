@@ -154,8 +154,6 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
     // ── Financial ─────────────────────────────────────────────────────────────
     const [discount, setDiscount] = useState(0);
-    const [gstType, setGstType] = useState<'cgst_sgst' | 'igst'>('cgst_sgst');
-    const [advancePercent, setAdvancePercent] = useState(50);
     const [additionalTerms, setAdditionalTerms] = useState<string[]>([]);
     const [assignedStaff, setAssignedStaff] = useState<string[]>([]);
 
@@ -201,8 +199,6 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                 architectCommissionPercent: existingQ.architectCommissionPercent || 0,
             });
             setDiscount(existingQ.discount || 0);
-            setGstType(existingQ.gstType || 'cgst_sgst');
-            setAdvancePercent(existingQ.advancePercent || 50);
             setAdditionalTerms(existingQ.additionalTerms || []);
             setAssignedStaff((existingQ.assignedStaff || []).map((s: any) => s._id || s));
             if (existingQ.items?.length) setItems(existingQ.items.map(dbItemToLocal));
@@ -328,8 +324,6 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                 totalPrice: rest.qty * (rest.sellingPrice || 0),
             })),
             discount,
-            gstType,
-            advancePercent,
             additionalTerms: additionalTerms.filter(t => t.trim() !== ''),
             assignedStaff,
         };

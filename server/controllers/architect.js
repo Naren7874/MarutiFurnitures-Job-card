@@ -327,6 +327,7 @@ export const getArchitectJobCards = async (req, res, next) => {
         .populate('clientId', 'name firmName')
         .populate('companyId', 'name logo')
         .populate('projectId', 'projectName')
+        .populate('assignedTo.production', 'name role profilePhoto')
         .sort({ createdAt: -1 })
         .skip((Number(page) - 1) * Number(limit))
         .limit(Number(limit))

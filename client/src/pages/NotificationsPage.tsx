@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { useAuthStore } from '../stores/authStore';
 
 const TYPE_CFG: Record<string, { icon: any; color: string; bg: string }> = {
+// ... existing TYPE_CFG ...
     job_card: { icon: Package, color: 'text-primary', bg: 'bg-primary/10' },
     invoice: { icon: Receipt, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
     quotation: { icon: FileText, color: 'text-blue-500', bg: 'bg-blue-500/10' },
@@ -25,16 +27,33 @@ const fmtTime = (d: string) => {
     return new Date(d).toLocaleDateString('en-GB');
 };
 
-function NotifCard({ n, onRead }: { n: AppNotification; onRead: () => void }) {
+function NotifCard({ n, onRead, user }: { n: AppNotification; onRead: () => void; user: any }) {
     const navigate = useNavigate();
     const cfg = TYPE_CFG[n.type] || { icon: Bell, color: 'text-primary', bg: 'bg-primary/10' };
     const Icon = cfg.icon;
-    
+
     const handleClick = () => {
         if (!n.read) onRead();
-        if (n.jobCardId) navigate(`/jobcards/${n.jobCardId}`);
-        else if (n.projectId) navigate(`/projects/${n.projectId}`);
-        else if (n.quotationId) navigate(`/quotations/${n.quotationId}`);
+
+        const isArchitect = (role?: string) => {
+            const r = (role || '').toLowerCase();
+            return r.includes('architect') || r === 'project_designer' || r === 'project designer';
+        };
+        const isFactory = (role?: string) => {
+            const r = (role || '').toLowerCase().replace(' ', '_');
+            return r === 'factory_manager' || r === 'factorymanager';
+        };
+
+        let path = '';
+        if (n.jobCardId) path = `/jobcards/${n.jobCardId}`;
+        else if (n.projectId) path = `/projects/${n.projectId}`;
+        else if (n.quotationId) path = `/quotations/${n.quotationId}`;
+
+        if (path) {
+            if (isFactory(user?.role)) navigate(`/factory${path}`);
+            else if (isArchitect(user?.role)) navigate(`/architect${path}`);
+            else navigate(path);
+        }
     };
 
     return (
@@ -59,6 +78,7 @@ function NotifCard({ n, onRead }: { n: AppNotification; onRead: () => void }) {
 }
 
 export default function NotificationsPage() {
+    const { user } = useAuthStore();
     const { notifications, markRead, markAllRead, unreadCount } = useNotificationStore();
     const unread = notifications.filter(n => !n.read);
     const read = notifications.filter(n => n.read);
@@ -93,7 +113,7 @@ export default function NotificationsPage() {
                         {unread.length > 0 && (
                             <div className="space-y-2">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">Unread ({unread.length})</p>
-                                {unread.map(n => <NotifCard key={n._id} n={n} onRead={() => markRead(n._id)} />)}
+                                {unread.map(n => <NotifCard key={n._id} n={n} onRead={() => markRead(n._id)} user={user} />)}
                             </div>
                         )}
                         {read.length > 0 && (
@@ -102,7 +122,7 @@ export default function NotificationsPage() {
                                     <Clock size={11} className="text-muted-foreground/30" />
                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Earlier</p>
                                 </div>
-                                {read.map(n => <NotifCard key={n._id} n={n} onRead={() => { }} />)}
+                                {read.map(n => <NotifCard key={n._id} n={n} onRead={() => { }} user={user} />)}
                             </div>
                         )}
                     </AnimatePresence>

@@ -120,7 +120,7 @@ export default function DirectJobCardForm() {
 
     // ── Financials ────────────────────────────────────────────────────────────
     const [discount, setDiscount] = useState(0);
-    const [gstType] = useState<'cgst_sgst' | 'igst'>('cgst_sgst');
+
     const [advanceAmount, setAdvanceAmount] = useState(0);
 
     // ── Team Assignment ───────────────────────────────────────────────────────
@@ -212,7 +212,6 @@ export default function DirectJobCardForm() {
                 mrp: item.mrp,
                 sellingPrice: item.sellingPrice,
             },
-            gstType,
             discount,
             advancePayment: {
                 amount: advanceAmount,

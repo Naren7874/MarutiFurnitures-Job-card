@@ -38,7 +38,6 @@ export default function EditInvoicePage() {
     const [form, setForm] = useState({
         clientId: '',
         projectId: '',
-        gstType: 'cgst_sgst' as 'cgst_sgst' | 'igst',
         gstRate: 18,
         discountPct: 0,
         advancePaid: 0,
@@ -73,8 +72,7 @@ export default function EditInvoicePage() {
                 setForm(f => ({
                     ...f,
                     discountPct: inv.discountPct || 0,
-                    gstRate: inv.gstRate || 18,
-                    gstType: inv.gstType === 'igst' ? 'igst' : 'cgst_sgst'
+                    gstRate: inv.gstRate || 18
                 }));
             }
         }
@@ -86,7 +84,6 @@ export default function EditInvoicePage() {
             setForm({
                 clientId: inv.clientId?._id || inv.clientId || '',
                 projectId: inv.projectId?._id || inv.projectId || '',
-                gstType: inv.gstType || 'cgst_sgst',
                 gstRate: inv.gstAmount && inv.amountAfterDiscount ? Math.round((inv.gstAmount / inv.amountAfterDiscount) * 100) : 18,
                 discountPct: inv.subtotal ? Math.round((inv.discount / inv.subtotal) * 100) : 0,
                 advancePaid: inv.advancePaid || 0,
@@ -143,7 +140,6 @@ export default function EditInvoicePage() {
                 taxableAmount: taxable,
                 gstRate: form.gstRate,
                 gstAmount: gstAmt,
-                ...(form.gstType === 'cgst_sgst' ? { cgst: gstAmt / 2, sgst: gstAmt / 2, igst: 0 } : { igst: gstAmt, cgst: 0, sgst: 0 }),
             });
             navigate(`/invoices/${id}`);
         } catch (e: any) {

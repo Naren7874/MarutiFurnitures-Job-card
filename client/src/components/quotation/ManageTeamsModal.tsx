@@ -32,6 +32,7 @@ interface JobCardConfig {
     itemId?: string;
     srNo: number;
     description: string;
+    photo?: string;
     salesperson: { id: string; name: string };
     contactPerson: string;
     expectedDelivery: string;
@@ -84,6 +85,7 @@ export default function ManageTeamsModal({
                 itemId: jc._id,
                 srNo: jc.items?.[0]?.srNo || 1,
                 description: jc.title || 'Item',
+                photo: jc.items?.[0]?.photo,
                 salesperson: jc.salesperson || { id: '', name: '' },
                 contactPerson: jc.contactPerson || '',
                 expectedDelivery: jc.expectedDelivery ? new Date(jc.expectedDelivery).toISOString().slice(0, 10) : '',
@@ -307,9 +309,15 @@ export default function ManageTeamsModal({
                                                 <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-bl-[100px] -z-10 group-hover/card:scale-110 transition-transform duration-700" />
                                                 
                                                 <div className="flex items-center gap-5">
-                                                    <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl font-black shrink-0">
-                                                        {config.srNo}
-                                                    </div>
+                                                    {config.photo ? (
+                                                        <div className="w-14 h-14 rounded-2xl overflow-hidden border border-border/40 shadow-inner shrink-0 group-hover/card:scale-110 transition-transform bg-muted">
+                                                            <img src={config.photo} alt={config.description} className="w-full h-full object-cover" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl font-black shrink-0">
+                                                            {config.srNo}
+                                                        </div>
+                                                    )}
                                                     <div className="flex-1 min-w-0">
                                                         <p className="font-bold text-lg text-foreground truncate mb-1.5 group-hover/card:text-primary transition-colors">{config.description}</p>
                                                         <div className="flex items-center gap-2">

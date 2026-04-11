@@ -34,7 +34,6 @@ export default function NewInvoicePage() {
     const [form, setForm] = useState({
         clientId: '',
         projectId: '',
-        gstType: 'cgst_sgst' as 'cgst_sgst' | 'igst',
         gstRate: 18,
         discountPct: 0,
         advancePaid: 0,
@@ -66,8 +65,7 @@ export default function NewInvoicePage() {
                 setForm(f => ({
                     ...f,
                     discountPct: inv.discountPct || 0,
-                    gstRate: inv.gstRate || 18,
-                    gstType: inv.gstType === 'igst' ? 'igst' : 'cgst_sgst'
+                    gstRate: inv.gstRate || 18
                 }));
             }
         }
@@ -109,7 +107,7 @@ export default function NewInvoicePage() {
                 discount,
                 gstRate: form.gstRate,
                 gstAmount: gstAmt,
-                ...(form.gstType === 'cgst_sgst' ? { cgst: gstAmt / 2, sgst: gstAmt / 2, igst: 0 } : { igst: gstAmt, cgst: 0, sgst: 0 }),
+
                 grandTotal,
             });
             navigate(`/invoices/${res?.data?._id || res?._id || ''}`);

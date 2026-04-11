@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Trash2, ArrowLeft, FolderOpen, Building2, MapPin, Calendar, Users, ChevronRight, AlertTriangle, CheckCircle2, Clock, Loader2, Package, Activity, Phone, Mail } from 'lucide-react';
+import { Trash2, ArrowLeft, FolderOpen, Building2, MapPin, Calendar, Users, ChevronRight, AlertTriangle, CheckCircle2, Clock, Loader2, Package, Activity, Phone, Mail, Factory, FlaskConical, Truck, Archive, PauseCircle, XCircle } from 'lucide-react';
 import { useProject, useUpdateProjectStatus, useUpdateWhatsApp, useDeleteProject } from '../hooks/useApi';
 import { Button } from '@/components/ui/button';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
@@ -19,14 +19,16 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; bor
     cancelled: { label: 'Cancelled', color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
 };
 
-const JC_STATUS: Record<string, { label: string; color: string }> = {
-    active: { label: 'Active', color: 'text-blue-500' },
-    in_production: { label: 'Production', color: 'text-primary' },
-    qc_pending: { label: 'QC Pending', color: 'text-purple-500' },
-    qc_passed: { label: 'QC Passed', color: 'text-emerald-500' },
-    dispatched: { label: 'Dispatched', color: 'text-cyan-500' },
-    delivered: { label: 'Delivered', color: 'text-green-500' },
-    cancelled: { label: 'Cancelled', color: 'text-rose-500' },
+const JC_STATUS: Record<string, { label: string; icon: any; color: string; bg: string }> = {
+    active: { label: 'Active', icon: Package, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10' },
+    in_production: { label: 'Production', icon: Factory, color: 'text-primary', bg: 'bg-primary/10' },
+    qc_pending: { label: 'QC Audit', icon: FlaskConical, color: 'text-purple-600', bg: 'bg-purple-500/10' },
+    qc_passed: { label: 'QC Passed', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
+    dispatched: { label: 'Transit', icon: Truck, color: 'text-cyan-600', bg: 'bg-cyan-500/10' },
+    delivered: { label: 'Delivered', icon: Archive, color: 'text-green-600', bg: 'bg-green-500/10' },
+    on_hold: { label: 'Hold', icon: PauseCircle, color: 'text-rose-600', bg: 'bg-rose-500/10' },
+    cancelled: { label: 'Cancelled', icon: XCircle, color: 'text-slate-600', bg: 'bg-slate-500/10' },
+    closed: { label: 'Closed', icon: Archive, color: 'text-gray-600', bg: 'bg-gray-500/10' },
 };
 
 const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
@@ -162,12 +164,12 @@ export default function ProjectDetailPage() {
 
                     <div className="space-y-2 pt-1">
                         {project.clientId?.phone && (
-                            <div className="flex items-center gap-2.5 text-xs text-muted-foreground/80 font-bold">
+                            <div className="flex items-center gap-2.5 text-sm text-muted-foreground/80 font-bold">
                                 <Phone size={13} className="text-blue-500/60" /> {project.clientId.phone}
                             </div>
                         )}
                         {project.clientId?.email && (
-                            <div className="flex items-center gap-2.5 text-xs text-muted-foreground/80 font-bold truncate">
+                            <div className="flex items-center gap-2.5 text-sm text-muted-foreground/80 font-bold truncate">
                                 <Mail size={13} className="text-violet-500/60" /> {project.clientId.email}
                             </div>
                         )}
@@ -203,11 +205,11 @@ export default function ProjectDetailPage() {
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 pb-2 border-b border-border/20">
                         <MapPin size={12} /> Site Address
                     </div>
-                    <div className="text-xs text-muted-foreground/70 font-semibold space-y-1.5">
-                        {project.siteAddress?.location && <p className="font-black text-foreground text-[13px]">{project.siteAddress.location}</p>}
+                    <div className="text-sm text-muted-foreground/70 font-semibold space-y-1.5">
+                        {project.siteAddress?.location && <p className="font-black text-foreground text-[15px]">{project.siteAddress.location}</p>}
                         {project.siteAddress?.line1 && <p>{project.siteAddress.line1}</p>}
                         {project.siteAddress?.line2 && <p>{project.siteAddress.line2}</p>}
-                        {project.siteAddress?.pincode && <p className="pt-1">Pincode: <span className="font-bold text-foreground">{project.siteAddress.pincode}</span></p>}
+                        {project.siteAddress?.pincode && <p className="pt-1">Pincode: <span className="font-bold text-foreground text-sm">{project.siteAddress.pincode}</span></p>}
                         {!project.siteAddress?.location && !project.siteAddress?.line1 && (
                             <p className="italic opacity-50 font-normal">No site address provided</p>
                         )}
@@ -332,19 +334,32 @@ export default function ProjectDetailPage() {
                                         className="group flex items-center justify-between p-4 bg-card border border-border/60 rounded-2xl hover:border-primary/30 hover:shadow-md hover:shadow-primary/5 transition-all shadow-xs"
                                     >
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                                <Activity size={16} />
-                                            </div>
+                                            {jc.items?.[0]?.photo ? (
+                                                <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 group-hover:scale-110 transition-transform border border-border/10 bg-muted shadow-sm">
+                                                    <img src={jc.items[0].photo} alt={jc.jobCardNumber} className="w-full h-full object-cover" />
+                                                </div>
+                                            ) : (
+                                                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-sm", jcCfg.bg, jcCfg.color)}>
+                                                    <jcCfg.icon size={18} />
+                                                </div>
+                                            )}
                                             <div>
                                                 <div className="flex items-center gap-2">
-                                                    <p className="font-black text-sm text-foreground">{jc.title}</p>
+                                                    <p className="font-black text-base text-foreground tracking-tight">{jc.jobCardNumber}</p>
                                                     {overdue && <span className="text-[9px] font-black text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20 flex items-center gap-0.5"><AlertTriangle size={9} /> Overdue</span>}
                                                 </div>
-                                                <p className="text-[10px] text-muted-foreground/40 font-bold">{jc.jobCardNumber} · Expected {fmtDate(jc.expectedDelivery)}</p>
+                                                <p className="text-[11px] text-muted-foreground/60 font-black uppercase truncate max-w-[200px] leading-none mt-0.5">
+                                                    {jc.items?.[0]?.category && !jc.title?.startsWith(jc.items[0].category)
+                                                        ? `${jc.items[0].category} - ${jc.title}`
+                                                        : jc.title}
+                                                </p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className={cn('text-[10px] font-black uppercase tracking-wider', jcCfg.color)}>{jcCfg.label}</span>
+                                        <div className="flex items-center gap-4">
+                                            <div className="hidden sm:block text-right">
+                                                <p className={cn('text-[10px] font-black uppercase tracking-wider', jcCfg.color)}>{jcCfg.label}</p>
+                                                <p className="text-[9px] text-muted-foreground/40 font-bold">Exp: {fmtDate(jc.expectedDelivery)}</p>
+                                            </div>
                                             <ChevronRight size={14} className="text-muted-foreground/30 group-hover:text-primary transition-colors" />
                                         </div>
                                     </Link>

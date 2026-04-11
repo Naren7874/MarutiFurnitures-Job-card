@@ -40,10 +40,6 @@ const invoiceSchema = new mongoose.Schema(
     amountAfterDiscount: { type: Number, default: 0 },
 
     // GST breakdown
-    gstType:   { type: String, enum: ["cgst_sgst", "igst"] },
-    cgst:      { type: Number, default: 0 },
-    sgst:      { type: Number, default: 0 },
-    igst:      { type: Number, default: 0 },
     gstRate:   { type: Number, default: 18 },
     gstAmount: { type: Number, default: 0 },
     grandTotal:{ type: Number, default: 0 },

@@ -22,13 +22,12 @@ export const createInvoice = async (req, res, next) => {
       : null;
     const client = quotation?.clientId || await Client.findById(req.body.clientId).lean();
 
-    const gstType = determineGSTType(company.gstin, client?.gstin);
+
 
     const invoice = await Invoice.create({
       ...req.body,
       companyId:    req.user.companyId,
       invoiceNumber,
-      gstType,
       placeOfSupply:        req.body.placeOfSupply || client?.gstState || company.address?.state,
       clientGstinSnapshot:  client?.gstin || '',
       companyGstinSnapshot: company.gstin || '',
@@ -41,7 +40,7 @@ export const createInvoice = async (req, res, next) => {
       resourceType: 'Invoice',
       resourceId: invoice._id,
       resourceLabel: invoiceNumber,
-      metadata: { grandTotal: req.body.grandTotal, gstType, quotationId, projectId },
+      metadata: { grandTotal: req.body.grandTotal, quotationId, projectId },
     });
 
     res.status(201).json({ success: true, data: invoice });
@@ -300,7 +299,7 @@ export const updateInvoice = async (req, res, next) => {
     }
     if (dueDate) invoice.dueDate = dueDate;
     if (req.body.placeOfSupply) invoice.placeOfSupply = req.body.placeOfSupply;
-    if (req.body.gstType)    invoice.gstType = req.body.gstType;
+
     if (req.body.gstRate !== undefined) invoice.gstRate = req.body.gstRate;
     if (req.body.notes !== undefined)   invoice.notes = req.body.notes;
 
@@ -312,16 +311,7 @@ export const updateInvoice = async (req, res, next) => {
     const gstRate = req.body.gstRate !== undefined ? req.body.gstRate : 18;
     const gstFactor = gstRate / 100;
 
-    if (invoice.gstType === 'igst') {
-      invoice.igst = invoice.amountAfterDiscount * gstFactor;
-      invoice.cgst = 0;
-      invoice.sgst = 0;
-    } else {
-      invoice.igst = 0;
-      invoice.cgst = (invoice.amountAfterDiscount * gstFactor) / 2;
-      invoice.sgst = (invoice.amountAfterDiscount * gstFactor) / 2;
-    }
-    invoice.gstAmount = invoice.igst + invoice.cgst + invoice.sgst;
+    invoice.gstAmount = invoice.amountAfterDiscount * gstFactor;
     invoice.grandTotal = invoice.amountAfterDiscount + invoice.gstAmount;
 
     // Balance calculation

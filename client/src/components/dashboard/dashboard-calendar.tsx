@@ -184,6 +184,11 @@ export function DashboardCalendar({ jobCards }: DashboardCalendarProps) {
                                             >
                                                 <div className="flex items-center gap-4 min-w-0">
                                                     <div className={cn("w-1.5 h-1.5 rounded-full shrink-0 shadow-sm transition-transform group-hover:scale-150", config.dot)} />
+                                                    {jc.items?.[0]?.photo && (
+                                                        <div className="w-7 h-7 rounded-md overflow-hidden shrink-0 border border-border/50">
+                                                            <img src={jc.items[0].photo} alt={jc.jobCardNumber} className="w-full h-full object-cover" />
+                                                        </div>
+                                                    )}
                                                     <div className="min-w-0">
                                                         <p className="text-[13px] font-black text-foreground group-hover:text-primary transition-colors tracking-tight truncate">{jc.jobCardNumber}</p>
                                                         <p className="text-[11px] font-semibold text-muted-foreground/70 truncate leading-tight group-hover:text-foreground transition-colors">{jc.title}</p>

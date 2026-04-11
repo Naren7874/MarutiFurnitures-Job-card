@@ -182,13 +182,23 @@ export default function ArchitectProjectDetailPage() {
                                         className="group block p-6 bg-card border border-border rounded-22xl hover:border-primary/40 hover:shadow-xl transition-all shadow-sm"
                                     >
                                         <div className="flex justify-between items-start mb-4">
-                                            <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
-                                                <Activity size={22} />
-                                            </div>
+                                            {jc.items?.[0]?.photo ? (
+                                                <div className="size-12 rounded-2xl overflow-hidden border border-primary/20 shadow-sm relative group-hover:ring-2 ring-primary/50 transition-all">
+                                                    <img src={jc.items[0].photo} alt={jc.jobCardNumber} className="w-full h-full object-cover" />
+                                                </div>
+                                            ) : (
+                                                <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
+                                                    <Activity size={22} />
+                                                </div>
+                                            )}
                                             <Badge variant="outline" className={cn('text-xs font-black border rounded-full px-3 py-1', jcCfg.color)}>{jcCfg.label}</Badge>
                                         </div>
-                                        <h4 className="font-black text-base md:text-lg text-foreground line-clamp-1 tracking-tight uppercase leading-tight">{jc.title}</h4>
-                                        <p className="text-xs text-muted-foreground/60 font-bold mt-1.5 tracking-tight">{jc.jobCardNumber}</p>
+                                        <h4 className="font-black text-base md:text-lg text-foreground line-clamp-1 tracking-tight uppercase leading-tight">{jc.jobCardNumber}</h4>
+                                        <p className="text-xs text-muted-foreground/60 font-black uppercase mt-1.5 tracking-tight truncate">
+                                            {jc.items?.[0]?.category && !jc.title?.startsWith(jc.items[0].category)
+                                                ? `${jc.items[0].category} - ${jc.title}`
+                                                : jc.title}
+                                        </p>
                                         <div className="mt-5 pt-4 border-t border-border/30 flex items-center justify-between">
                                             <p className="text-xs text-muted-foreground font-bold flex items-center gap-2">
                                                 <Package size={14} className="text-primary/50" /> {jc.items?.length || 0} items

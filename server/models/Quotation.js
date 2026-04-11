@@ -92,14 +92,7 @@ const quotationSchema = new mongoose.Schema(
     discountNote:        { type: String },               // "700 RS per mtr fabric, including"
     amountAfterDiscount: { type: Number, default: 0 },
 
-    // GST — auto-detected from client GSTIN state vs company state
-    gstType: {
-      type: String,
-      enum: ["cgst_sgst", "igst"],
-    },
-    cgst:      { type: Number, default: 0 },
-    sgst:      { type: Number, default: 0 },
-    igst:      { type: Number, default: 0 },
+    // GST 
     gstAmount: { type: Number, default: 0 },
     grandTotal:{ type: Number, default: 0 },
 
@@ -187,9 +180,6 @@ quotationSchema.pre("save", function () {
   this.amountAfterDiscount = +(this.subtotal - discValue).toFixed(2);
 
   // 4. GST — specifically reset as per Maruti requirements (GST handled at Invoice/SO stage usually or no longer on Quo)
-  this.cgst = 0;
-  this.sgst = 0;
-  this.igst = 0;
   this.gstAmount = 0;
 
   // 5. Grand total + advance

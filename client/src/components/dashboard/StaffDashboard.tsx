@@ -113,14 +113,20 @@ const JCRow = ({ jc, idx }: { jc: any; idx: number }) => {
         >
             <Link to={`/jobcards/${jc._id}`}>
                 <div className="flex items-center gap-4 px-4 py-3.5 rounded-2xl hover:bg-primary/3 border border-transparent hover:border-primary/10 transition-all group cursor-pointer relative overflow-hidden">
-                    <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 border relative z-10', cls)}>
-                        {jc.jobCardNumber?.slice(-4) || '#'}
-                    </div>
+                    {jc.items?.[0]?.photo ? (
+                        <div className={cn('w-11 h-11 rounded-xl overflow-hidden shrink-0 border backdrop-blur-sm relative z-10', cls.replace('bg-', 'bg-opacity-10 '))}>
+                            <img src={jc.items[0].photo} alt={jc.jobCardNumber} className="w-full h-full object-cover" />
+                        </div>
+                    ) : (
+                        <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 border relative z-10', cls)}>
+                            {jc.jobCardNumber?.slice(-4) || '#'}
+                        </div>
+                    )}
                     <div className="flex-1 min-w-0 relative z-10">
-                        <p className="font-bold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                        <p className="font-black text-sm text-foreground truncate group-hover:text-primary transition-colors tracking-tight">
                             {jc.title || jc.jobCardNumber}
                         </p>
-                        <p className="text-[10px] font-semibold text-muted-foreground/50 truncate">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 truncate">
                             {jc.clientId?.name || jc.clientId?.firmName || '—'}
                             {jc.projectId?.projectName ? ` · ${jc.projectId.projectName}` : ''}
                         </p>

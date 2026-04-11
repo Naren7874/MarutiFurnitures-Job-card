@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     Plus, Search, LayoutGrid, List, Clock, FilterX,
     Package, Factory, FlaskConical, CheckCircle, Truck, Archive, PauseCircle, XCircle
@@ -222,6 +223,7 @@ export default function JobCardsPage() {
                                         <TableRow className="border-border/40 hover:bg-transparent">
                                             <TableHead className="px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Job Identity</TableHead>
                                             <TableHead className="px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Client Name</TableHead>
+                                            <TableHead className="px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Factory Manager</TableHead>
                                             <TableHead className="px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em] text-center">Timeline</TableHead>
                                             <TableHead className="px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em] text-right">Progress Stage</TableHead>
                                         </TableRow>
@@ -240,9 +242,15 @@ export default function JobCardsPage() {
                                                 >
                                                     <TableCell className="px-6 py-5">
                                                         <Link to={`/jobcards/${jc._id}`} className="flex items-center gap-4">
-                                                            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform", cfg.bg, cfg.color)}>
-                                                                <Icon size={18} />
-                                                            </div>
+                                                            {jc.items?.[0]?.photo ? (
+                                                                <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-sm group-hover:scale-110 transition-transform border border-border/10 bg-muted">
+                                                                    <img src={jc.items[0].photo} alt={jc.jobCardNumber} className="w-full h-full object-cover" />
+                                                                </div>
+                                                            ) : (
+                                                                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform", cfg.bg, cfg.color)}>
+                                                                    <Icon size={18} />
+                                                                </div>
+                                                            )}
                                                             <div>
                                                                 <p className="text-foreground font-black text-base tracking-tight">{jc.jobCardNumber}</p>
                                                                 <p className="text-muted-foreground/60 text-xs font-black uppercase  truncate max-w-[200px]">
@@ -254,8 +262,16 @@ export default function JobCardsPage() {
                                                         </Link>
                                                     </TableCell>
                                                     <TableCell className="px-6 py-5">
-                                                        <p className="text-foreground/80 font-bold text-sm">{jc.clientId?.name || 'External Vendor'}</p>
-                                                        <p className="text-muted-foreground/40 text-xs font-semibold">{jc.projectName || jc.title || 'Corporate'}</p>
+                                                        <p className="text-foreground font-black text-base tracking-tight">{jc.clientId?.name || 'External Vendor'}</p>
+                                                    </TableCell>
+                                                    <TableCell className="px-6 py-5">
+                                                        <div className="flex items-center gap-2">
+                                                            <div>
+                                                                <p className="text-foreground font-black text-base tracking-tight">
+                                                                    {jc.assignedTo?.production?.[0]?.name || 'Not Assigned'}
+                                                                </p>
+                                                            </div>
+                                                        </div>
                                                     </TableCell>
                                                     <TableCell className="px-6 py-5 text-center">
                                                         {jc.expectedDelivery ? (() => {

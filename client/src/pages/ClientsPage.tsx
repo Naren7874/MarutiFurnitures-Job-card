@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Phone, Building2, XCircle, Users, MapPin, ArrowUpRight, Edit2, Trash2, LayoutGrid, List, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Phone, XCircle, Users, MapPin, ArrowUpRight, Edit2, Trash2, LayoutGrid, List, ArrowUpDown, Fingerprint } from 'lucide-react';
 import { useClients, useDeleteClientPermanent } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { Input } from '@/components/ui/input';
@@ -230,21 +230,20 @@ export default function ClientsPage() {
                                                 </h3>
                                             </div>
                                             
-                                            {c.firmName && (
-                                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 font-bold -mt-0.5">
-                                                    <Building2 size={11} className="shrink-0" />
-                                                    <span className="truncate">{c.firmName}</span>
-                                                </div>
-                                            )}
 
-                                            <div className="flex flex-row items-center gap-4 mt-2">
-                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground/80">
-                                                    <Phone size={10} className="text-blue-500" />
+
+                                            <div className="flex flex-col gap-1.5 mt-2.5">
+                                                <div className="flex items-center gap-2 text-[13px] font-bold text-muted-foreground/80">
+                                                    <Phone size={13} className="text-blue-500 shrink-0" />
                                                     <span className="truncate">{c.phone || 'N/A'}</span>
                                                 </div>
-                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground/80">
-                                                    <MapPin size={10} className="text-rose-500" />
-                                                    <span className="truncate">{c.address?.city || 'Location is not added'}</span>
+                                                <div className="flex items-center gap-2 text-[13px] font-bold text-muted-foreground/80">
+                                                    <MapPin size={13} className="text-rose-500 shrink-0" />
+                                                    <span className="truncate">{c.address?.city || 'Location not added'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-[13px] font-bold text-muted-foreground/80">
+                                                    <Fingerprint size={13} className="text-amber-500/50 shrink-0" />
+                                                    <span className="truncate">{c.gstin || 'GST not set'}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -296,10 +295,11 @@ export default function ClientsPage() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-muted/30 border-b border-border/50">
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Client Name</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Firm Name</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Contact</th>
-                                {(canEdit || canDelete) && <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Actions</th>}
+                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 w-[30%]">Client Identity</th>
+                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 w-[25%]">Contact Metrics</th>
+                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 w-[20%]">GST Information</th>
+                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 w-[15%]">Location</th>
+                                {(canEdit || canDelete) && <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 w-[10%] text-right">Actions</th>}
                             </tr>
                         </thead>
                         <tbody>
@@ -309,21 +309,42 @@ export default function ClientsPage() {
                                     onClick={() => navigate(`/clients/${c._id}`)}
                                     className="border-b border-border/30 hover:bg-primary/5 transition-colors cursor-pointer group"
                                 >
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                                    <td className="px-8 py-5">
+                                        <div className="flex items-center gap-4">
+                                            <div className="size-11 rounded-2xl bg-linear-to-br from-primary/10 to-indigo-500/10 text-primary flex items-center justify-center font-black text-base shadow-inner group-hover:scale-110 transition-transform">
                                                 {c.name?.charAt(0)}
                                             </div>
-                                            <span className="text-foreground font-bold text-sm group-hover:text-primary transition-colors">{c.name}</span>
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-foreground font-black text-[15px] tracking-tight group-hover:text-primary transition-colors truncate">{c.name}</span>
+                                                <span className="text-muted-foreground/40 text-[9px] font-black uppercase tracking-widest mt-0.5">ID: {c._id.slice(-6).toUpperCase()}</span>
+                                            </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <span className="text-muted-foreground text-sm font-medium">{c.firmName || '-'}</span>
+
+                                    <td className="px-8 py-5">
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                                                <Phone size={12} className="text-blue-500" />
+                                                {c.phone}
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td className="px-6 py-4">
+
+                                    <td className="px-8 py-5">
                                         <div className="flex flex-col">
-                                            <span className="text-foreground text-sm font-bold">{c.phone}</span>
-                                            {c.email && <span className="text-muted-foreground text-[10px]">{c.email}</span>}
+                                            <span className={cn(
+                                                "text-[13px] font-bold tracking-tight",
+                                                c.gstin ? "text-foreground" : "text-muted-foreground/30 italic font-normal"
+                                            )}>
+                                                {c.gstin || 'Not Provided'}
+                                            </span>
+                                        </div>
+                                    </td>
+
+                                    <td className="px-8 py-5">
+                                        <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground/70">
+                                            <MapPin size={12} className="text-rose-500" />
+                                            <span className="truncate">{c.address?.city || '—'}</span>
                                         </div>
                                     </td>
                                     {(canEdit || canDelete) && (

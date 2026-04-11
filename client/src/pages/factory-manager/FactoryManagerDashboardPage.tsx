@@ -99,9 +99,15 @@ function JCRow({ jc, idx }: { jc: any; idx: number }) {
             className="bg-card border border-border rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-orange-500/20 hover:shadow-sm transition-all cursor-pointer group"
         >
             <div className="flex items-center gap-4 min-w-0">
-                <div className="size-11 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-border/50 text-[11px] font-black text-muted-foreground">
-                    {jc.jobCardNumber?.slice(-4) || '#'}
-                </div>
+                {jc.items?.[0]?.photo ? (
+                    <div className="size-11 rounded-lg overflow-hidden shrink-0 border border-border/50 bg-muted/20 shadow-sm">
+                        <img src={jc.items[0].photo} alt={jc.jobCardNumber} className="w-full h-full object-cover" />
+                    </div>
+                ) : (
+                    <div className="size-11 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-border/50 text-[11px] font-black text-muted-foreground">
+                        {jc.jobCardNumber?.slice(-4) || '#'}
+                    </div>
+                )}
                 <div className="min-w-0">
                     <p className="text-foreground text-base font-bold truncate leading-tight group-hover:text-orange-500 transition-colors">
                         {jc.title || jc.jobCardNumber}

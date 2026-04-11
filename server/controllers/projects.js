@@ -111,7 +111,8 @@ export const getProjectById = async (req, res, next) => {
 
     const JobCard = (await import('../models/JobCard.js')).default;
     const jobCards = await JobCard.find({ projectId: project._id, companyId: req.user.companyId })
-      .select('jobCardNumber title status priority expectedDelivery')
+      .populate('assignedTo.production', 'name role profilePhoto')
+      .select('jobCardNumber title status priority expectedDelivery items assignedTo')
       .lean();
 
     res.status(200).json({ success: true, data: { ...project, jobCards } });

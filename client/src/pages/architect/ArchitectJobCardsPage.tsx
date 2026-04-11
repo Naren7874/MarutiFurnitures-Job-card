@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   pending:    { label: 'Pending',     color: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/20' },
@@ -133,25 +134,46 @@ export default function ArchitectJobCardsPage() {
                 className="bg-card border border-border rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group"
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <div className="size-11 rounded-lg bg-muted/50 flex items-center justify-center shrink-0 border border-border">
-                    <Factory size={18} className="text-muted-foreground" />
-                  </div>
+                  {jc.items?.[0]?.photo ? (
+                    <div className="size-11 rounded-lg overflow-hidden shrink-0 border border-border bg-muted/50">
+                      <img src={jc.items[0].photo} alt={jc.jobCardNumber} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="size-11 rounded-lg bg-muted/50 flex items-center justify-center shrink-0 border border-border">
+                      <Factory size={18} className="text-muted-foreground" />
+                    </div>
+                  )}
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-foreground text-base font-black tracking-tight truncate leading-tight">{jc.title}</p>
-                      <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded tracking-wider">{jc.jobCardNumber}</span>
+                      <p className="text-foreground text-[15px] font-black tracking-tight truncate leading-tight">{jc.title}</p>
+                      <span className="text-[10px] text-muted-foreground/60 font-black uppercase tracking-widest bg-muted px-2 py-0.5 rounded shadow-sm">{jc.jobCardNumber}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-1">
-                      <p className="text-muted-foreground/60 text-sm font-medium truncate">Project: {jc.projectId?.projectName || '—'}</p>
+                      <p className="text-muted-foreground/60 text-xs font-black uppercase tracking-widest truncate">Project: {jc.projectId?.projectName || '—'}</p>
                       {jc.companyId?.name && (
                         <>
                           <span className="text-muted-foreground/30 text-sm">·</span>
-                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground/60">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60 font-medium">
                             <Building2 size={12} />
                             <span className="truncate max-w-[120px]">{jc.companyId.name}</span>
                           </div>
                         </>
                       )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                        {jc.assignedTo?.production?.length > 0 ? (
+                            <div className="flex -space-x-1.5">
+                                {jc.assignedTo.production.slice(0, 3).map((u: any, i: number) => (
+                                    <Avatar key={u._id || i} className="size-6 border-2 border-background shadow-xs">
+                                        <AvatarImage src={u.profilePhoto} />
+                                        <AvatarFallback className="text-[8px] font-black bg-orange-500/10 text-orange-500">{u.name?.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                ))}
+                            </div>
+                        ) : null}
+                        <p className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-widest leading-none">
+                            {jc.assignedTo?.production?.[0]?.name ? `${jc.assignedTo.production[0].name}${jc.assignedTo.production.length > 1 ? ` +${jc.assignedTo.production.length - 1}` : ''}` : 'Factory Pending'}
+                        </p>
                     </div>
                   </div>
                 </div>
