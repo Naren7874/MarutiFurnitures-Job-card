@@ -27,6 +27,7 @@ export const QK = {
     reports: (cid: string, type: string, params?: object) => ['reports', cid, type, params],
     users: (cid: string, params?: object) => ['users', cid, params],
     user: (cid: string, id: string) => ['user', cid, id],
+    dispatchTeam: (cid: string) => ['dispatch-team', cid],
     // Architect portal — cross-company, keyed by userId not companyId
     architectDashboard: (uid: string) => ['architect', uid, 'dashboard'],
     architectQuotations: (uid: string, params?: object) => ['architect', uid, 'quotations', params],
@@ -368,11 +369,11 @@ export const useDeleteProject = (id: string) => {
 // ─── Job Cards ────────────────────────────────────────────────────────────────
 
 export const useJobCards = (params: object = {}) => {
-    const { company } = useAuthStore();
+    const { company, user } = useAuthStore();
     return useQuery({ 
         queryKey: QK.jobCards(company?.id || '', params), 
         queryFn: () => apiGet('/jobcards', params),
-        enabled: !!company?.id
+        enabled: !!user && (!!company?.id || user.role === 'dispatch' || user.isSuperAdmin)
     });
 };
 
@@ -645,6 +646,35 @@ export const useUsers = (params: object = {}) => {
     });
 };
 
+export const useDispatchTeam = () => {
+    const { company, user } = useAuthStore();
+    return useQuery({ 
+        queryKey: QK.dispatchTeam(company?.id || ''), 
+        queryFn: () => apiGet('/dispatch-team'),
+        enabled: !!user
+    });
+};
+
+export const useCreateDispatchMember = () => {
+    const qc = useQueryClient();
+    const { company } = useAuthStore();
+    const cid = company?.id || '';
+    return useMutation({
+        mutationFn: (data: { name: string; phone?: string }) => apiPost('/dispatch-team', data),
+        onSuccess: () => qc.invalidateQueries({ queryKey: QK.dispatchTeam(cid) }),
+    });
+};
+
+export const useDeleteDispatchMember = () => {
+    const qc = useQueryClient();
+    const { company } = useAuthStore();
+    const cid = company?.id || '';
+    return useMutation({
+        mutationFn: (id: string) => apiDelete(`/dispatch-team/${id}`),
+        onSuccess: () => qc.invalidateQueries({ queryKey: QK.dispatchTeam(cid) }),
+    });
+};
+
 export const useDeleteUser = () => {
     const qc = useQueryClient();
     const { company } = useAuthStore();
@@ -718,12 +748,12 @@ export const useArchitectPayouts = () => {
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export const useNotificationsApi = () => {
-    const { company } = useAuthStore();
+    const { company, user } = useAuthStore();
     return useQuery({ 
         queryKey: ['notifications', company?.id || ''], 
         queryFn: () => apiGet('/notifications'), 
         staleTime: 30_000,
-        enabled: !!company?.id
+        enabled: !!user
     });
 };
 

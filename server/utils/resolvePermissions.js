@@ -1,6 +1,7 @@
 import { UserPermission } from '../models/UserPermission.js';
 import { Role } from '../models/Role.js';
 import UserOverride from '../models/UserOverride.js';
+import User from '../models/User.js';
 
 /**
  * Compute the final set of effective permissions for a user in a given company context.
@@ -28,15 +29,31 @@ export const resolvePermissions = async (userId, companyId) => {
     .populate('permissionSetIds')
     .lean();
 
-  if (!record) return [];
+  let basePermissions = [];
+  let permissionSetIds = [];
+
+  if (record) {
+    basePermissions = record.roleId?.permissions || [];
+    permissionSetIds = record.permissionSetIds || [];
+  } else {
+    // FALLBACK: If no company-specific permission record exists, 
+    // try to resolve from the User's base roleId if available.
+    // This supports global roles like 'dispatch' that aren't tied to a specific company.
+    const user = await User.findById(userId).populate('roleId').lean();
+    if (user && user.roleId) {
+      basePermissions = user.roleId.permissions || [];
+    } else {
+      return []; // No record and no base role
+    }
+  }
 
   const now = new Date();
 
   // 2. Start with role defaults
-  const base = new Set(record.roleId?.permissions || []);
+  const base = new Set(basePermissions);
 
   // 3. Add all PermissionSet permissions
-  for (const ps of record.permissionSetIds || []) {
+  for (const ps of permissionSetIds) {
     for (const p of ps.permissions || []) base.add(p);
   }
 

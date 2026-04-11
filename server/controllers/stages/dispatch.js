@@ -4,7 +4,10 @@ import { generateAndUploadPDF } from '../../utils/generatePDF.js';
 import { uploadReqFile } from '../../middleware/upload.js';
 import { sendWhatsApp, WA_TEMPLATES } from '../../utils/sendWhatsApp.js';
 import Client from '../../models/Client.js';
+import Notification from '../../models/Notification.js';
+import User from '../../models/User.js';
 import { auditLog } from '../../utils/auditLogger.js';
+import { emitNotification, emitJobCardStatus } from '../../socket/socket.js';
 
 /** GET /api/jobcards/:id/dispatch */
 export const getDispatch = async (req, res, next) => {
@@ -18,32 +21,14 @@ export const getDispatch = async (req, res, next) => {
 /** POST /api/jobcards/:id/dispatch — Schedule delivery */
 export const scheduleDispatch = async (req, res, next) => {
   try {
-    const { scheduledDate, timeSlot, deliveryTeam, vehicle, itemsDispatched } = req.body;
+    const { scheduledDate, timeSlot, deliveryTeam, itemsDispatched } = req.body;
 
     const stage = await DispatchStage.findOneAndUpdate(
       { jobCardId: req.params.id },
-      { scheduledDate, timeSlot, deliveryTeam, vehicle, itemsDispatched, status: 'scheduled' },
+      { scheduledDate, timeSlot, deliveryTeam, itemsDispatched, status: 'scheduled' },
       { new: true }
     );
     if (!stage) return res.status(404).json({ success: false, message: 'Dispatch stage not found' });
-
-    // Generate delivery challan PDF
-    const challanUrl = await generateAndUploadPDF(
-      'challan',
-      {
-        JC_NUMBER:    req.params.id,
-        DATE:         new Date(scheduledDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }),
-        TIME_SLOT:    timeSlot,
-        VEHICLE:      vehicle?.number || '',
-        DRIVER_NAME:  deliveryTeam?.[0]?.name || '',
-      },
-      `${req.user.companyId}/challans`,
-      `challan-${req.params.id}`
-    ).catch(() => null);
-
-    if (challanUrl) {
-      await DispatchStage.findByIdAndUpdate(stage._id, { challanPDF: challanUrl });
-    }
 
     // Notify client directly (not group) via WhatsApp
     const jobCard = await JobCard.findById(req.params.id).populate('clientId', 'whatsappNumber name').lean();
@@ -55,7 +40,7 @@ export const scheduleDispatch = async (req, res, next) => {
           jobCard.jobCardNumber,
           new Date(scheduledDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }),
           timeSlot,
-          vehicle?.number || 'N/A',
+          'N/A', // Vehicle No (legacy template expects something)
           deliveryTeam?.[0]?.name || 'N/A',
         ]
       );
@@ -73,17 +58,17 @@ export const scheduleDispatch = async (req, res, next) => {
       resourceId: req.params.id,
       resourceLabel: req.params.id,
       changes: { status: { from: 'qc_passed', to: 'dispatched' } },
-      metadata: { action: 'dispatch_scheduled', scheduledDate, vehicle: vehicle?.number, driver: deliveryTeam?.[0]?.name, challanUrl },
+      metadata: { action: 'dispatch_scheduled', scheduledDate, driver: deliveryTeam?.[0]?.name },
     });
 
-    res.status(200).json({ success: true, data: stage, challanUrl });
+    res.status(200).json({ success: true, data: stage });
   } catch (err) { next(err); }
 };
 
 /** PATCH /api/jobcards/:id/dispatch/deliver — Capture POD + mark delivered */
 export const markDelivered = async (req, res, next) => {
   try {
-    const { gpsLocation, clientSignature, podPhotoUrl } = req.body;
+    const { gpsLocation, clientSignature, podPhotoUrl, deliveredByName } = req.body;
 
     // Upload POD photo if attached (fallback for direct uploads)
     let finalPodPhoto = podPhotoUrl || null;
@@ -95,6 +80,7 @@ export const markDelivered = async (req, res, next) => {
     const updateData = {
       status: 'delivered',
       deliveredBy: req.user.userId,
+      deliveredByName: deliveredByName || null,
       deliveredAt: new Date(),
       'proofOfDelivery.gpsLocation': gpsLocation || null,
       'proofOfDelivery.signature': clientSignature || null,
@@ -120,8 +106,34 @@ export const markDelivered = async (req, res, next) => {
 
     // Notify group + client
     const jobCard = await JobCard.findById(req.params.id).populate('clientId', 'whatsappNumber').lean();
+    
+    // Safety fallback: Default to JobCard's designated company, preventing cross-company broadcast leaks from dispatched user context
+    const targetCompanyId = jobCard?.companyId || req.user.companyId;
+
+    emitJobCardStatus(targetCompanyId.toString(), { jobCardId: req.params.id, status: 'delivered', jobCardNumber: jobCard?.jobCardNumber || req.params.id });
     if (jobCard?.clientId?.whatsappNumber) {
       await sendWhatsApp(jobCard.clientId.whatsappNumber, WA_TEMPLATES.JOB_DELIVERED, [jobCard.jobCardNumber]);
+    }
+
+    // Notify admins and sales team in-app at target company
+    const notifyStaff = await User.find({
+      companyId: targetCompanyId,
+      role: { $in: ['master_admin', 'super_admin', 'admin', 'sales'] },
+      isActive: true
+    }, '_id');
+
+    if (notifyStaff.length > 0) {
+      const notifications = notifyStaff.map(u => ({
+        companyId: targetCompanyId,
+        recipientId: u._id,
+        jobCardId: req.params.id,
+        type: 'delivered',
+        title: 'Delivery Completed',
+        message: `Job Card ${jobCard?.jobCardNumber || req.params.id} has been successfully delivered.`,
+        channel: 'in_app'
+      }));
+      const inserted = await Notification.insertMany(notifications);
+      inserted.forEach(n => emitNotification(targetCompanyId.toString(), n));
     }
 
     auditLog(req, {

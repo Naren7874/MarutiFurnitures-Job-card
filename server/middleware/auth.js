@@ -35,7 +35,7 @@ export const authenticateJWT = async (req, res, next) => {
   try {
     // Fetch user basic info
     const user = await User.findById(decoded.userId)
-      .select('isActive tokenVersion isSuperAdmin name profilePhoto')
+      .select('isActive tokenVersion isSuperAdmin name profilePhoto role')
       .lean();
 
     if (!user) {
@@ -58,17 +58,19 @@ export const authenticateJWT = async (req, res, next) => {
 
     // Fetch the company-specific permission/role context
     const permission = await UserPermission.findOne({ userId: user._id, companyId }).lean();
-    if (!permission && !user.isSuperAdmin) {
+    
+    // Fallback for global roles like 'dispatch' which may not have a per-company record
+    if (!permission && !user.isSuperAdmin && user.role !== 'dispatch') {
       return res.status(403).json({ success: false, message: 'Not authorized for this company' });
     }
 
     req.user = {
       userId:       user._id,
       companyId,
-      role:         permission?.role || (user.isSuperAdmin ? 'super_admin' : null),
+      role:         permission?.role || (user.isSuperAdmin ? 'super_admin' : (user.role === 'dispatch' ? 'dispatch' : null)),
       isSuperAdmin: user.isSuperAdmin,
       name:         user.name,
-      department:   permission?.department || null,
+      department:   permission?.department || (user.role === 'dispatch' ? 'dispatch' : null),
       tokenVersion: user.tokenVersion,
       profilePhoto: user.profilePhoto,
     };

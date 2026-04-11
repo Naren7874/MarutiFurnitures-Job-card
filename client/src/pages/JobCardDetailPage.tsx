@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { useParams, Link } from 'react-router-dom';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
@@ -27,7 +27,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { useUsers } from '@/hooks/useApi';
+import { useDispatchTeam } from '@/hooks/useApi';
 
 import { motion, AnimatePresence } from 'motion/react';
 import { PhotoUploadZone } from '@/components/ui/photo-upload-zone';
@@ -63,14 +63,17 @@ const SUB_STAGE_ICONS: Record<string, any> = {
 
 // ── Helper components ─────────────────────────────────────────────────────────
 
-function SectionCard({ title, icon: Icon, color, children }: any) {
+function SectionCard({ title, icon: Icon, color, children, overflowVisible }: any) {
     return (
-        <div className="mt-4 bg-card dark:bg-card/20 border border-border/30 rounded-2xl overflow-hidden shadow-sm">
-            <div className={cn('flex items-center gap-3 px-6 py-4 border-b border-border/20', color)}>
-                <Icon size={16} />
-                <h3 className="font-black text-sm uppercase tracking-wider">{title}</h3>
+        <div className={cn(
+            "mt-4 bg-card dark:bg-card/20 border border-border/30 rounded-2xl shadow-sm",
+            overflowVisible ? "relative z-20 overflow-visible" : "overflow-hidden"
+        )}>
+            <div className={cn('flex items-center gap-3 px-6 py-3.5 border-b border-border/20 rounded-t-2xl', color)}>
+                <Icon size={14} />
+                <h3 className="font-black text-[13px] uppercase tracking-wider">{title}</h3>
             </div>
-            <div className="p-6">{children}</div>
+            <div className="p-4 sm:p-5">{children}</div>
         </div>
     );
 }
@@ -941,12 +944,17 @@ function QCTab({ id, jc, qcClient, canEdit }: any) {
         onSuccess: () => { 
             qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); 
             qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'qc'] }); 
+            qcClient.invalidateQueries({ queryKey: ['jobcards'] }); 
         },
     });
 
     const failMut = useMutation({
         mutationFn: () => apiPatch(`/jobcards/${id}/qc/fail`, { failReason, defectSummary }),
-        onSuccess: () => { qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'qc'] }); },
+        onSuccess: () => { 
+            qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); 
+            qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'qc'] }); 
+            qcClient.invalidateQueries({ queryKey: ['jobcards'] }); 
+        },
     });
 
     const uploadPhotosMut = useMutation({
@@ -1167,19 +1175,20 @@ function QCTab({ id, jc, qcClient, canEdit }: any) {
 // ── Dispatch Tab ──────────────────────────────────────────────────────────────
 
 function DispatchTab({ id, jc, qcClient, canEdit }: any) {
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const { data: dRaw, isLoading } = useQuery({ queryKey: ['jobcard', id, 'dispatch'], queryFn: () => apiGet(`/jobcards/${id}/dispatch`) });
     const stage: any = (dRaw as any)?.data ?? null;
 
-    // Fetch dispatch users for searchable dropdown
-    const dispatchRes: any = useUsers({ role: 'dispatch', isActive: true });
-    const dispatchUsers = dispatchRes.data?.data || [];
-    const dispatchOptions = dispatchUsers.map((u: any) => ({
-        value: u._id,
-        label: u.name,
+    // Fetch dispatch team names for searchable dropdown
+    const dispatchRes: any = useDispatchTeam();
+    const dispatchMembers = dispatchRes.data?.data || [];
+    const dispatchOptions = dispatchMembers.map((m: any) => ({
+        value: m._id,
+        label: m.name,
         color: '#8ffb03' // Dispatch role color
     }));
 
-    const [form, setForm] = useState({ scheduledDate: '', timeSlot: 'morning', vehicleNo: '', driverName: '', driverPhone: '' });
+    const [form, setForm] = useState({ scheduledDate: '', timeSlot: 'morning', driverName: '', driverPhone: '' });
     const [proofPhoto, setProofPhoto] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>('');
     const [podUrl, setPodUrl] = useState<string>('');
@@ -1193,7 +1202,6 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
             setForm({
                 scheduledDate: stage.scheduledDate ? format(parseISO(stage.scheduledDate), 'yyyy-MM-dd') : '',
                 timeSlot: stage.timeSlot || 'morning',
-                vehicleNo: stage.deliveryTeam?.[0]?.vehicle?.number || '',
                 driverName: stage.deliveryTeam?.[0]?.name || '',
                 driverPhone: stage.deliveryTeam?.[0]?.phone || ''
             });
@@ -1214,8 +1222,9 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
 
     const handlePodUpload = async (file: File) => {
         setUploadingPod(true);
-        setProofPhoto(file); 
         try {
+            setProofPhoto(file); 
+            
             const fd = new FormData();
             fd.append('file', file);
             const res: any = await apiUpload('/jobcards/upload-pod-photo', fd);
@@ -1235,10 +1244,13 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
     const scheduleMut = useMutation({
         mutationFn: () => apiPost(`/jobcards/${id}/dispatch`, {
             ...form,
-            vehicle: { number: form.vehicleNo },
             deliveryTeam: [{ name: form.driverName, phone: form.driverPhone }]
         }),
-        onSuccess: () => { qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'dispatch'] }); },
+        onSuccess: () => { 
+            qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); 
+            qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'dispatch'] }); 
+            qcClient.invalidateQueries({ queryKey: ['jobcards'] }); 
+        },
     });
 
     const deliverMut = useMutation({
@@ -1252,6 +1264,7 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
         onSuccess: () => { 
             qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); 
             qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'dispatch'] }); 
+            qcClient.invalidateQueries({ queryKey: ['jobcards'] }); 
             toast.success('Job delivered successfully!');
         },
     });
@@ -1274,33 +1287,33 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
 
             {/* ── Context Banner ── */}
             <motion.div initial={{ y: -10 }} animate={{ y: 0 }}
-                className="rounded-[24px] border border-cyan-500/20 bg-linear-to-br from-cyan-500/10 via-background to-background p-6 shadow-xl shadow-cyan-500/5 overflow-hidden relative">
+                className="rounded-[24px] border border-cyan-500/20 bg-linear-to-br from-cyan-500/10 via-background to-background p-4 shadow-xl shadow-cyan-500/5 overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full -mr-16 -mt-16 blur-3xl" />
-                <div className="flex items-center gap-3 mb-6 relative z-10">
-                    <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 shadow-inner">
-                        <Truck size={18} className="text-cyan-500" />
+                <div className="flex items-center gap-3 mb-4 relative z-10">
+                    <div className="w-9 h-9 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 shadow-inner">
+                        <Truck size={16} className="text-cyan-500" />
                     </div>
                     <div>
-                        <h3 className="font-black text-[10px] uppercase tracking-[0.3em] text-cyan-600/60 leading-none mb-1">Dispatch Lifecycle</h3>
-                        <p className="font-bold text-lg text-foreground tracking-tight">Logistics Management</p>
+                        <h3 className="font-black text-[9px] uppercase tracking-[0.3em] text-cyan-600/60 leading-none mb-1">Dispatch Lifecycle</h3>
+                        <p className="font-bold text-base text-foreground tracking-tight">Logistics Management</p>
                     </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 relative z-10">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 relative z-10">
                     <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-2">Target Delivery</p>
-                        <p className={cn('text-sm font-black', !jc.expectedDelivery ? 'text-muted-foreground/30 italic' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1.5">Target Delivery</p>
+                        <p className={cn('text-xs font-black', !jc.expectedDelivery ? 'text-muted-foreground/30 italic' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
                             {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pending assignment'}
                         </p>
                     </div>
                     <AssignedStaffList users={jc.assignedTo?.dispatch} roleLabel="Dispatch Team" color="bg-cyan-500" />
                     <div className="col-span-1 sm:col-span-2 sm:flex sm:justify-end">
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-2 sm:text-right">Stage Status</p>
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1.5 sm:text-right">Stage Status</p>
                             <span className={cn(
-                                'inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black border uppercase tracking-widest',
+                                'inline-flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black border uppercase tracking-widest',
                                 jc.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20'
                             )}>
-                                <span className={cn("w-2 h-2 rounded-full bg-current", jc.status !== 'delivered' && "animate-pulse")} />
+                                <span className={cn("w-1.5 h-1.5 rounded-full bg-current", jc.status !== 'delivered' && "animate-pulse")} />
                                 {jc.status?.replace(/_/g, ' ') || 'pending'}
                             </span>
                         </div>
@@ -1308,7 +1321,7 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
                 </div>
             </motion.div>
 
-            <SectionCard title="Logistics & Delivery" icon={Truck} color="text-cyan-500">
+            <SectionCard title="Logistics & Delivery" icon={Truck} color="text-cyan-600 bg-cyan-600/5" overflowVisible>
             <div className="space-y-6">
                 {stage?.scheduledDate && (
                     <motion.div initial={{ y: 5, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
@@ -1320,13 +1333,6 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
                                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
                                 Scheduled Delivery
                             </p>
-                            {stage.challanPDF && (
-                                <Button size="sm" variant="ghost" asChild className="h-7 px-2 rounded-lg text-cyan-600 hover:text-cyan-700 hover:bg-cyan-500/10 text-[10px] font-black uppercase tracking-tighter">
-                                    <a href={stage.challanPDF} target="_blank" rel="noreferrer">
-                                        <Download size={12} className="mr-1" /> Challan PDF
-                                    </a>
-                                </Button>
-                            )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-x-8 gap-y-4 relative z-10">
@@ -1339,10 +1345,6 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
                                 <p className="text-xs font-black capitalize">{stage.timeSlot}</p>
                             </div>
                             <div>
-                                <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest mb-0.5">Vehicle Number</p>
-                                <p className="text-xs font-black">{stage.deliveryTeam?.[0]?.vehicle?.number || 'N/A'}</p>
-                            </div>
-                            <div>
                                 <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest mb-0.5">Driver / Lead</p>
                                 <p className="text-xs font-black">{stage.deliveryTeam?.[0]?.name || 'Assigned'}</p>
                             </div>
@@ -1352,78 +1354,73 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
 
                 {/* Schedule form */}
                 {effectiveCanEdit && ['qc_passed', 'dispatched'].includes(jc.status) && !stage?.deliveredAt && (
-                    <div className="space-y-6 p-7 rounded-[32px] bg-card/40 border border-border/20 shadow-xl shadow-black/5 backdrop-blur-sm">
-                        <div className="flex items-center gap-2.5 mb-2">
-                            <div className="w-9 h-9 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
-                                <CalendarCheck size={16} className="text-cyan-600" />
+                    <div className="space-y-4 p-5 rounded-[28px] bg-card/40 border border-border/20 shadow-xl shadow-black/5 backdrop-blur-sm">
+                        <div className="flex items-center gap-2.5 mb-1">
+                            <div className="w-8 h-8 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                                <CalendarCheck size={14} className="text-cyan-600" />
                             </div>
                             <div>
-                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/80 leading-none mb-1">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80 leading-none mb-0.5">
                                     {stage?.scheduledDate ? 'Modify Delivery Schedule' : 'Initialize Dispatch'}
                                 </p>
-                                <p className="text-[9px] font-bold text-muted-foreground/50 uppercase tracking-widest">Logistic Operations</p>
+                                <p className="text-[8px] font-bold text-muted-foreground/50 uppercase tracking-widest">Logistic Operations</p>
                             </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                            <div className="space-y-2 col-span-full">
-                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Desired Delivery Date</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Desired Delivery Date</Label>
                                 <div className={cn(!effectiveCanEdit && "opacity-50 pointer-events-none")}>
                                     <DatePicker 
                                         date={form.scheduledDate ? parseISO(form.scheduledDate) : undefined} 
                                         setDate={(date) => setForm(f => ({ ...f, scheduledDate: date ? format(date, 'yyyy-MM-dd') : '' }))} 
-                                        className="h-12 rounded-2xl border-border/30 bg-background/50 focus:ring-cyan-500/10 font-bold px-5" 
+                                        className="h-10 rounded-xl border-border/30 bg-background/50 focus:ring-cyan-500/10 font-bold px-4 text-xs" 
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Arrival Slot</Label>
+                            <div className="space-y-1.5">
+                                <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Arrival Slot</Label>
                                 <Select value={form.timeSlot} onValueChange={val => setForm(f => ({ ...f, timeSlot: val }))} disabled={!effectiveCanEdit}>
-                                    <SelectTrigger className="w-full h-12 rounded-2xl border-border/30 bg-background/50 px-5 text-xs font-black focus:ring-cyan-500/10">
+                                    <SelectTrigger className="w-full h-10 rounded-xl border-border/30 bg-background/50 px-4 text-xs font-bold focus:ring-cyan-500/10">
                                         <SelectValue placeholder="Select Slot" />
                                     </SelectTrigger>
-                                    <SelectContent className="rounded-2xl border-border/30 bg-background/95 backdrop-blur-md">
-                                        <SelectItem value="morning" className="rounded-xl font-bold py-3 text-xs">Morning (9am–12pm)</SelectItem>
-                                        <SelectItem value="afternoon" className="rounded-xl font-bold py-3 text-xs">Afternoon (12pm–4pm)</SelectItem>
-                                        <SelectItem value="evening" className="rounded-xl font-bold py-3 text-xs">Evening (4pm–8pm)</SelectItem>
+                                    <SelectContent className="rounded-xl border-border/30 bg-background/95 backdrop-blur-md">
+                                        <SelectItem value="morning" className="rounded-lg font-bold py-2 text-xs">Morning (9am–12pm)</SelectItem>
+                                        <SelectItem value="afternoon" className="rounded-lg font-bold py-2 text-xs">Afternoon (12pm–4pm)</SelectItem>
+                                        <SelectItem value="evening" className="rounded-lg font-bold py-2 text-xs">Evening (4pm–8pm)</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Vehicle License No.</Label>
-                                <Input value={form.vehicleNo} onChange={e => setForm(f => ({ ...f, vehicleNo: e.target.value }))} placeholder="e.g. GJ01-..." disabled={!effectiveCanEdit} className="rounded-2xl h-12 bg-background/50 border-border/30 font-bold text-xs px-5 focus:ring-cyan-500/10" />
-                            </div>
-                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Delivery Person</Label>
+                             <div className="space-y-1.5">
+                                <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Delivery Person</Label>
                                 <SearchableSelect 
                                     options={dispatchOptions}
-                                    value={dispatchUsers.find((u: any) => u.name === form.driverName)?._id || ''}
+                                    value={dispatchMembers.find((m: any) => m.name === form.driverName)?._id || ''}
                                     onChange={(val) => {
-                                        const user = dispatchUsers.find((u: any) => u._id === val);
-                                        if (user) {
-                                            const phone = user.phone || user.whatsappNumber || '';
+                                        const member = dispatchMembers.find((m: any) => m._id === val);
+                                        if (member) {
                                             setForm(f => ({ 
                                                 ...f, 
-                                                driverName: user.name, 
-                                                driverPhone: phone 
+                                                driverName: member.name, 
+                                                driverPhone: member.phone || '' 
                                             }));
                                         }
                                     }}
                                     placeholder="Search Delivery Person"
                                     searchPlaceholder="Type name..."
                                     disabled={!effectiveCanEdit}
-                                    className="h-12 rounded-2xl border-border/30 bg-background/50 text-xs font-bold focus:ring-cyan-500/10"
+                                    className="h-10 rounded-xl border-border/30 bg-background/50 text-xs font-bold focus:ring-cyan-500/10"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Contact Phone</Label>
-                                <Input value={form.driverPhone} onChange={e => setForm(f => ({ ...f, driverPhone: e.target.value }))} placeholder="Phone number" disabled={!effectiveCanEdit} className="rounded-2xl h-12 bg-background/50 border-border/30 font-bold text-xs px-5 focus:ring-cyan-500/10" />
+                            <div className="space-y-1.5 md:col-span-1">
+                                <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Contact Phone</Label>
+                                <Input value={form.driverPhone} onChange={e => setForm(f => ({ ...f, driverPhone: e.target.value }))} placeholder="Phone number" disabled={!effectiveCanEdit} className="rounded-xl h-10 bg-background/50 border-border/30 font-bold text-xs px-4 focus:ring-cyan-500/10" />
                             </div>
                         </div>
                         
                         <Button onClick={() => scheduleMut.mutate()} disabled={!form.scheduledDate || scheduleMut.isPending}
-                            className="w-full h-14 rounded-[20px] font-black gap-3 bg-linear-to-r from-cyan-600 to-blue-600 text-white shadow-xl shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300">
-                            {scheduleMut.isPending ? <Loader2 size={18} className="animate-spin" /> : <Truck size={18} />}
+                            className="w-full h-12 rounded-xl font-black gap-3 bg-linear-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300">
+                            {scheduleMut.isPending ? <Loader2 size={16} className="animate-spin" /> : <Truck size={16} />}
                             {stage?.scheduledDate ? 'Save Schedule Changes' : 'Confirm & Schedule Dispatch'}
                         </Button>
                     </div>
@@ -1431,43 +1428,43 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
 
                 {/* Mark Delivered */}
                 {effectiveCanEdit && jc.status === 'dispatched' && !stage?.deliveredAt && (
-                    <div className="space-y-6 p-7 rounded-[32px] bg-emerald-500/5 border border-emerald-500/20 shadow-xl shadow-emerald-500/5 backdrop-blur-sm relative overflow-hidden">
+                    <div className="space-y-4 p-5 rounded-[28px] bg-emerald-500/5 border border-emerald-500/20 shadow-xl shadow-emerald-500/5 backdrop-blur-sm relative z-10 overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
                         
-                        <div className="flex items-center gap-3 mb-2 relative z-10">
-                            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-inner">
-                                <PackageCheck size={18} className="text-emerald-600" />
+                        <div className="flex items-center gap-3 mb-1 relative z-10">
+                            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-inner">
+                                <PackageCheck size={14} className="text-emerald-600" />
                             </div>
                             <div>
-                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-600 leading-none mb-1">Mark as Delivered</p>
-                                <p className="text-[9px] font-bold text-muted-foreground/50 uppercase tracking-widest">Final Step in Lifecycle</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 leading-none mb-0.5">Mark as Delivered</p>
+                                <p className="text-[8px] font-bold text-muted-foreground/50 uppercase tracking-widest">Final Step in Lifecycle</p>
                             </div>
                         </div>
 
-                        <div className="space-y-5 relative z-10">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Client Name / Signature</Label>
-                                    <Input value={clientSignature} onChange={e => setClientSignature(e.target.value)} placeholder="Type name or scan signature..." className="rounded-2xl h-12 bg-background/50 border-border/30 font-bold text-xs px-5 focus:ring-emerald-500/10 transition-all" disabled={!effectiveCanEdit} />
+                        <div className="space-y-4 relative z-10">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Client Name / Signature</Label>
+                                    <Input value={clientSignature} onChange={e => setClientSignature(e.target.value)} placeholder="Type name or scan signature..." className="rounded-xl h-10 bg-background/50 border-border/30 font-bold text-xs px-4 focus:ring-emerald-500/10 transition-all" disabled={!effectiveCanEdit} />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">GPS Location / Address</Label>
-                                    <Input value={gpsLocation} onChange={e => setGpsLocation(e.target.value)} placeholder="Auto-detecting location..." className="rounded-2xl h-12 bg-background/50 border-border/30 font-bold text-xs px-5 focus:ring-emerald-500/10 transition-all" disabled={!effectiveCanEdit} />
+                                <div className="space-y-1.5">
+                                    <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">GPS Location / Address</Label>
+                                    <Input value={gpsLocation} onChange={e => setGpsLocation(e.target.value)} placeholder="Auto-detecting location..." className="rounded-xl h-10 bg-background/50 border-border/30 font-bold text-xs px-4 focus:ring-emerald-500/10 transition-all" disabled={!effectiveCanEdit} />
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
-                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-70 ml-1">Proof of Delivery Photo</Label>
-                                <div className="flex flex-col gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Proof of Delivery Photo</Label>
+                                <div className="flex flex-col gap-3">
                                     {(previewUrl || podUrl || stage?.proofOfDelivery?.photo || uploadingPod) && (
                                         <motion.div 
                                             initial={{ opacity: 0, scale: 0.95 }} 
                                             animate={{ opacity: 1, scale: 1 }}
-                                            className="relative w-72 aspect-video rounded-[24px] overflow-hidden border border-emerald-500/20 shadow-2xl group/preview"
+                                            className="relative w-full max-w-[280px] aspect-video rounded-2xl overflow-hidden border border-emerald-500/20 shadow-2xl group/preview"
                                         >
                                             {uploadingPod ? (
                                                 <div className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-md z-20">
-                                                    <Loader2 className="animate-spin text-emerald-600" size={28} />
+                                                    <Loader2 className="animate-spin text-emerald-600" size={24} />
                                                 </div>
                                             ) : (
                                                 <ImagePreview 
@@ -1476,15 +1473,14 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
                                                 />
                                             )}
                                             
-                                            <div className="absolute top-0 inset-x-0 bg-linear-to-b from-black/40 via-transparent to-transparent p-3 flex justify-between items-start pointer-events-none z-10">
-                                               
-
+                                            <div className="absolute top-0 inset-x-0 bg-linear-to-b from-black/40 via-transparent to-transparent p-2 flex justify-between items-start pointer-events-none z-10">
+                                                <div />
                                                 {effectiveCanEdit && !uploadingPod && (
                                                     <button 
                                                         onClick={(e) => { e.stopPropagation(); setProofPhoto(null); setPodUrl(''); }}
-                                                        className="p-1.5 rounded-xl bg-black/40 backdrop-blur-md text-white border border-white/20 hover:bg-rose-500 transition-colors shadow-lg pointer-events-auto"
+                                                        className="p-1 rounded-lg bg-black/40 backdrop-blur-md text-white border border-white/20 hover:bg-rose-500 transition-colors shadow-lg pointer-events-auto"
                                                     >
-                                                        <X size={12} />
+                                                        <X size={10} />
                                                     </button>
                                                 )}
                                             </div>
@@ -1492,38 +1488,46 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
                                     )}
 
                                     {effectiveCanEdit && (
-                                        <label className={cn(
-                                            "flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-[28px] transition-all cursor-pointer group hover:bg-emerald-500/5",
-                                            (proofPhoto || podUrl) ? "border-emerald-500/50 bg-emerald-500/5" : "border-border/30 hover:border-emerald-500/30"
-                                        )}>
+                                        <div 
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className={cn(
+                                                "flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed rounded-[24px] transition-all cursor-pointer group hover:bg-emerald-500/5",
+                                                (proofPhoto || podUrl) ? "border-emerald-500/50 bg-emerald-500/5" : "border-border/30 hover:border-emerald-500/30"
+                                            )}
+                                        >
                                             <input 
+                                                ref={fileInputRef}
+                                                id="detail-camera-input"
                                                 type="file" 
                                                 accept="image/*" 
-                                                className="hidden" 
+                                                className="sr-only" 
                                                 onChange={e => {
                                                     const file = e.target.files?.[0];
                                                     if (file) handlePodUpload(file);
                                                 }} 
                                                 disabled={uploadingPod}
                                             />
-                                            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                                                <Camera size={22} className="text-emerald-600" />
+                                            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                                                <Camera size={16} className="text-emerald-600" />
                                             </div>
                                             <div className="text-center">
-                                                <p className="text-xs font-black uppercase tracking-widest text-emerald-600 mb-1">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-0.5">
                                                     {proofPhoto ? 'Change Selected Photo' : 'Upload Delivery Proof'}
                                                 </p>
-                                                <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tighter italic">Tap to open camera or browse (Max 20MB)</p>
+                                                <p className="text-[8px] font-bold text-muted-foreground/30 uppercase tracking-tighter italic">Camera or browse (Max 20MB)</p>
                                             </div>
-                                        </label>
+                                        </div>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        <Button onClick={() => deliverMut.mutate()} disabled={deliverMut.isPending || uploadingPod || !clientSignature || (!podUrl && !stage?.proofOfDelivery?.photo)}
-                            className="w-full h-14 rounded-[20px] font-black gap-3 bg-linear-to-r from-emerald-600 to-green-600 text-white shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 relative z-10">
-                            {deliverMut.isPending ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
+                        <Button 
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); deliverMut.mutate(); }} 
+                            disabled={deliverMut.isPending || uploadingPod || !clientSignature || (!podUrl && !stage?.proofOfDelivery?.photo)}
+                            className="w-full h-12 rounded-xl font-black gap-3 bg-linear-to-r from-emerald-600 to-green-600 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 relative z-10">
+                            {deliverMut.isPending ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
                             Confirm & Complete Delivery
                         </Button>
                     </div>
@@ -1531,54 +1535,54 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
 
                 {/* Delivered state */}
                 {stage?.deliveredAt && (
-                    <div className="space-y-6">
-                        <div className="p-6 rounded-[28px] bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row items-center gap-6 relative overflow-hidden backdrop-blur-sm">
+                    <div className="space-y-4">
+                        <div className="p-4 rounded-[24px] bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row items-center gap-5 relative overflow-hidden backdrop-blur-sm">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
                             
-                            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 shadow-inner shrink-0 scale-110">
-                                <CheckCircle2 size={32} className="text-emerald-600" />
+                            <div className="w-11 h-11 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 shadow-inner shrink-0">
+                                <CheckCircle2 size={24} className="text-emerald-600" />
                             </div>
                             
                             <div className="flex-1 text-center sm:text-left relative z-10">
-                                <p className="font-black text-emerald-800 text-xl tracking-tight leading-none mb-1">Mission Completed!</p>
-                                <p className="text-xs text-emerald-700/60 font-bold uppercase tracking-widest flex items-center justify-center sm:justify-start gap-2">
-                                    <Clock size={12} />
-                                    {new Date(stage.deliveredAt).toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
+                                <p className="font-black text-emerald-800 text-lg tracking-tight leading-none mb-0.5">Mission Completed!</p>
+                                <p className="text-[10px] text-emerald-700/60 font-bold uppercase tracking-widest flex items-center justify-center sm:justify-start gap-2">
+                                    <Clock size={10} />
+                                    {new Date(stage.deliveredAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                                 </p>
                             </div>
 
-                            <Badge variant="outline" className="bg-emerald-500/20 border-emerald-500/30 text-emerald-700 text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full relative z-10">
+                            <Badge variant="outline" className="bg-emerald-500/20 border-emerald-500/30 text-emerald-700 text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-full relative z-10">
                                 Successfully Delivered
                             </Badge>
                         </div>
 
                         {stage.proofOfDelivery?.photo && (
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-1">Official Proof of Delivery (POD)</Label>
-                                <div className="relative rounded-[32px] overflow-hidden border border-emerald-500/20 shadow-2xl group/final">
+                                <div className="relative rounded-[24px] overflow-hidden border border-emerald-500/20 shadow-2xl group/final">
                                     <img 
                                         src={stage.proofOfDelivery.photo} 
                                         alt="Proof of Delivery" 
                                         className="w-full aspect-video object-cover transition-transform duration-1000 group-hover/final:scale-105" 
                                     />
-                                    <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
+                                    <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6">
                                         <div className="flex flex-wrap items-end justify-between gap-4">
                                             <div className="space-y-1">
-                                                <p className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">Capture Insights</p>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex items-center gap-1.5 text-white/90 text-xs font-black">
-                                                        <MapPin size={14} className="text-emerald-400" />
+                                                <p className="text-[8px] font-black text-white/50 uppercase tracking-[0.2em]">Capture Insights</p>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-1.5 text-white/90 text-[10px] font-black">
+                                                        <MapPin size={12} className="text-emerald-400" />
                                                         {stage.proofOfDelivery.gpsLocation || 'Co-ordinates standard'}
                                                     </div>
-                                                    <div className="w-1 h-1 rounded-full bg-white/20" />
-                                                    <div className="text-white/60 text-xs font-bold italic">
+                                                    <div className="w-0.5 h-0.5 rounded-full bg-white/20" />
+                                                    <div className="text-white/60 text-[10px] font-bold italic">
                                                         Authenticated by {stage.deliveredBy?.name || 'Field Agent'}
                                                     </div>
                                                 </div>
                                             </div>
-                                            <Button variant="outline" size="sm" asChild className="h-8 rounded-xl bg-white/10 backdrop-blur-md border-white/20 text-white text-[10px] font-black uppercase hover:bg-white/20">
+                                            <Button variant="outline" size="sm" asChild className="h-7 rounded-lg bg-white/10 backdrop-blur-md border-white/20 text-white text-[9px] font-black uppercase hover:bg-white/20 px-3">
                                                 <a href={stage.proofOfDelivery.photo} target="_blank" rel="noreferrer">
-                                                    <Maximize2 size={12} className="mr-1.5" /> Full Resolution
+                                                    <Maximize2 size={10} className="mr-1" /> View
                                                 </a>
                                             </Button>
                                         </div>
@@ -1591,12 +1595,12 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
 
                 {/* Activity log */}
                 {jc.activityLog?.length > 0 && (
-                    <div className="space-y-2 pt-4 border-t border-border/20">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Activity Log</p>
-                        {jc.activityLog.slice(-5).reverse().map((a: any, i: number) => (
-                            <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground/50">
-                                <Clock size={10} className="mt-0.5 shrink-0" />
-                                <span><span className="font-bold text-foreground/70">{a.action?.replace(/_/g, ' ')}</span> · {new Date(a.timestamp).toLocaleDateString('en-IN')}</span>
+                    <div className="space-y-2 pt-3 border-t border-border/20">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/30">Activity Log</p>
+                        {jc.activityLog.slice(-3).reverse().map((a: any, i: number) => (
+                            <div key={i} className="flex items-start gap-2 text-[10px] text-muted-foreground/40">
+                                <Clock size={9} className="mt-0.5 shrink-0" />
+                                <span><span className="font-bold text-foreground/60">{a.action?.replace(/_/g, ' ')}</span> · {new Date(a.timestamp).toLocaleDateString('en-IN')}</span>
                             </div>
                         ))}
                     </div>

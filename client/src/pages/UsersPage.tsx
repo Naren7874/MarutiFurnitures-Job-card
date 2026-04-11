@@ -28,6 +28,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { useDispatchTeam, useCreateDispatchMember, useDeleteDispatchMember } from '@/hooks/useApi'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -90,6 +91,7 @@ const getRoleCfg = (role: string) => SYSTEM_ROLES[role] || { label: role, color:
 const IS_ARCHITECT = (role: string | undefined) => ['architect', 'Architecture', 'Project Designer', 'project_designer'].some(r => r.toLowerCase() === role?.toLowerCase());
 const IS_FACTORY_MGR = (role: string | undefined) => ['factory_manager', 'Factory Manager'].some(r => r.toLowerCase() === role?.toLowerCase());
 const IS_PURE_ARCHITECT = (role: string | undefined) => role === 'architect' || role?.toLowerCase() === 'architecture';
+const IS_DISPATCH = (role: string | undefined) => role?.toLowerCase() === 'dispatch';
 
 
 
@@ -166,6 +168,95 @@ function RoleBadge({ role }: { role: UserRole }) {
             {cfg.label}
         </span>
     )
+}
+
+// ── Dispatch Team Management ──────────────────────────────────────────────────
+function DispatchTeamManager() {
+    const dispatchRes: any = useDispatchTeam();
+    const members = dispatchRes.data?.data || [];
+    const isLoading = dispatchRes.isLoading;
+    const createMut = useCreateDispatchMember();
+    const deleteMut = useDeleteDispatchMember();
+    const [newName, setNewName] = useState('');
+    const [newPhone, setNewPhone] = useState('');
+
+    const handleAdd = () => {
+        if (!newName.trim()) return;
+        createMut.mutate({ name: newName.trim(), phone: newPhone.trim() }, {
+            onSuccess: () => { setNewName(''); setNewPhone(''); }
+        });
+    };
+
+    return (
+        <div className="space-y-4 pt-4 border-t border-border/50 mt-4">
+            <div className="flex items-center justify-between">
+                <Label className="text-[11px] font-black uppercase tracking-[0.15em] text-emerald-500">
+                    Dispatch Personnel Names
+                </Label>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-[10px] font-bold text-emerald-600">
+                    <Users className="size-3" />
+                    {members.length} Active
+                </div>
+            </div>
+
+            <div className="space-y-3">
+                {isLoading ? (
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground animate-pulse">
+                        <Loader2 className="size-3 animate-spin" /> Loading team list...
+                    </div>
+                ) : members.length === 0 ? (
+                    <p className="text-[11px] italic text-muted-foreground/60 px-1">No dispatchers added yet.</p>
+                ) : (
+                    <div className="grid grid-cols-1 gap-2">
+                        {members.map((m: any) => (
+                            <div key={m._id} className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/50 group hover:border-emerald-500/30 transition-all">
+                                <div>
+                                    <p className="text-xs font-bold text-foreground">{m.name}</p>
+                                    {m.phone && <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1"><Phone className="size-2.5" /> {m.phone}</p>}
+                                </div>
+                                <Button 
+                                    size="icon" 
+                                    variant="ghost" 
+                                    className="size-7 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-rose-500/10 hover:text-rose-500 transition-all"
+                                    onClick={() => deleteMut.mutate(m._id)}
+                                    disabled={deleteMut.isPending}
+                                >
+                                    <Trash2 className="size-3.5" />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 space-y-3 mt-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70">Add Team Member</p>
+                <div className="grid grid-cols-2 gap-2">
+                    <Input 
+                        placeholder="Staff Name" 
+                        value={newName} 
+                        onChange={e => setNewName(e.target.value)}
+                        className="h-9 text-xs rounded-lg border-emerald-500/20 bg-background"
+                    />
+                    <Input 
+                        placeholder="Phone (optional)" 
+                        value={newPhone} 
+                        onChange={e => setNewPhone(e.target.value)}
+                        className="h-9 text-xs rounded-lg border-emerald-500/20 bg-background"
+                    />
+                </div>
+                <Button 
+                    variant="ghost" 
+                    className="w-full h-8 text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 rounded-lg gap-2"
+                    onClick={handleAdd}
+                    disabled={createMut.isPending || !newName.trim()}
+                >
+                    {createMut.isPending ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
+                    Confirm Name
+                </Button>
+            </div>
+        </div>
+    );
 }
 
 // ── User drawer / modal ───────────────────────────────────────────────────────
@@ -379,49 +470,92 @@ function UserDrawer({
                                         </p>
                                     )}
                                 </div>
+
+                                {/* Dispatch Role Logic: Shared Account Redirect */}
+                                {IS_DISPATCH(form.role) && !editUser && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3"
+                                    >
+                                        <div className="p-2 rounded-lg bg-emerald-500/20 shrink-0">
+                                            <ShieldCheck className="size-4 text-emerald-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[11px] font-black uppercase tracking-[0.15em] text-emerald-600 dark:text-emerald-400">Shared Dispatch Account</p>
+                                            <p className="text-[11px] text-muted-foreground/80 mt-1 leading-relaxed">
+                                                By selecting the <strong>Dispatch</strong> role, all staff will log in using <code className="bg-background px-1 rounded">dispatch@maruti.com</code>. 
+                                                You can manage individual names in the section below.
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                )}
+
                                 <Separator />
 
-                                {/* Role */}
-                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                    Role *
-                                    {form.role && (
-                                        <span className="ml-2 normal-case font-normal text-foreground" style={{ color: selectedRoleCfg.color }}>
-                                            — {selectedRoleCfg.label}
-                                        </span>
-                                    )}
-                                </Label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {roles.filter(r => r.name !== 'super_admin').map(r => {
-                                        const cfg = getRoleCfg(r.name);
-                                        return (
-                                            <button
-                                                key={r._id}
-                                                type="button"
-                                                onClick={() => setForm(f => ({ ...f, role: r.name }))}
-                                                className={cn(
-                                                    'flex items-center gap-2 p-3 rounded-xl border text-xs font-bold text-left transition-all',
-                                                    form.role === r.name
-                                                        ? 'border-current shadow-sm scale-[1.01]'
-                                                        : 'border-border hover:border-muted-foreground/40 bg-transparent'
-                                                )}
-                                                style={form.role === r.name
-                                                    ? { color: cfg.color, backgroundColor: cfg.bg, borderColor: `${cfg.color}50` }
-                                                    : {}
-                                                }
-                                            >
-                                                <div
-                                                    className="size-2 rounded-full shrink-0"
-                                                    style={{ backgroundColor: cfg.color }}
-                                                />
-                                                {cfg.label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                            {/* Role */}
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Role *
+                                {form.role && (
+                                    <span className="ml-2 normal-case font-normal text-foreground" style={{ color: selectedRoleCfg.color }}>
+                                        — {selectedRoleCfg.label}
+                                    </span>
+                                )}
+                            </Label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {roles.filter(r => r.name !== 'super_admin').map(r => {
+                                    const cfg = getRoleCfg(r.name);
+                                    return (
+                                        <button
+                                            key={r._id}
+                                            type="button"
+                                            onClick={() => {
+                                                setForm(f => ({ 
+                                                    ...f, 
+                                                    role: r.name,
+                                                    // Auto-fill specialized fields for Dispatch
+                                                    ...(r.name === 'dispatch' ? {
+                                                        email: 'dispatch@maruti.com',
+                                                        firstName: 'Dispatch',
+                                                        lastName: 'Maruti'
+                                                    } : {})
+                                                }));
+                                            }}
+                                            className={cn(
+                                                'flex items-center gap-2 p-3 rounded-xl border text-xs font-bold text-left transition-all',
+                                                form.role === r.name
+                                                    ? 'border-current shadow-sm scale-[1.01]'
+                                                    : 'border-border hover:border-muted-foreground/40 bg-transparent'
+                                            )}
+                                            style={form.role === r.name
+                                                ? { color: cfg.color, backgroundColor: cfg.bg, borderColor: `${cfg.color}50` }
+                                                : {}
+                                            }
+                                        >
+                                            <div
+                                                className="size-2 rounded-full shrink-0"
+                                                style={{ backgroundColor: cfg.color }}
+                                            />
+                                            {cfg.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
 
-                                {/* Conditional Fields Based on Role */}
-                                <AnimatePresence>
-                                    {IS_ARCHITECT(form.role) && (
+                            {/* Conditional Fields Based on Role */}
+                            <AnimatePresence>
+                                {IS_DISPATCH(form.role) && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden"
+                                    >
+                                        <DispatchTeamManager />
+                                    </motion.div>
+                                )}
+
+                                {IS_ARCHITECT(form.role) && (
                                         <motion.div
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: 'auto', opacity: 1 }}

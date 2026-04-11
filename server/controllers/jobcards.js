@@ -307,7 +307,9 @@ export const getJobCards = async (req, res, next) => {
     const { status, priority, projectId, clientId, quotationId, search, page = 1, limit = 20 } = req.query;
     const filter = { ...req.companyFilter };
 
-    if (status) filter.status = status;
+    if (status) {
+      filter.status = Array.isArray(status) ? { $in: status } : status;
+    }
     if (priority) filter.priority = priority;
     if (projectId) filter.projectId = projectId;
     if (clientId) filter.clientId = clientId;
@@ -326,8 +328,8 @@ export const getJobCards = async (req, res, next) => {
     // IMPORTANT: req.user.userId is a string from JWT. MongoDB stores ObjectIds in
     // assignedTo arrays. We must cast to ObjectId or the $in comparison will NEVER match.
     if (!req.user.isSuperAdmin && req.user.role !== 'sales') {
-      const role = req.user.role; // Now using role exclusively
-      const RELEVANT_ROLES = ['production', 'qc', 'dispatch', 'accounts'];
+      const role = req.user.role;
+      const RELEVANT_ROLES = ['production', 'qc', 'accounts']; // Removed 'dispatch'
       if (role && RELEVANT_ROLES.includes(role)) {
         const userOid = new mongoose.Types.ObjectId(req.user.userId);
         filter[`assignedTo.${role}`] = { $in: [userOid] };

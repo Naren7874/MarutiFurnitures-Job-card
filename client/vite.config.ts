@@ -12,6 +12,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
     allowedHosts: [
       'nongerundial-molluscous-araceli.ngrok-free.dev',
       '.ngrok-free.dev'

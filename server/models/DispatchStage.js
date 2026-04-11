@@ -14,7 +14,7 @@ const dispatchStageSchema = new mongoose.Schema(
     scheduledDate: Date,
     timeSlot:      String,                               // "10:00 AM – 12:00 PM"
 
-    // Injected into WA delivery_scheduled: {{Driver}}, {{VehicleNo}}
+    // Injected into WA delivery_scheduled: {{Driver}}
     deliveryTeam: [
       {
         name:  String,
@@ -22,13 +22,6 @@ const dispatchStageSchema = new mongoose.Schema(
         role:  String,                                   // "Driver", "Helper"
       },
     ],
-    vehicle: {
-      number: { type: String },                            // "GJ-01-AB-1234"
-      type:   { type: String },                            // "Mini Truck", "Tempo"
-    },
-
-    challanNumber: String,
-    challanPDF:    String,                               // Cloudinary URL
 
     itemsDispatched: [
       {
@@ -55,6 +48,7 @@ const dispatchStageSchema = new mongoose.Schema(
     },
 
     deliveredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    deliveredByName: String,
     deliveredAt: Date,
   },
   { timestamps: true }

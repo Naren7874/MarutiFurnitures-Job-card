@@ -48,7 +48,7 @@ const ALLOWED_ORIGINS = process.env.NODE_ENV === 'production'
       'https://maruti-furniture-backend-43053062057.asia-south1.run.app',             // Cloud Run (self)
       process.env.FRONTEND_URL,                                                       // custom domain override via env
     ].filter(Boolean)
-  : ['http://localhost:5173', 'http://localhost:3000'];
+  : ['http://localhost:5173', 'http://localhost:3000', process.env.FRONTEND_URL].filter(Boolean);
 
 app.use(cors({
   origin: (origin, cb) => {
@@ -80,6 +80,7 @@ import reportRoutes        from './routes/reports.js';
 import privilegeRoutes     from './routes/privileges.js';
 import notificationRoutes  from './routes/notifications.js';
 import architectRoutes     from './routes/architect.js';
+import dispatchTeamRoutes   from './routes/dispatchTeam.js';
 
 // ── API Routes ───────────────────────────────────────────────────────────────
 app.use('/api/auth',            authRoutes);
@@ -97,6 +98,7 @@ app.use('/api/reports',         reportRoutes);
 app.use('/api/privileges',      privilegeRoutes);
 app.use('/api/notifications',   notificationRoutes);
 app.use('/api/architect',       architectRoutes);
+app.use('/api/dispatch-team',   dispatchTeamRoutes);
 
 // ── Health Check ──────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {

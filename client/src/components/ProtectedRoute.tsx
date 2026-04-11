@@ -13,6 +13,10 @@ const isFactoryManagerRole = (role?: string | null) => {
     return lower === 'factory_manager' || lower === 'factorymanager';
 };
 
+const isDispatchRole = (role?: string | null) => {
+    return role?.toLowerCase() === 'dispatch';
+};
+
 /** Redirects to /login if not authenticated.
  *  Redirects architects away from non-architect routes → /architect
  *  Redirects factory managers away from main app → /factory */
@@ -32,6 +36,11 @@ export const ProtectedRoute = () => {
         return <Navigate to="/factory" replace />;
     }
 
+    // Dispatch team must stay inside /dispatch-hub
+    if (isDispatchRole(user?.role) && !pathname.startsWith('/dispatch-hub')) {
+        return <Navigate to="/dispatch-hub" replace />;
+    }
+
     return <Outlet />;
 };
 
@@ -42,6 +51,7 @@ export const PublicRoute = () => {
     // Route each portal role to their dedicated portal
     if (isArchitectRole(user?.role)) return <Navigate to="/architect" replace />;
     if (isFactoryManagerRole(user?.role)) return <Navigate to="/factory" replace />;
+    if (isDispatchRole(user?.role)) return <Navigate to="/dispatch-hub" replace />;
     return <Navigate to="/" replace />;
 };
 
@@ -58,6 +68,14 @@ export const FactoryManagerRoute = () => {
     const { isLoggedIn, user } = useAuthStore();
     if (!isLoggedIn) return <Navigate to="/login" replace />;
     if (!isFactoryManagerRole(user?.role)) return <Navigate to="/" replace />;
+    return <Outlet />;
+};
+
+/** Guards dispatch-only routes */
+export const DispatchRoute = () => {
+    const { isLoggedIn, user } = useAuthStore();
+    if (!isLoggedIn) return <Navigate to="/login" replace />;
+    if (!isDispatchRole(user?.role)) return <Navigate to="/" replace />;
     return <Outlet />;
 };
 
