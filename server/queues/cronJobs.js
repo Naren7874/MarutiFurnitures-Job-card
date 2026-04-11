@@ -46,16 +46,18 @@ export const runDeadlineChecker = async () => {
   const overdue = await JobCard.find({
     status:          { $nin: ['closed', 'cancelled', 'delivered', 'on_hold'] },
     expectedDelivery: { $lt: now },
-  }).populate('createdBy', 'whatsappNumber').lean();
+  }).populate('createdBy', 'whatsappNumber').populate('clientId', 'name').lean();
 
   for (const jc of overdue) {
     const daysLate = Math.floor((now - new Date(jc.expectedDelivery)) / MS_PER_DAY);
+    const clientName = jc.clientId?.name || 'Unknown Client';
+    const catName = jc.items?.[0]?.category || 'General';
     await enqueueNotification({
       companyId:   jc.companyId,
       recipientId: jc.createdBy?._id,
       jobCardId:   jc._id,
       type:        'overdue_alert',
-      title:       `OVERDUE: ${jc.jobCardNumber}`,
+      title:       `Overdue: ${clientName} - ${catName}`,
       message:     `${jc.jobCardNumber} is ${daysLate} day(s) overdue. Current status: ${jc.status.toUpperCase()}`,
       channel:     'in_app',
       deliveryStatus: 'pending',

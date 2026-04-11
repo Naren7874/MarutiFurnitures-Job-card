@@ -8,6 +8,7 @@ import { useNotificationStore } from '../stores/notificationStore';
 import type { AppNotification } from '../stores/notificationStore';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -30,11 +31,21 @@ const fmtTime = (d: string) => {
     return new Date(d).toLocaleDateString('en-GB');
 };
 
-function NotifItem({ n, onRead }: { n: AppNotification; onRead: () => void }) {
+function NotifItem({ n, onRead, onClose }: { n: AppNotification; onRead: () => void; onClose: () => void }) {
+    const navigate = useNavigate();
     const cfg = TYPE_CFG[n.type] || { icon: Bell, color: 'text-primary', bg: 'bg-primary/10' };
     const Icon = cfg.icon;
+
+    const handleClick = () => {
+        if (!n.read) onRead();
+        if (n.jobCardId) navigate(`/jobcards/${n.jobCardId}`);
+        else if (n.projectId) navigate(`/projects/${n.projectId}`);
+        else if (n.quotationId) navigate(`/quotations/${n.quotationId}`);
+        onClose();
+    };
+
     return (
-        <button onClick={onRead}
+        <button onClick={handleClick}
             className={cn('w-full text-left flex items-start gap-3 p-3 rounded-xl transition-all hover:bg-muted/30 group', !n.read && 'bg-primary/2')}>
             <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', cfg.bg)}>
                 <Icon size={15} className={cfg.color} />
@@ -93,7 +104,7 @@ export default function NotificationSheet() {
                         <AnimatePresence>
                             {notifications.map(n => (
                                 <motion.div key={n._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                                    <NotifItem n={n} onRead={() => markRead(n._id)} />
+                                    <NotifItem n={n} onRead={() => markRead(n._id)} onClose={() => setSheetOpen(false)} />
                                 </motion.div>
                             ))}
                         </AnimatePresence>

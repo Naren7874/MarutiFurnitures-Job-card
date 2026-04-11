@@ -463,6 +463,27 @@ export const updateStatus = async (req, res, next) => {
       note: note || 'Admin status override',
     });
 
+    try {
+      const { notifyDepartment } = await import('../utils/notifications.js');
+      let targetDept;
+      if (status === 'in_production') targetDept = 'production';
+      else if (status === 'in_qc') targetDept = 'qc';
+      else if (status === 'ready_for_dispatch') targetDept = 'dispatch';
+      
+      if (targetDept) {
+        await notifyDepartment(req.user.companyId, targetDept, {
+          type: 'status_changed',
+          title: `Work Status Update`,
+          message: `Job Card ${jobCard.jobCardNumber} (${jobCard.title}) is now ${status.replace(/_/g, ' ').toUpperCase()}.`,
+          jobCardId: jobCard._id,
+          projectId: jobCard.projectId,
+          quotationId: jobCard.quotationId
+        });
+      }
+    } catch (e) {
+      console.error('Notification error on status change', e);
+    }
+
     auditLog(req, {
       action: 'update',
       resourceType: 'JobCard',
@@ -715,6 +736,24 @@ export const assignJobCard = async (req, res, next) => {
       newStatus: jobCard.status,
       note: `Assigned staff to ${stage} stage`,
     });
+
+    if (userIds && userIds.length > 0) {
+      try {
+        const { notifyRecipients } = await import('../utils/notifications.js');
+        await notifyRecipients({
+          companyId: req.user.companyId,
+          recipients: userIds,
+          type: 'general',
+          title: `Team Assignment: ${jobCard.jobCardNumber}`,
+          message: `You have been assigned to ${stage} stage for Job Card: ${jobCard.title}.`,
+          jobCardId: jobCard._id,
+          projectId: jobCard.projectId,
+          quotationId: jobCard.quotationId
+        });
+      } catch (e) {
+        console.error('Notification error on assignment', e);
+      }
+    }
 
     auditLog(req, {
       action: 'update',

@@ -69,10 +69,10 @@ notificationSchema.index({ recipientId: 1, isRead: 1 });
 notificationSchema.index({ companyId: 1, jobCardId: 1 });
 notificationSchema.index({ companyId: 1, deliveryStatus: 1 });
 
-// TTL — auto-delete read notifications after 30 days
+// TTL — auto-delete read notifications 24 hours after they are read
 notificationSchema.index(
-  { sentAt: 1 },
-  { expireAfterSeconds: 60 * 60 * 24 * 30, partialFilterExpression: { isRead: true } }
+  { readAt: 1 },
+  { expireAfterSeconds: 60 * 60 * 24, partialFilterExpression: { isRead: true } }
 );
 
 export default mongoose.model("Notification", notificationSchema);

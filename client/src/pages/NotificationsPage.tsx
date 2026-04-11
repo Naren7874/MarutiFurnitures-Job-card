@@ -3,6 +3,7 @@ import { useNotificationStore } from '../stores/notificationStore';
 import type { AppNotification } from '../stores/notificationStore';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 
 const TYPE_CFG: Record<string, { icon: any; color: string; bg: string }> = {
@@ -25,11 +26,20 @@ const fmtTime = (d: string) => {
 };
 
 function NotifCard({ n, onRead }: { n: AppNotification; onRead: () => void }) {
+    const navigate = useNavigate();
     const cfg = TYPE_CFG[n.type] || { icon: Bell, color: 'text-primary', bg: 'bg-primary/10' };
     const Icon = cfg.icon;
+    
+    const handleClick = () => {
+        if (!n.read) onRead();
+        if (n.jobCardId) navigate(`/jobcards/${n.jobCardId}`);
+        else if (n.projectId) navigate(`/projects/${n.projectId}`);
+        else if (n.quotationId) navigate(`/quotations/${n.quotationId}`);
+    };
+
     return (
         <motion.div layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, height: 0 }}
-            onClick={onRead}
+            onClick={handleClick}
             className={cn('flex items-start gap-4 p-4 rounded-2xl border transition-all cursor-pointer group', n.read ? 'bg-transparent border-border/60 hover:bg-muted/10' : 'bg-primary/5 border-primary/30 hover:bg-primary/10 shadow-sm')}>
             <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110', cfg.bg)}>
                 <Icon size={18} className={cfg.color} />

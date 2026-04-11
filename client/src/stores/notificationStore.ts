@@ -9,6 +9,9 @@ export interface AppNotification {
     read?: boolean;
     isRead?: boolean; // Support both backend (isRead) and frontend (read) naming
     createdAt: string;
+    jobCardId?: string;
+    projectId?: string;
+    quotationId?: string;
 }
 
 interface NotificationState {
@@ -18,7 +21,7 @@ interface NotificationState {
     isLoading: boolean;
 
     // Actions
-    fetchNotifications: () => Promise<void>;
+    fetchNotifications: (showToasts?: boolean) => Promise<void>;
     addNotification: (n: AppNotification) => void;
     markRead: (id: string) => Promise<void>;
     markAllRead: () => Promise<void>;
@@ -26,13 +29,13 @@ interface NotificationState {
     setNotifications: (ns: AppNotification[]) => void;
 }
 
-export const useNotificationStore = create<NotificationState>((set) => ({
+export const useNotificationStore = create<NotificationState>((set, get) => ({
     notifications: [],
     unreadCount: 0,
     isSheetOpen: false,
     isLoading: false,
 
-    fetchNotifications: async () => {
+    fetchNotifications: async (showToasts = false) => {
         set({ isLoading: true });
         try {
             const res: any = await apiGet('/notifications');
@@ -42,10 +45,43 @@ export const useNotificationStore = create<NotificationState>((set) => ({
                     ...n,
                     read: n.isRead || n.read || false
                 }));
+                const unread = mapped.filter((n: any) => !n.read);
                 set({ 
                     notifications: mapped, 
-                    unreadCount: mapped.filter((n: any) => !n.read).length 
+                    unreadCount: unread.length 
                 });
+
+                if (showToasts && unread.length > 0) {
+                    const toShow = unread.slice(0, 3); // Max 3 so we don't spam the screen heavily
+                    import('sonner').then(({ toast }) => {
+                        toShow.forEach((n: any) => {
+                            toast(n.title || "Missed Notification", {
+                                description: n.message || "",
+                                action: n.jobCardId ? {
+                                    label: 'View Job Card',
+                                    onClick: async () => {
+                                        if (n._id) {
+                                            try {
+                                                await get().markRead(n._id);
+                                            } catch (e) {}
+                                        }
+                                        setTimeout(() => {
+                                            window.location.href = `/jobcards/${n.jobCardId}`;
+                                        }, 150);
+                                    }
+                                } : undefined,
+                                duration: 5000,
+                            });
+                        });
+                        if (unread.length > 3) {
+                            toast("More Missed Notifications", { description: `You have ${unread.length - 3} more missed alerts.` });
+                        }
+                    });
+                    try {
+                        const audio = new Audio('/sounds/apple_pay.mp3');
+                        audio.play().catch(e => console.error("Audio playback error:", e));
+                    } catch (e) {}
+                }
             }
         } catch (err) {
             console.error('Failed to fetch notifications:', err);
