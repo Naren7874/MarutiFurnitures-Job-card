@@ -369,7 +369,7 @@ export const getJobCardById = async (req, res, next) => {
     const jobCard = await JobCard.findOne({ _id: req.params.id, ...req.companyFilter })
       .populate('clientId')
       .populate('projectId', 'projectName projectNumber whatsapp')
-      .populate('quotationId', 'quotationNumber grandTotal')
+      .populate('quotationId', 'quotationNumber grandTotal status onHoldReason onHoldAt')
       .populate('assignedTo.production', 'name role')
       .populate('assignedTo.qc', 'name role')
       .populate('assignedTo.dispatch', 'name role')

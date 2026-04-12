@@ -13,6 +13,7 @@ import {
   updateQuotationJobCardTeams,
   deleteQuotation,
   updateCommissionPaid,
+  toggleQuotationHold,
 } from '../controllers/quotations.js';
 import { authenticateJWT }    from '../middleware/auth.js';
 import { injectCompanyScope } from '../middleware/scope.js';
@@ -31,6 +32,7 @@ router.get('/:id/pdf',            checkPermission('quotation.view'),   getQuotat
 router.patch('/:id/send',         checkPermission('quotation.send'),   sendQuotationPDF);
 router.patch('/:id/approve',      checkPermission('quotation.approve'), approveQuotation);
 router.patch('/:id/reject',       checkPermission('quotation.edit'),   rejectQuotation);
+router.patch('/:id/hold',         checkPermission('quotation.approve'), toggleQuotationHold);
 router.post('/:id/revise',        checkPermission('quotation.create'), reviseQuotation);
 router.delete('/:id',              checkPermission('quotation.delete'), deleteQuotation);
 router.patch('/:id/commission-paid', checkPermission('quotation.edit'),   updateCommissionPaid);

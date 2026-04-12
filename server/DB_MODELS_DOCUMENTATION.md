@@ -17,7 +17,7 @@
 | `DesignRequest.js` | ✅ Created | Measurements, CAD files, client sign-off |
 | `JobCard.js` | ✅ Fixed | Added `designRequestId` ref |
 | `StoreStage.js` | ✅ Fixed | Added `hsnCode` to BOM items |
-| `ProductionStage.js` | ✅ Complete | Substages, shortage flag |
+| `ProductionStage.js` | ✅ Complete | Substages, Workshop progress |
 | `QcStage.js` | ✅ Complete | Checklist, rework, escalation |
 | `DispatchStage.js` | ✅ Complete | Scheduling, challan, POD |
 | `Invoice.js` | ✅ Fixed | Added `placeOfSupply`, `reverseCharge`, GSTIN snapshots |
@@ -290,8 +290,6 @@ Workshop progress by substage.
 | `projectId` | ObjectId | ref: Project, required |
 | `substages` | Array | name (cutting, edge_banding, cnc_drilling, assembly, polishing, finishing, hardware_fitting, packing), status, workerName, startedAt, completedAt, notes |
 | `progressNotes` | Array | note, addedBy, addedAt |
-| `materialShortage` | Boolean | Auto-alerts store team |
-| `shortageNote` | String | |
 | `estimatedCompletion` | Date | |
 | `actualCompletion` | Date | |
 | `status` | String | Enum: `pending`, `in_progress`, `done` |

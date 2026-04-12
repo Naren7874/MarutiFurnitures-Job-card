@@ -355,7 +355,7 @@ export const getArchitectJobCardById = async (req, res, next) => {
       .populate('clientId')
       .populate('companyId', 'name logo address phone email')
       .populate('projectId', 'projectName')
-      .populate('quotationId', 'quotationNumber')
+      .populate('quotationId', 'quotationNumber status onHoldReason onHoldAt')
       .lean();
 
     if (!jobCard) return res.status(404).json({ success: false, message: 'Job Card not found' });

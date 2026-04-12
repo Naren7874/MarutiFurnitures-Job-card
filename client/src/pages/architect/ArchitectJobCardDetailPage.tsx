@@ -4,6 +4,7 @@ import { useArchitectJobCardById } from '../../hooks/useApi';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ImagePreview } from '@/components/ui/image-preview';
+import { HoldBanner } from '@/components/ui/HoldBanner';
 
 export default function ArchitectJobCardDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -37,6 +38,13 @@ export default function ArchitectJobCardDetailPage() {
 
     return (
         <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-8 pb-20">
+            {(jc.status === 'on_hold' || jc.quotationId?.status === 'on_hold') && (
+                <HoldBanner 
+                    entityType={jc.status === 'on_hold' ? "Job Card" : "Quotation"} 
+                    reason={jc.status === 'on_hold' ? jc.onHoldReason : jc.quotationId?.onHoldReason} 
+                    onAt={jc.status === 'on_hold' ? jc.onHoldAt : jc.quotationId?.onHoldAt} 
+                />
+            )}
             {/* Header */}
             <div className="flex items-center gap-4">
                 <button onClick={() => navigate('/architect/jobcards')} className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border hover:bg-primary/10 hover:border-primary/30 transition text-muted-foreground hover:text-primary">

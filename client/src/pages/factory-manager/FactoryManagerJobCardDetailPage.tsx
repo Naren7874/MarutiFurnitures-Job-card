@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { ImagePreview } from '@/components/ui/image-preview';
+import { HoldBanner } from '@/components/ui/HoldBanner';
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -89,6 +90,15 @@ function OverviewTab({ jc }: { jc: any }) {
     const item = jc.items?.[0];
     return (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pb-8">
+            {(jc.status === 'on_hold' || jc.quotationId?.status === 'on_hold') && (
+                <div className="md:col-span-12">
+                    <HoldBanner 
+                        entityType={jc.status === 'on_hold' ? "Job Card" : "Quotation"} 
+                        reason={jc.status === 'on_hold' ? jc.onHoldReason : jc.quotationId?.onHoldReason} 
+                        onAt={jc.status === 'on_hold' ? jc.onHoldAt : jc.quotationId?.onHoldAt} 
+                    />
+                </div>
+            )}
             {/* Hero */}
             <div className="md:col-span-12">
                 <div className="bg-card dark:bg-card/20 border border-border/20 rounded-[2.5rem] overflow-hidden flex flex-col lg:flex-row shadow-xl min-h-[400px]">
@@ -286,8 +296,6 @@ function ProductionTab({ id, jc, qcClient }: any) {
 
     const [note, setNote] = useState('');
     const [noteWorker, setNoteWorker] = useState('');
-    const [shortageNote, setShortageNote] = useState('');
-    const [showShortageForm, setShowShortageForm] = useState(false);
 
     const isLocked = !['in_production', 'qc_failed'].includes(jc.status);
 
@@ -327,15 +335,6 @@ function ProductionTab({ id, jc, qcClient }: any) {
         onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to complete production'),
     });
 
-    const shortageMut = useMutation({
-        mutationFn: () => apiPatch(`/jobcards/${id}/production/shortage`, { shortageNote }),
-        onSuccess: () => {
-            qcClient.invalidateQueries({ queryKey: ['fm-production', id] });
-            setShortageNote(''); setShowShortageForm(false);
-            toast.success('Shortage reported!');
-        },
-        onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to report shortage'),
-    });
 
     const resetMut = useMutation({
         mutationFn: () => apiPatch(`/jobcards/${id}/production/reset`, {}),
@@ -506,13 +505,6 @@ function ProductionTab({ id, jc, qcClient }: any) {
                 </div>
             )}
 
-            {/* Shortage alert */}
-            {stage.materialShortage && (
-                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 text-xs font-bold">
-                    <AlertTriangle size={13} />
-                    Material Shortage Reported: {stage.shortageNote || 'No details provided'}
-                </div>
-            )}
 
             {/* Stage context banner */}
             <div className="rounded-[24px] border border-orange-500/20 bg-linear-to-br from-orange-500/10 via-background to-background p-6 shadow-xl relative overflow-hidden">
@@ -674,39 +666,6 @@ function ProductionTab({ id, jc, qcClient }: any) {
                 </div>
             </SectionCard>
 
-            {/* Material Shortage */}
-            {!isLocked && (
-                <SectionCard title="Material Shortage" icon={AlertTriangle} color="text-amber-500">
-                    {showShortageForm ? (
-                        <div className="space-y-3">
-                            <Textarea
-                                value={shortageNote}
-                                onChange={e => setShortageNote(e.target.value)}
-                                placeholder="Describe the shortage — what material is missing?"
-                                className="rounded-xl bg-muted/10 border-border/30 text-sm resize-none"
-                                rows={3}
-                            />
-                            <div className="flex gap-2">
-                                <Button
-                                    onClick={() => shortageNote.trim() && shortageMut.mutate()}
-                                    disabled={!shortageNote.trim() || shortageMut.isPending}
-                                    size="sm"
-                                    className="bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl"
-                                >
-                                    {shortageMut.isPending ? <Loader2 size={13} className="mr-1 animate-spin" /> : null}
-                                    Report Shortage
-                                </Button>
-                                <Button onClick={() => setShowShortageForm(false)} variant="outline" size="sm" className="rounded-xl">Cancel</Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <Button onClick={() => setShowShortageForm(true)} variant="outline" size="sm"
-                            className="rounded-xl border-amber-500/30 text-amber-600 hover:bg-amber-500/10 font-black text-xs">
-                            <AlertTriangle size={13} className="mr-1.5" /> Flag Material Shortage
-                        </Button>
-                    )}
-                </SectionCard>
-            )}
 
             {/* Mark Done */}
             {!isLocked && allDone && (

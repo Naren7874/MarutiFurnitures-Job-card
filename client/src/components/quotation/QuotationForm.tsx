@@ -10,14 +10,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft, Plus, Trash2, Save, Loader2,
     User2, ReceiptText, Search, X, ImagePlus, List, Check,
-    GripVertical
+    GripVertical, Star
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '../../lib/axios';
 import {
     useCreateQuotation, useUpdateQuotation,
-    useClients, useQuotation, useClient,
+    useClients, useQuotation, useClient, useCompany
 } from '../../hooks/useApi';
 import { useAuthStore } from '../../stores/authStore';
 import CreateClientModal from '../clients/CreateClientModal';
@@ -111,7 +111,7 @@ const dbItemToLocal = (dbItem: any): Item => ({
 export default function QuotationForm({ quotationId }: QuotationFormProps) {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { user } = useAuthStore();
+    const { user, company: authCompany } = useAuthStore();
     const isSuperAdmin = user?.role === 'super_admin' || user?.isSuperAdmin;
     const urlClientId = searchParams.get('clientId');
     const isEditMode = !!quotationId;
@@ -122,8 +122,10 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
     const { data: raw, isLoading: loadingQuotation } = useQuotation(quotationId ?? '');
     const { data: preRaw } = useClient(urlClientId ?? '');
+    const { data: companyRaw } = useCompany(authCompany?.id ?? '');
     const existingQ: any = (raw as any)?.data;
     const preClient: any = (preRaw as any)?.data;
+    const companyData: any = (companyRaw as any)?.data;
 
     // ── Client search ─────────────────────────────────────────────────────────
     const [clientSearch, setClientSearch] = useState('');
@@ -154,7 +156,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
     // ── Financial ─────────────────────────────────────────────────────────────
     const [discount, setDiscount] = useState(0);
-    const [additionalTerms, setAdditionalTerms] = useState<string[]>([]);
+    const [termsAndConditions, setTermsAndConditions] = useState<string[]>([]);
     const [assignedStaff, setAssignedStaff] = useState<string[]>([]);
 
     const { data: usersRaw } = useQuery({
@@ -199,7 +201,12 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                 architectCommissionPercent: existingQ.architectCommissionPercent || 0,
             });
             setDiscount(existingQ.discount || 0);
-            setAdditionalTerms(existingQ.additionalTerms || []);
+            // Combine both into one list for unified editing
+            const combined = [
+                ...(existingQ.termsAndConditions || []),
+                ...(existingQ.additionalTerms || [])
+            ];
+            setTermsAndConditions(combined.length ? combined : []);
             setAssignedStaff((existingQ.assignedStaff || []).map((s: any) => s._id || s));
             if (existingQ.items?.length) setItems(existingQ.items.map(dbItemToLocal));
             setLoaded(true);
@@ -212,6 +219,37 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
             setSelectedClient(preClient);
         }
     }, [isEditMode, preClient, selectedClient]);
+    
+    // Auto-populate default terms for NEW quotations
+    useEffect(() => {
+        if (!isEditMode && termsAndConditions.length === 0) {
+            setTermsAndConditions([
+                '18% GST extra on all above price.',
+                'No Guarantee or Warranty of any kind is given on Imported furniture, glass, cloth, rexine.',
+                `Delivery Time ${project.deliveryDays || '60'} Days after Final 50% Payment Advance & 50% Before Delivery`,
+                'Transportation (Delivery) Charge, Packing Charge 2% & Labour Charge (Floorwise) Will be Extra'
+            ]);
+        }
+    }, [isEditMode, termsAndConditions.length, project.deliveryDays]);
+
+    // Keep Delivery Term in sync with Delivery Period field
+    useEffect(() => {
+        if (project.deliveryDays && termsAndConditions.length >= 3) {
+            setTermsAndConditions(prev => {
+                const newTerms = [...prev];
+                const currentTerm = newTerms[2];
+                // Only update if it looks like the delivery term (hasn't been totally rewritten)
+                if (currentTerm.includes('Days after Final 50% Payment Advance')) {
+                    const updated = `Delivery Time ${project.deliveryDays} Days after Final 50% Payment Advance & 50% Before Delivery`;
+                    if (currentTerm !== updated) {
+                        newTerms[2] = updated;
+                        return newTerms;
+                    }
+                }
+                return prev;
+            });
+        }
+    }, [project.deliveryDays, termsAndConditions.length]);
 
     // ── Calculations ──────────────────────────────────────────────────────────
     const subtotal = useMemo(() => items.reduce((s, i) => s + i.qty * (i.sellingPrice || 0), 0), [items]);
@@ -324,7 +362,8 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                 totalPrice: rest.qty * (rest.sellingPrice || 0),
             })),
             discount,
-            additionalTerms: additionalTerms.filter(t => t.trim() !== ''),
+            termsAndConditions: termsAndConditions.filter(t => t.trim() !== ''),
+            additionalTerms: [], // Handled by termsAndConditions now
             assignedStaff,
         };
 
@@ -698,7 +737,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                             <div className="p-1 cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-primary transition-colors">
                                                 <GripVertical size={16} />
                                             </div>
-                                            <span className="text-[11px] font-black text-primary/70 uppercase tracking-[0.15em] bg-primary/10 px-3 py-1.5 rounded-xl">Item {item.srNo}</span>
+                                            <span className="text-[11px] font-black text-primary/70 uppercase bg-primary/10 px-3 py-1.5 rounded-xl">Item {item.srNo}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Button
@@ -840,7 +879,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                                     <button
                                                         type="button"
                                                         onClick={() => updateItem(item.id, 'fabrics', [...item.fabrics, ''])}
-                                                        className="flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.15em] text-primary/70 hover:text-primary bg-primary/5 hover:bg-primary/10 px-2.5 py-1 rounded-lg transition-all"
+                                                        className="flex items-center gap-1 text-[10px] font-black uppercase text-primary/70 hover:text-primary bg-primary/5 hover:bg-primary/10 px-2.5 py-1 rounded-lg transition-all"
                                                     >
                                                         <Plus size={10} /> Add Fabric
                                                     </button>
@@ -909,7 +948,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                                         </div>
                                         <div className="col-span-2 sm:col-span-1 md:col-span-2 flex items-end gap-2">
                                             <div className="flex-1 bg-primary/5 border border-primary/20 rounded-xl px-4 py-2.5">
-                                                <p className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/70 mb-0.5">Total</p>
+                                                <p className="text-[11px] font-black uppercase text-primary/70 mb-0.5">Total</p>
                                                 <p className="font-black text-foreground text-[15px] tracking-tight">₹{(item.qty * item.sellingPrice).toLocaleString('en-IN')}</p>
                                             </div>
                                         </div>
@@ -995,42 +1034,52 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                     </div>
                 </FormSection>
 
-                {/* === Section 4: Extra Terms === */}
-                <FormSection title="Extra Terms & Conditions" icon={ReceiptText}>
-                    <div className="space-y-3">
-                        {additionalTerms.map((term, idx) => (
-                            <div key={idx} className="flex gap-2">
-                                <Input
-                                    value={term}
-                                    onChange={e => {
-                                        const newTerms = [...additionalTerms];
-                                        newTerms[idx] = e.target.value;
-                                        setAdditionalTerms(newTerms);
-                                    }}
-                                    placeholder={`Extra term ${idx + 1}`}
-                                    className={smallInputCls}
-                                />
+                {/* === Section 4: Terms & Conditions === */}
+                <FormSection title="Terms & Conditions" icon={ReceiptText}>
+                    <div className="space-y-4">
+                        {termsAndConditions.map((term, idx) => (
+                            <div key={idx} className="flex gap-3 group items-start">
+                                <div className="flex-1 relative">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+                                        <Star size={10} className="text-primary fill-primary/20" />
+                                        <span className="text-[9px] font-black text-primary/40 uppercase tracking-wider w-4 text-center">{idx + 1}</span>
+                                    </div>
+                                    <Input
+                                        value={term}
+                                        onChange={e => {
+                                            const newTerms = [...termsAndConditions];
+                                            newTerms[idx] = e.target.value;
+                                            setTermsAndConditions(newTerms);
+                                        }}
+                                        placeholder={`Term ${idx + 1}`}
+                                        className={cn(smallInputCls, 'pl-12 py-6 h-auto whitespace-normal')}
+                                    />
+                                </div>
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => setAdditionalTerms(prev => prev.filter((_, i) => i !== idx))}
-                                    className="text-rose-500 hover:text-rose-600 p-2"
+                                    onClick={() => setTermsAndConditions(prev => prev.filter((_, i) => i !== idx))}
+                                    className="text-rose-500 hover:text-rose-600 p-2 opacity-0 group-hover:opacity-100 transition-all mt-1"
                                 >
-                                    <Trash2 size={14} />
+                                    <Trash2 size={16} />
                                 </Button>
                             </div>
                         ))}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setAdditionalTerms(prev => [...prev, ''])}
-                            className="text-[11px] font-black uppercase tracking-[0.15em] gap-2 py-2.5 h-auto rounded-xl"
-                        >
-                            <Plus size={12} /> Add Extra Term
-                        </Button>
-                        <p className="text-[11px] font-black uppercase tracking-[0.15em] text-muted-foreground/50 italic mt-3">
-                            * These terms will appear below the default Maruti Furniture terms on the PDF.
+                        
+                        <div className="pt-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setTermsAndConditions(prev => [...prev, ''])}
+                                className="w-full text-[11px] font-black uppercase gap-2 py-4 h-auto rounded-2xl border-dashed border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
+                            >
+                                <Plus size={14} /> Add New Term
+                            </Button>
+                        </div>
+
+                        <p className="text-[10px] font-bold text-muted-foreground/30 italic mt-6 px-2 leading-relaxed text-center">
+                            * You can edit any term or add new ones. These will appear in the specified order on the Quotation PDF.
                         </p>
                     </div>
                 </FormSection>
@@ -1128,7 +1177,7 @@ function FormSection({ title, icon: Icon, children }: { title: string; icon: any
         <div className="bg-white dark:bg-card/20 border border-border dark:border-border/30 rounded-[28px] md:rounded-[32px] p-5 md:p-8 space-y-5 md:space-y-7 shadow-sm">
             <div className="flex items-center gap-4 pb-4 border-b border-border/30">
                 <div className="p-2.5 rounded-xl bg-primary/10 text-primary shadow-inner"><Icon size={16} /></div>
-                <p className="text-foreground text-[15px] font-black uppercase tracking-[0.15em]">{title}</p>
+                <p className="text-foreground text-[15px] font-black uppercase">{title}</p>
             </div>
             {children}
         </div>

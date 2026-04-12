@@ -34,6 +34,7 @@ import { PhotoUploadZone } from '@/components/ui/photo-upload-zone';
 import { cn } from '../lib/utils';
 import { ImagePreview } from '@/components/ui/image-preview';
 import { DatePicker } from '@/components/ui/date-picker';
+import { HoldBanner } from '@/components/ui/HoldBanner';
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -208,6 +209,15 @@ export default function JobCardDetailPage() {
                 <ArrowLeft size={16} /> Back to Job Cards
             </Link>
 
+            {/* Hold Banner */}
+            {(jc.status === 'on_hold' || jc.quotationId?.status === 'on_hold') && (
+                <HoldBanner 
+                    entityType={jc.status === 'on_hold' ? "Job Card" : "Quotation"}
+                    reason={jc.status === 'on_hold' ? jc.onHoldReason : jc.quotationId?.onHoldReason}
+                    onAt={jc.status === 'on_hold' ? jc.onHoldAt : jc.quotationId?.onHoldAt}
+                />
+            )}
+
             {/* Header Card */}
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
                 className="bg-card dark:bg-card/20 border border-border/30 rounded-2xl p-6 shadow-sm">
@@ -246,7 +256,7 @@ export default function JobCardDetailPage() {
                                     variant="default"
                                     size="sm"
                                     onClick={() => startProdMut.mutate()}
-                                    disabled={startProdMut.isPending}
+                                    disabled={startProdMut.isPending || jc.status === 'on_hold'}
                                     className="h-8 rounded-lg text-xs font-bold bg-primary text-white hover:bg-primary/90 shadow-sm"
                                 >
                                     {startProdMut.isPending ? <Loader2 size={14} className="mr-2 animate-spin" /> : <Package size={14} className="mr-2" />}
@@ -258,6 +268,7 @@ export default function JobCardDetailPage() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setIsEditModalOpen(true)}
+                                    disabled={jc.status === 'on_hold'}
                                     className="h-8 rounded-lg text-xs font-bold border-border/40 hover:bg-muted"
                                 >
                                     <Pencil size={14} className="mr-2" /> Edit Details
@@ -661,7 +672,7 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
     const [note, setNote] = useState('');
     const [noteWorker, setNoteWorker] = useState('');
 
-    const isLocked = !['in_production', 'qc_failed', 'active'].includes(jc.status);
+    const isLocked = !['in_production', 'qc_failed', 'active'].includes(jc.status) || jc.status === 'on_hold';
     const effectiveCanEdit = canEdit && !isLocked;
 
     const lastRework = qcStage?.reworkHistory?.[qcStage.reworkHistory.length - 1];
@@ -692,10 +703,6 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
         onSuccess: () => { qcClient.invalidateQueries({ queryKey: ['jobcard', id] }); qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'production'] }); },
     });
 
-    const shortageMut = useMutation({
-        mutationFn: (reason: string) => apiPatch(`/jobcards/${id}/production/shortage`, { shortageNote: reason }),
-        onSuccess: () => qcClient.invalidateQueries({ queryKey: ['jobcard', id, 'production'] }),
-    });
 
     if (isLoading) return <div className="h-32 bg-muted/20 rounded-2xl animate-pulse mt-4" />;
     if (!stage) return <EmptyStage name="Production Stage" />;
@@ -922,9 +929,6 @@ function ProductionTab({ id, jc, qcClient, canEdit }: any) {
                             <Button size="sm" variant="outline" onClick={() => noteMut.mutate()} disabled={!note || noteMut.isPending} className="rounded-xl font-black text-xs flex-1 gap-1">
                                 {noteMut.isPending ? <Loader2 size={12} className="animate-spin" /> : null} Add Note
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => shortageMut.mutate('Material shortage flagged')} className="rounded-xl font-black text-xs gap-1 border-amber-500/30 text-amber-600 hover:bg-amber-500/10">
-                                <TriangleAlert size={12} /> Flag Shortage
-                            </Button>
                         </div>
                     </div>
                 )}
@@ -1018,7 +1022,7 @@ function QCTab({ id, jc, qcClient, canEdit }: any) {
 
     const allPassed = QC_PARAMETERS.every(p => merged[p]?.passed);
 
-    const isLocked = jc.status !== 'qc_pending';
+    const isLocked = jc.status !== 'qc_pending' || jc.status === 'on_hold';
     const effectiveCanEdit = canEdit && !isLocked;
 
     return (
@@ -1318,7 +1322,7 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
     if (isLoading) return <div className="h-32 bg-muted/20 rounded-2xl animate-pulse mt-4" />;
     if (!stage && jc.status !== 'qc_passed') return <EmptyStage name="Dispatch Stage" />;
 
-    const isLocked = ['delivered', 'completed'].includes(jc.status);
+    const isLocked = ['delivered', 'completed'].includes(jc.status) || jc.status === 'on_hold';
     const effectiveCanEdit = canEdit && !isLocked;
 
     return (

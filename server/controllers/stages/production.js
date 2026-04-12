@@ -144,28 +144,6 @@ export const addProgressNote = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-/** PATCH /api/jobcards/:id/production/shortage — Flag material shortage */
-export const flagShortage = async (req, res, next) => {
-  try {
-    const { shortageNote } = req.body;
-    const stage = await ProductionStage.findOneAndUpdate(
-      { jobCardId: req.params.id },
-      { materialShortage: true, shortageNote },
-      { new: true }
-    );
-    if (!stage) return res.status(404).json({ success: false, message: 'Production stage not found' });
-
-    auditLog(req, {
-      action: 'update',
-      resourceType: 'ProductionStage',
-      resourceId: stage._id,
-      resourceLabel: req.params.id,
-      metadata: { action: 'material_shortage_flagged', shortageNote: req.body.shortageNote },
-    });
-
-    res.status(200).json({ success: true, data: stage });
-  } catch (err) { next(err); }
-};
 
 /** PATCH /api/jobcards/:id/production/done — All done → create QcStage */
 export const markProductionDone = async (req, res, next) => {
@@ -238,10 +216,7 @@ export const resetProduction = async (req, res, next) => {
       s.completedAt = undefined;
     });
     
-    // Clear overall production status
     stage.status = 'in_progress';
-    stage.materialShortage = false;
-    stage.shortageNote = '';
 
     await stage.save();
 

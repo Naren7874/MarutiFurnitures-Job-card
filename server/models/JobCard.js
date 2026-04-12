@@ -147,6 +147,8 @@ const jobCardSchema = new mongoose.Schema(
     // Immutable audit trail
     activityLog: [activityLogSchema],
 
+    previousStatus: { type: String },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

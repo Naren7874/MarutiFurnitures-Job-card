@@ -47,12 +47,6 @@ const productionStageSchema = new mongoose.Schema(
       },
     ],
 
-    // Material shortage — auto-alerts store team
-    materialShortage:   { type: Boolean, default: false },
-    shortageNote:       String,
-    shortageReportedAt: Date,
-    shortageReportedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-
     estimatedCompletion: Date,
     actualCompletion:    Date,
 

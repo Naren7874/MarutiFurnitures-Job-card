@@ -930,3 +930,153 @@ export const updateCommissionPaid = async (req, res, next) => {
     next(err);
   }
 };
+
+// ── PATCH /api/quotations/:id/hold ──────────────────────────────────────────
+
+export const toggleQuotationHold = async (req, res, next) => {
+  try {
+    const { reason, hold } = req.body;
+    const quotationId = req.params.id;
+
+    const quotation = await Quotation.findOne({ _id: quotationId, ...req.companyFilter });
+    if (!quotation) {
+      return res.status(404).json({ success: false, message: 'Quotation not found' });
+    }
+
+    const isCurrentlyHeld = quotation.status === 'on_hold';
+
+    // 1. Toggle Hold ON
+    if (hold && !isCurrentlyHeld) {
+      if (!reason) return res.status(400).json({ success: false, message: 'Reason is required to put quotation on hold' });
+
+      const prevStatus = quotation.status;
+      quotation.previousStatus = prevStatus;
+      quotation.status = 'on_hold';
+      quotation.onHoldReason = reason;
+      quotation.onHoldAt = new Date();
+      await quotation.save();
+
+      // Propagate to Project
+      if (quotation.projectId) {
+        const project = await Project.findById(quotation.projectId);
+        if (project && project.status !== 'on_hold') {
+          project.previousStatus = project.status;
+          project.status = 'on_hold';
+          project.onHoldReason = reason;
+          project.onHoldAt = new Date();
+          await project.save();
+        }
+      }
+
+      // Propagate to Job Cards (Production Gate: Hold any status before 'in_production')
+      const jobCards = await JobCard.find({ quotationId, companyId: req.user.companyId });
+      for (const jc of jobCards) {
+        const holdableStatuses = ['active', 'in_store', 'material_ready'];
+        if (holdableStatuses.includes(jc.status)) {
+          jc.previousStatus = jc.status;
+          jc.status = 'on_hold';
+          jc.onHoldReason = reason;
+          jc.onHoldAt = new Date();
+          
+          jc.activityLog.push({
+            action: 'on_hold',
+            doneBy: req.user.userId,
+            prevStatus: jc.previousStatus,
+            newStatus: 'on_hold',
+            note: `Quotation put on hold: ${reason}`,
+          });
+          
+          await jc.save();
+        }
+      }
+
+      // Propagate to Invoice
+      const invoice = await Invoice.findOne({ quotationId, companyId: req.user.companyId });
+      if (invoice && invoice.status !== 'on_hold') {
+        invoice.previousStatus = invoice.status;
+        invoice.status = 'on_hold';
+        invoice.onHoldReason = reason;
+        invoice.onHoldAt = new Date();
+        await invoice.save();
+      }
+
+      auditLog(req, {
+        action: 'update',
+        resourceType: 'Quotation',
+        resourceId: quotation._id,
+        resourceLabel: quotation.quotationNumber,
+        changes: { status: { from: prevStatus, to: 'on_hold' } },
+        metadata: { action: 'hold_applied', reason },
+      });
+
+      return res.status(200).json({ success: true, message: 'Quotation and eligible records put on hold', data: quotation });
+    }
+
+    // 2. Toggle Hold OFF (Release)
+    if (!hold && isCurrentlyHeld) {
+      const restoredStatus = quotation.previousStatus || 'approved';
+      quotation.status = restoredStatus;
+      quotation.previousStatus = undefined;
+      quotation.onHoldReason = undefined;
+      quotation.onHoldAt = undefined;
+      await quotation.save();
+
+      // Restore Project
+      if (quotation.projectId) {
+        const project = await Project.findById(quotation.projectId);
+        if (project && project.status === 'on_hold') {
+          project.status = project.previousStatus || 'active';
+          project.previousStatus = undefined;
+          project.onHoldReason = undefined;
+          project.onHoldAt = undefined;
+          await project.save();
+        }
+      }
+
+      // Restore Job Cards
+      const jobCards = await JobCard.find({ quotationId, companyId: req.user.companyId, status: 'on_hold' });
+      for (const jc of jobCards) {
+        const prev = jc.previousStatus || 'active';
+        jc.status = prev;
+        jc.previousStatus = undefined;
+        jc.onHoldReason = undefined;
+        jc.onHoldAt = undefined;
+
+        jc.activityLog.push({
+          action: 'status_changed',
+          doneBy: req.user.userId,
+          prevStatus: 'on_hold',
+          newStatus: prev,
+          note: 'Quotation hold released',
+        });
+
+        await jc.save();
+      }
+
+      // Restore Invoice
+      const invoice = await Invoice.findOne({ quotationId, companyId: req.user.companyId, status: 'on_hold' });
+      if (invoice) {
+        invoice.status = invoice.previousStatus || 'draft';
+        invoice.previousStatus = undefined;
+        invoice.onHoldReason = undefined;
+        invoice.onHoldAt = undefined;
+        await invoice.save();
+      }
+
+      auditLog(req, {
+        action: 'update',
+        resourceType: 'Quotation',
+        resourceId: quotation._id,
+        resourceLabel: quotation.quotationNumber,
+        changes: { status: { from: 'on_hold', to: restoredStatus } },
+        metadata: { action: 'hold_released' },
+      });
+
+      return res.status(200).json({ success: true, message: 'Quotation hold released', data: quotation });
+    }
+
+    res.status(400).json({ success: false, message: 'Invalid hold toggle request' });
+  } catch (err) {
+    next(err);
+  }
+};

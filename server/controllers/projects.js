@@ -103,7 +103,7 @@ export const getProjectById = async (req, res, next) => {
   try {
     const project = await Project.findOne({ _id: req.params.id, ...req.companyFilter })
       .populate('clientId')
-      .populate('quotationId', 'quotationNumber grandTotal status')
+      .populate('quotationId', 'quotationNumber grandTotal status onHoldReason onHoldAt')
       .populate('assignedStaff', 'name role department profilePhoto')
       .lean();
 

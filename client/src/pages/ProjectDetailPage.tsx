@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useAuthStore } from '../stores/authStore';
+import { HoldBanner } from '@/components/ui/HoldBanner';
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
     planning: { label: 'Planning', color: 'text-indigo-500', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
@@ -135,7 +136,7 @@ export default function ProjectDetailPage() {
                     <Select 
                         value={project.status} 
                         onValueChange={handleStatusChange} 
-                        disabled={statusChanging || (!isSuperAdmin && user?.role !== 'admin' && user?.role !== 'management' && user?.role !== 'sales')}
+                        disabled={statusChanging || project.status === 'on_hold' || (!isSuperAdmin && user?.role !== 'admin' && user?.role !== 'management' && user?.role !== 'sales')}
                     >
                         <SelectTrigger className="h-10 w-44 rounded-xl font-bold text-xs border-border/60 shadow-sm bg-card">
                             {statusChanging ? <Loader2 size={13} className="animate-spin mr-2" /> : null}
@@ -149,6 +150,15 @@ export default function ProjectDetailPage() {
                     </Select>
                 </div>
             </div>
+
+            {/* Hold Banner */}
+            {project.status === 'on_hold' && (
+                <HoldBanner 
+                    entityType="Project"
+                    reason={project.onHoldReason}
+                    onAt={project.onHoldAt}
+                />
+            )}
 
             {/* Info Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -269,7 +279,7 @@ export default function ProjectDetailPage() {
                     <Button
                         variant="outline"
                         className="rounded-xl font-black text-xs gap-2 border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/10"
-                        disabled={whatsappMut.isPending}
+                        disabled={whatsappMut.isPending || project.status === 'on_hold'}
                         onClick={async () => {
                             const groupId = (document.getElementById('whatsappGroupId') as HTMLInputElement).value;
                             const link = (document.getElementById('whatsappInviteLink') as HTMLInputElement).value;

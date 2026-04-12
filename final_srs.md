@@ -245,11 +245,7 @@ and linked via `jobCard.designRequestId`.
    - Socket.io event → admin dashboard live update
 3. Adds progress notes any time:
    `POST /api/jobcards/:id/production/note`
-4. If material missing mid-job:
-   `PATCH /api/jobcards/:id/production/shortage`
-   - materialShortage flag set
-   - Store + Admin alerted (in-app + WA direct)
-5. All sub-stages done → marks production complete:
+4. All sub-stages done → marks production complete:
    `PATCH /api/jobcards/:id/production/done`
    - productionStage.status → done
    - jobCard.status → qc_pending
@@ -684,7 +680,7 @@ PATCH  /issue-all                storeStage.issue → mark all issued → trigge
 GET    /                         productionStage.view → substages + notes
 PATCH  /substage                 productionStage.edit → update one substage status
 POST   /note                     productionStage.edit → add progress note
-PATCH  /shortage                 productionStage.edit → flag material shortage → alerts store
+PATCH  /done                     productionStage.edit → finishes workshop → moves to QC stage
 PATCH  /done                     productionStage.edit → mark complete → triggers qc_pending
 ```
 
@@ -808,7 +804,7 @@ POST   /:id/switch               super_admin → switch active company context
 ### Stage Models (1-to-1 with JobCard)
 - `DesignRequest` — measurements, files, sign-off
 - `StoreStage` — BOM, PO links, issued flags
-- `ProductionStage` — 8 substages, notes, shortage flag
+- `ProductionStage` — 8 substages, notes
 - `QcStage` — checklist, photos, rework history
 - `DispatchStage` — team, vehicle, challan, proof
 

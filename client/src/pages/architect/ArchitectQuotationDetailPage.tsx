@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ImagePreview } from '@/components/ui/image-preview';
+import { HoldBanner } from '@/components/ui/HoldBanner';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n ?? 0);
@@ -88,6 +89,13 @@ export default function ArchitectQuotationDetailPage() {
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-4xl mx-auto">
+      {q.status === 'on_hold' && (
+        <HoldBanner 
+          entityType="Quotation" 
+          reason={q.onHoldReason} 
+          onAt={q.onHoldAt} 
+        />
+      )}
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
         <button

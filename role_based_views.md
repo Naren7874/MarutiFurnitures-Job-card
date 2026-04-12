@@ -316,7 +316,7 @@ Each role section covers:
 - Projects *(view only)*
 
 ### Dashboard
-- **KPI Cards:** Active jobs in production, substages completed today, material shortage alerts, overdue jobs
+- **KPI Cards:** Active jobs in production, substages completed today, overdue jobs
 - **My Job Cards:** Job cards where `assignedTo.production` includes their userId AND status = `in_production` or `qc_failed` (rework)
 - **Substage Progress:** Mini Kanban or progress bars for each active job card
 
@@ -346,7 +346,7 @@ Each role section covers:
 
   **Store Tab** *(read only)*
   - Which materials were issued, quantities
-  - Useful if they suspect a material shortage mid-job
+  - Log progress notes for the workshop team
   - Cannot edit BOM or issue materials
 
   **Production Tab** *(full access — their primary workspace)*
@@ -362,7 +362,7 @@ Each role section covers:
   - For each substage: tap to update status, enter worker name, completedAt auto-saved
   - WhatsApp fires to group on each substage completion
   - Add progress notes (text + optional photo)
-  - Flag material shortage → alerts store + admin immediately
+  - Add photos of the work-in-progress to the activity log
   - Mark all done → production complete → triggers `qc_pending`
 
   **QC Tab** *(read only — see result only)*
@@ -370,7 +370,7 @@ Each role section covers:
   - Can see defect notes if failed (so they know what to rework)
   - Cannot fill checklist or pass/fail
 
-- **Hidden tabs:** Dispatch tab
+  **Hidden tabs:** Dispatch tab
 
 ### Projects Page (`/projects`)
 - View only *(project.view)* — for context
@@ -421,9 +421,8 @@ Each role section covers:
 
   **Production Tab** *(read only)*
   - All 8 substages and their completion status + worker names
-  - Progress notes — to understand what was done
-  - Any shortage flags that were raised
-  - Useful context for understanding potential defect causes
+  - Production progress and notes
+  - QC status and rework history understanding potential defect causes
 
   **QC Tab** *(full access — their primary workspace)*
   - Default checklist (5 parameters):

@@ -65,9 +65,13 @@ const invoiceSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["draft", "sent", "partially_paid", "paid", "overdue"],
+      enum: ["draft", "sent", "partially_paid", "paid", "overdue", "on_hold"],
       default: "draft",
     },
+
+    previousStatus: { type: String },
+    onHoldReason:   { type: String },
+    onHoldAt:       { type: Date },
 
     pdfURL:  String,                                     // Cloudinary URL
     sentAt:  Date,

@@ -281,6 +281,25 @@ export const useUpdateCommissionPaid = (id: string) => {
     });
 };
 
+export const useToggleQuotationHold = (id: string) => {
+    const qc = useQueryClient();
+    const { company } = useAuthStore();
+    const cid = company?.id || '';
+    return useMutation({
+        mutationFn: (data: { hold: boolean; reason?: string }) => apiPatch(`/quotations/${id}/hold`, data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: QK.quotation(cid, id) });
+            qc.invalidateQueries({ queryKey: ['quotations', cid] });
+            qc.invalidateQueries({ queryKey: ['projects', cid] });
+            qc.invalidateQueries({ queryKey: ['jobcards', cid] });
+            qc.invalidateQueries({ queryKey: ['invoices', cid] });
+            qc.invalidateQueries({ queryKey: ['dashboard', cid] });
+            toast.success('Quotation hold status updated');
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to update hold status'),
+    });
+};
+
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
@@ -444,14 +463,6 @@ export const useAddProductionNote = (jobCardId: string) => {
     });
 };
 
-export const useFlagShortage = (jobCardId: string) => {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: (data: { reason: string }) =>
-            apiPatch(`/jobcards/${jobCardId}/production/shortage`, data),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['productionStage', jobCardId] }),
-    });
-};
 
 export const useMarkProductionDone = (jobCardId: string) => {
     const qc = useQueryClient();
@@ -592,6 +603,14 @@ export const useDeleteInvoice = (id: string) => {
             toast.success('Proforma Invoice deleted successfully');
         },
         onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to delete invoice'),
+    });
+};
+
+export const useCompany = (id: string) => {
+    return useQuery({
+        queryKey: ['company', id],
+        queryFn: () => apiGet(`/companies/${id}`),
+        enabled: !!id
     });
 };
 

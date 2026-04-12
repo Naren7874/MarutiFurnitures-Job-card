@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { HoldBanner } from '@/components/ui/HoldBanner';
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
     planning: { label: 'Planning', color: 'text-indigo-500', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
@@ -61,6 +62,13 @@ export default function ArchitectProjectDetailPage() {
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
+            {project.status === 'on_hold' && (
+                <HoldBanner 
+                    entityType="Project" 
+                    reason={project.onHoldReason} 
+                    onAt={project.onHoldAt} 
+                />
+            )}
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">

@@ -14,6 +14,7 @@ import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { useAuthStore } from '../stores/authStore';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { HoldBanner } from '@/components/ui/HoldBanner';
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
     draft: { label: 'Draft', color: 'text-slate-500', bg: 'bg-slate-500/10', border: 'border-slate-500/20' },
@@ -179,28 +180,37 @@ export default function InvoiceDetailPage() {
                     </Button>
 
                     {canEdit && (
-                        <Button variant="outline" onClick={() => navigate(`/invoices/${id}/edit`)} className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-border/60">
+                        <Button variant="outline" onClick={() => navigate(`/invoices/${id}/edit`)} disabled={inv.status === 'on_hold'} className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-border/60">
                             <Pencil size={13} /> Edit
                         </Button>
                     )}
                     {canDelete && (
-                        <Button variant="outline" onClick={() => setConfirm('delete')} className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-rose-500/30 text-rose-500 hover:bg-rose-500/10">
+                        <Button variant="outline" onClick={() => setConfirm('delete')} disabled={inv.status === 'on_hold'} className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-rose-500/30 text-rose-500 hover:bg-rose-500/10">
                             <Trash2 size={13} /> Delete
                         </Button>
                     )}
                     {inv.status === 'draft' && canEdit && (
-                        <Button onClick={() => setConfirm('send')} disabled={sendMut.isPending} className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-blue-500 text-white hover:bg-blue-600">
+                        <Button onClick={() => setConfirm('send')} disabled={sendMut.isPending || inv.status === 'on_hold'} className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-blue-500 text-white hover:bg-blue-600">
                             {sendMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                             Send to Client
                         </Button>
                     )}
                     {!isPaid && canPay && (
-                        <Button onClick={() => { setEditingPayment(null); setPayForm({ amount: '', mode: 'upi', reference: '' }); setShowPayment(true); }} className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-emerald-500 text-white hover:bg-emerald-600">
+                        <Button onClick={() => { setEditingPayment(null); setPayForm({ amount: '', mode: 'upi', reference: '' }); setShowPayment(true); }} disabled={inv.status === 'on_hold'} className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-emerald-500 text-white hover:bg-emerald-600">
                             <Plus size={13} /> Record Payment
                         </Button>
                     )}
                 </div>
             </div>
+
+            {/* Hold Banner */}
+            {inv.status === 'on_hold' && (
+                <HoldBanner 
+                    entityType="Proforma Invoice"
+                    reason={inv.onHoldReason}
+                    onAt={inv.onHoldAt}
+                />
+            )}
 
             {/* Confirm */}
             <AnimatePresence>
@@ -389,10 +399,10 @@ export default function InvoiceDetailPage() {
                                             <div className="flex items-center gap-2">
                                                 {canPay && !isSales && (
                                                     <>
-                                                        <Button variant="ghost" size="icon" onClick={() => startEditPayment(p)} className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors">
+                                                        <Button variant="ghost" size="icon" onClick={() => startEditPayment(p)} disabled={inv.status === 'on_hold'} className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors disabled:opacity-30">
                                                             <Pencil size={14} />
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" onClick={() => handleDeletePayment(p._id)} className="h-8 w-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-500 transition-colors">
+                                                        <Button variant="ghost" size="icon" onClick={() => handleDeletePayment(p._id)} disabled={inv.status === 'on_hold'} className="h-8 w-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-500 transition-colors disabled:opacity-30">
                                                             <Trash2 size={14} />
                                                         </Button>
                                                     </>

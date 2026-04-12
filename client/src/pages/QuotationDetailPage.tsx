@@ -8,7 +8,7 @@ import {
 import {
     useQuotation, useSendQuotation, useApproveQuotation,
     useRejectQuotation, useReviseQuotation, useJobCards, useDeleteQuotation,
-    useUpdateCommissionPaid
+    useUpdateCommissionPaid, useToggleQuotationHold
 } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,8 @@ import { ImagePreview } from '@/components/ui/image-preview';
 import ApproveQuotationModal from '../components/quotation/ApproveQuotationModal';
 import ManageTeamsModal from '../components/quotation/ManageTeamsModal';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Users } from 'lucide-react';
+import { Users, Pause, Play } from 'lucide-react';
+import { HoldBanner } from '@/components/ui/HoldBanner';
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; bor
     rejected:  { label: 'Rejected',  color: 'text-rose-500',   bg: 'bg-rose-500/10',  border: 'border-rose-500/20'   },
     revised:   { label: 'Revised',   color: 'text-amber-500',  bg: 'bg-amber-500/10', border: 'border-amber-500/20'  },
     converted: { label: 'Converted', color: 'text-violet-500', bg: 'bg-violet-500/10',border: 'border-violet-500/20' },
+    on_hold:   { label: 'On Hold',   color: 'text-rose-500',   bg: 'bg-rose-500/10',  border: 'border-rose-500/20'   },
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -47,14 +49,19 @@ export default function QuotationDetailPage() {
     const reviseMutation  = useReviseQuotation(id!);
     const deleteMutation  = useDeleteQuotation(id!);
     const commissionPaidMutation = useUpdateCommissionPaid(id!);
-    const [confirmAction, setConfirmAction] = useState<null | 'send' | 'approve' | 'reject' | 'revise' | 'delete'>(null);
+    const toggleHoldMutation = useToggleQuotationHold(id!);
+
+    const [confirmAction, setConfirmAction] = useState<null | 'send' | 'approve' | 'reject' | 'revise' | 'delete' | 'hold' | 'release'>(null);
+    const [holdReason, setHoldReason] = useState('');
+    const [holdError, setHoldError] = useState('');
+
     const [pdfLoading, setPdfLoading] = useState(false);
     const [showApproveModal, setShowApproveModal] = useState(false);
     const [isManageTeamsOpen, setIsManageTeamsOpen] = useState(false);
 
     const { data: jobCardsRaw } = useJobCards({ quotationId: id });
     const jobCards = (jobCardsRaw as any)?.data || [];
-    const isBusy = sendMutation.isPending || approveMutation.isPending || rejectMutation.isPending || reviseMutation.isPending || deleteMutation.isPending;
+    const isBusy = sendMutation.isPending || approveMutation.isPending || rejectMutation.isPending || reviseMutation.isPending || deleteMutation.isPending || toggleHoldMutation.isPending;
 
     // Permission flags
     const { hasPermission, user } = useAuthStore();
@@ -65,7 +72,7 @@ export default function QuotationDetailPage() {
     const canApprove = hasPermission('quotation.approve');
     const canDelete  = hasPermission('quotation.delete');
 
-    const handleAction = async (action: 'send' | 'approve' | 'reject' | 'revise' | 'delete') => {
+    const handleAction = async (action: 'send' | 'approve' | 'reject' | 'revise' | 'delete' | 'hold' | 'release') => {
         setConfirmAction(null);
         if (action === 'send')    await sendMutation.mutateAsync(undefined as any);
         if (action === 'approve') setShowApproveModal(true);
@@ -74,6 +81,14 @@ export default function QuotationDetailPage() {
         if (action === 'delete') {
             await deleteMutation.mutateAsync();
             navigate('/quotations');
+        }
+        if (action === 'hold') {
+            if (!holdReason) { setHoldError('Reason is required'); return; }
+            await toggleHoldMutation.mutateAsync({ hold: true, reason: holdReason });
+            setHoldReason('');
+        }
+        if (action === 'release') {
+            await toggleHoldMutation.mutateAsync({ hold: false });
         }
     };
 
@@ -145,6 +160,15 @@ export default function QuotationDetailPage() {
                         <p className="text-muted-foreground/50 text-xs font-semibold mt-1">Created {fmtDate(q.createdAt)}</p>
                     </div>
                 </div>
+
+                {/* Status-specific warning for administrators */}
+                {isSuperAdmin && status === 'on_hold' && (
+                    <div className="flex-1 flex justify-center">
+                        <Badge variant="outline" className="bg-rose-500/10 text-rose-500 border-rose-500/20 font-black animate-pulse px-4 py-1.5 rounded-xl">
+                            SYSTEM TRAPPED IN HOLD STATE
+                        </Badge>
+                    </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-3">
@@ -241,6 +265,27 @@ export default function QuotationDetailPage() {
                             Delete
                         </Button>
                     )}
+
+                    {/* 7. Hold / Release */}
+                    {isSuperAdmin && status !== 'converted' && status !== 'rejected' && (
+                        status === 'on_hold' ? (
+                            <Button
+                                onClick={() => setConfirmAction('release')}
+                                disabled={isBusy}
+                                className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-emerald-500 text-white hover:bg-emerald-600"
+                            >
+                                <Play size={13} fill="currentColor" /> Release Hold
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={() => setConfirmAction('hold')}
+                                disabled={isBusy}
+                                className="h-10 px-5 rounded-xl text-xs font-black gap-2 bg-rose-500 text-white hover:bg-rose-600 shadow-lg shadow-rose-500/10"
+                            >
+                                <Pause size={13} fill="currentColor" /> Put on Hold
+                            </Button>
+                        )
+                    )}
                 </div>
             </div>
 
@@ -253,6 +298,8 @@ export default function QuotationDetailPage() {
                     confirmAction === 'send'   ? 'Send to Client?' :
                     confirmAction === 'reject' ? 'Reject Quotation?' :
                     confirmAction === 'revise' ? 'Create Revision?' :
+                    confirmAction === 'hold'   ? 'Put Quotation on Hold?' :
+                    confirmAction === 'release'? 'Release Quotation Hold?' :
                     'Approve Quotation?'
                 }
                 description={
@@ -260,6 +307,57 @@ export default function QuotationDetailPage() {
                     confirmAction === 'send'   ? 'This will notify the client and change the status to "Sent".' :
                     confirmAction === 'reject' ? 'This will mark the quotation as rejected.' :
                     confirmAction === 'revise' ? 'This will create a new draft revision of this quotation.' :
+                    confirmAction === 'hold'   ? (
+                        <div className="space-y-4 pt-2">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                This will suspend all operations for this quotation and its linked entities.
+                            </p>
+                            
+                            {/* Production Gate Info */}
+                            <div className="bg-muted/50 rounded-2xl p-4 border border-border/50">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/60 mb-2">Impact Assessment</p>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center bg-card p-2 rounded-xl border border-border/30">
+                                        <span className="text-[11px] font-bold">Holdable (Active)</span>
+                                        <Badge className="bg-rose-500/10 text-rose-500 border-rose-500/20 text-[10px]">
+                                            {jobCards.filter((jc: any) => jc.status === 'active').length} Job Cards
+                                            {jobCards.filter((jc: any) => jc.status === 'active').length > 0 && (
+                                                <span className="ml-1 opacity-60">
+                                                    ({jobCards.filter((jc: any) => jc.status === 'active').map((jc: any) => jc.jobCardNumber).join(', ')})
+                                                </span>
+                                            )}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex justify-between items-center bg-card p-2 rounded-xl border border-border/30">
+                                        <span className="text-[11px] font-bold text-muted-foreground/60 italic underline decoration-rose-500/30 underline-offset-4">Skipped (In Production+)</span>
+                                        <Badge variant="outline" className="border-emerald-500/30 text-emerald-500 text-[10px]">
+                                            {jobCards.filter((jc: any) => jc.status !== 'active' && !['on_hold', 'cancelled', 'closed'].includes(jc.status)).length} Job Cards
+                                            {jobCards.filter((jc: any) => jc.status !== 'active' && !['on_hold', 'cancelled', 'closed'].includes(jc.status)).length > 0 && (
+                                                <span className="ml-1 opacity-60">
+                                                    ({jobCards.filter((jc: any) => jc.status !== 'active' && !['on_hold', 'cancelled', 'closed'].includes(jc.status)).map((jc: any) => jc.jobCardNumber).join(', ')})
+                                                </span>
+                                            )}
+                                        </Badge>
+                                    </div>
+                                </div>
+                                <p className="mt-2 text-[9px] text-muted-foreground/50 italic leading-tight">
+                                    Only job cards in "Active" status will be put on hold. Work already on the floor (in production or later) will continue.
+                                </p>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/60">Reason for Hold</label>
+                                <textarea 
+                                    className="w-full min-h-[80px] bg-muted/30 border border-border/40 rounded-xl p-3 text-sm focus:ring-2 ring-rose-500/20 outline-none transition-all"
+                                    placeholder="Enter reason for suspending work..."
+                                    value={holdReason}
+                                    onChange={(e) => { setHoldReason(e.target.value); setHoldError(''); }}
+                                />
+                                {holdError && <p className="text-[10px] font-black text-rose-500 tracking-tight">{holdError}</p>}
+                            </div>
+                        </div>
+                    ) :
+                    confirmAction === 'release' ? 'Are you sure you want to resume all work for this quotation?' :
                     `Approve this quotation? A Project and Job Cards will be automatically created for ${q.items?.length || 0} item(s). You'll set the team assignment in the next step.`
                 }
                 confirmText={
@@ -267,12 +365,28 @@ export default function QuotationDetailPage() {
                     confirmAction === 'send'   ? 'Send Now' :
                     confirmAction === 'reject' ? 'Reject' :
                     confirmAction === 'revise' ? 'Create' :
+                    confirmAction === 'hold'   ? 'Put on Hold' :
+                    confirmAction === 'release'? 'Resume Work' :
                     'Approve'
                 }
-                variant={confirmAction === 'delete' || confirmAction === 'reject' ? 'destructive' : 'default'}
+                variant={confirmAction === 'delete' || confirmAction === 'reject' || confirmAction === 'hold' ? 'destructive' : 'default'}
                 isPending={isBusy}
-                onConfirm={async () => { if (confirmAction) await handleAction(confirmAction); }}
+                onConfirm={async () => { 
+                    if (confirmAction === 'hold') {
+                        if (!holdReason) { setHoldError('Reason is required'); return; }
+                    }
+                    if (confirmAction) await handleAction(confirmAction); 
+                }}
             />
+
+            {/* Hold Banner */}
+            {status === 'on_hold' && (
+                <HoldBanner 
+                    entityType="Quotation"
+                    reason={q.onHoldReason}
+                    onAt={q.onHoldAt}
+                />
+            )}
 
             {/* Approval success note */}
             {status === 'approved' && q.projectId && (

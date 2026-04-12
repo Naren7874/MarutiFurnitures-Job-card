@@ -79,6 +79,11 @@ const projectSchema = new mongoose.Schema(
     referenceImages: [{ type: String }],                 // Cloudinary URLs
     notes:           { type: String },
 
+    // Hold tracking
+    previousStatus: { type: String },
+    onHoldReason:   { type: String },
+    onHoldAt:       { type: Date },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

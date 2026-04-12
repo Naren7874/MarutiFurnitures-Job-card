@@ -119,6 +119,7 @@ const quotationSchema = new mongoose.Schema(
         "rejected",    // client rejected
         "revised",     // new version created from this one
         "converted",   // project has been created from this quotation
+        "on_hold",     // paused by admin
       ],
       default: "draft",
     },
@@ -134,6 +135,11 @@ const quotationSchema = new mongoose.Schema(
     rejectedAt:     { type: Date },
     rejectedReason: { type: String },
     convertedAt:    { type: Date },                      // when project was created
+    
+    // Hold tracking
+    previousStatus: { type: String },
+    onHoldReason:   { type: String },
+    onHoldAt:       { type: Date },
 
     // Project created from this quotation
     projectId: {
