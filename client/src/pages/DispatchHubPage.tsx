@@ -7,9 +7,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { apiPatch, apiUpload } from '@/lib/axios';
 import { useAuthStore } from '@/stores/authStore';
-import { useDispatchTeam, useJobCards } from '@/hooks/useApi';
+import { useDispatchTeam, useDeliveryTrips, useCompleteDelivery, useJobCard } from '@/hooks/useApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,25 +18,34 @@ import { motion, AnimatePresence } from 'motion/react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface JobCard {
+interface DeliveryTrip {
     _id: string;
-    jobCardNumber: string;
-    title: string;
-    status: string;
-    expectedDelivery: string;
-    items: any[];
     clientId: {
         name: string;
         phone: string;
-        address?: string;
-    };
-    dispatchStageId?: {
-        _id: string;
-        deliveryTeam?: Array<{ name: string; phone: string; role: string }>;
-        proofOfDelivery?: {
-            photo?: string;
-            capturedAt?: string;
+        address?: string | {
+            houseNumber?: string;
+            line1?: string;
+            line2?: string;
+            city?: string;
+            pincode?: string;
         };
+    };
+    jobCards: Array<{
+        _id: string;
+        jobCardNumber: string;
+        title: string;
+        status: string;
+        photo?: string;
+    }>;
+    deliveryTeam: Array<{ user_id: string; name: string; phone?: string; role: string }>;
+    status: string;
+    scheduledDate: string;
+    timeSlot: string;
+    deliveredByName?: string;
+    proofOfDelivery?: {
+        photos: string[];
+        capturedAt?: string;
     };
 }
 
@@ -51,6 +59,7 @@ export default function DispatchHubPage() {
     // Identity State
     const [selectedMember, setSelectedMember] = useState<{ id: string, name: string } | null>(null);
     const [isIdentityModalOpen, setIsIdentityModalOpen] = useState(false);
+    const [viewingJobCard, setViewingJobCard] = useState<string | null>(null);
     
     // Filter State
     const [searchQuery, setSearchQuery] = useState('');
@@ -58,15 +67,15 @@ export default function DispatchHubPage() {
     const [filterType, setFilterType] = useState<'all' | 'mine'>('mine');
 
     // API Data
-    const dispatchTeamRes = useDispatchTeam();
-    const teamMembers = (dispatchTeamRes.data as any)?.data || [];
+    const dispatchTeamRes = useDispatchTeam() as any;
+    const teamMembers = Array.isArray(dispatchTeamRes.data?.data) ? dispatchTeamRes.data.data : [];
     
-    // Use the central hook which now handles global dispatch role correctly
-    const { data: jobCardsRes, isLoading } = useJobCards({ 
-        status: ['qc_passed', 'dispatched', 'delivered'], 
+    const { data: tripsRes, isLoading } = useDeliveryTrips({ 
+        status: 'scheduled,in_transit,delivered', 
         limit: 100 
-    });
-    const jobCards: JobCard[] = (jobCardsRes as any)?.data || [];
+    }) as any;
+    
+    const deliveryTrips: DeliveryTrip[] = tripsRes?.data || [];
 
     // Persist Identity
     useEffect(() => {
@@ -96,18 +105,17 @@ export default function DispatchHubPage() {
     };
 
     // Filter Logic
-    const filteredJobs = jobCards.filter(jc => {
-        const matchesSearch = (jc.jobCardNumber?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-                            (jc.title?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-                            (jc.clientId?.name?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+    const filteredTrips = deliveryTrips.filter(trip => {
+        const searchTarget = trip.jobCards.map(jc => jc.jobCardNumber).join(' ') + ' ' + (trip.clientId?.name || '');
+        const matchesSearch = searchTarget.toLowerCase().includes(searchQuery.toLowerCase());
         
         const matchesTab = activeTab === 'pending' 
-            ? ['qc_passed', 'dispatched'].includes(jc.status)
-            : jc.status === 'delivered';
+            ? ['scheduled', 'in_transit'].includes(trip.status)
+            : trip.status === 'delivered';
 
-        const isMine = jc.dispatchStageId?.deliveryTeam?.some(t => 
+        const isMine = (trip.deliveryTeam?.some(t => 
             t.name?.trim().toLowerCase() === selectedMember?.name?.trim().toLowerCase()
-        );
+        )) || (trip.deliveredByName?.trim().toLowerCase() === selectedMember?.name?.trim().toLowerCase());
         const matchesFilter = filterType === 'all' || isMine;
             
         return matchesSearch && matchesTab && matchesFilter;
@@ -124,7 +132,7 @@ export default function DispatchHubPage() {
                         </div>
                         <div>
                             <h1 className="text-xs font-black uppercase tracking-widest text-emerald-400">Dispatch Portal</h1>
-                            <p className="text-[9px] text-white/40 font-bold uppercase tracking-[0.1em]">
+                            <p className="text-[9px] text-white/40 font-bold uppercase tracking-widest">
                                 {selectedMember ? `Active: ${selectedMember.name}` : 'Select Identity'} 
                             </p>
                         </div>
@@ -228,7 +236,7 @@ export default function DispatchHubPage() {
                             <Loader2 className="size-8 text-emerald-500 animate-spin" />
                             <p className="text-xs font-bold text-white/30 uppercase tracking-widest">Loading deliveries...</p>
                         </div>
-                    ) : filteredJobs.length === 0 ? (
+                    ) : filteredTrips.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 gap-6 grayscale opacity-30">
                             <div className="size-20 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center">
                                 <Package className="size-10" />
@@ -237,12 +245,13 @@ export default function DispatchHubPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {filteredJobs.map((jc) => (
-                                <JobDeliveryCard 
-                                    key={jc._id} 
-                                    job={jc} 
+                            {filteredTrips.map((trip) => (
+                                <TripDeliveryCard 
+                                    key={trip._id} 
+                                    trip={trip} 
                                     activeTab={activeTab} 
                                     currentDispatcher={selectedMember?.name || ''} 
+                                    onViewJobCard={setViewingJobCard}
                                 />
                             ))}
                         </div>
@@ -306,72 +315,117 @@ export default function DispatchHubPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Job Card Detailed View */}
+            <AnimatePresence>
+                {viewingJobCard && (
+                    <JobCardDetailModal 
+                        id={viewingJobCard} 
+                        onClose={() => setViewingJobCard(null)} 
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }
 
-// ── Job Delivery Card Component ───────────────────────────────────────────────
+// ── Trip Delivery Card Component ───────────────────────────────────────────────
 
-function JobDeliveryCard({ job, activeTab, currentDispatcher }: { job: JobCard, activeTab: string, currentDispatcher: string }) {
-    const [isUpdating, setIsUpdating] = useState(false);
+function TripDeliveryCard({ trip, activeTab, currentDispatcher, onViewJobCard }: { 
+    trip: DeliveryTrip, 
+    activeTab: string, 
+    currentDispatcher: string,
+    onViewJobCard: (id: string) => void
+}) {
     const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
-    const qc = useQueryClient();
+    const completeMutation = useCompleteDelivery(trip._id);
 
-    const isAssignedToMe = job.dispatchStageId?.deliveryTeam?.some(t => t.name === currentDispatcher);
+    const isAssignedToMe = trip.deliveryTeam?.some(t => t.name === currentDispatcher);
 
-    const handleMarkDelivered = async (podUrl: string) => {
-        setIsUpdating(true);
-        try {
-            await apiPatch(`/jobcards/${job._id}/dispatch/deliver`, {
-                podPhotoUrl: podUrl,
-                deliveredByName: currentDispatcher
-            });
-            toast.success('Delivery completed successfully!');
-            qc.invalidateQueries({ queryKey: ['dispatch-hub'] });
-        } catch (e) {
-            toast.error('Failed to update delivery');
-        } finally {
-            setIsUpdating(false);
-            setIsPhotoModalOpen(false);
-        }
+    const handleMarkDelivered = async (files: File[]) => {
+        completeMutation.mutate({
+            podPhotos: files,
+            deliveredByName: currentDispatcher
+        }, {
+            onSuccess: () => setIsPhotoModalOpen(false)
+        });
     };
 
     return (
         <Card className="bg-white/5 border-white/5 rounded-[2rem] overflow-hidden group hover:bg-white/[0.07] transition-all">
             <CardContent className="p-5">
                 <div className="flex justify-between items-start mb-4">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500/60 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                                {job.jobCardNumber}
+                    <div className="space-y-1 w-full">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-[0.1em] text-emerald-500/60 bg-emerald-500/10 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                Trip • {trip.jobCards.length} Items
                             </span>
                             {activeTab === 'completed' && (
                                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 bg-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">
                                     <CheckCheck className="size-2.5" /> Delivered
                                 </span>
                             )}
-                            {isAssignedToMe && (
+                            {isAssignedToMe && activeTab === 'pending' && (
                                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
                                     <User className="size-2.5" /> Mine
                                 </span>
                             )}
                         </div>
-                        <h3 className="text-lg font-black leading-tight text-white/90">{job.title}</h3>
+                        <h3 className="text-lg font-black leading-tight text-white/90 mt-2">{trip.clientId.name}</h3>
+                        <p className="text-xs text-white/60 line-clamp-2">
+                            {typeof trip.clientId.address === 'object' 
+                                ? [trip.clientId.address.houseNumber, trip.clientId.address.line1, trip.clientId.address.line2, trip.clientId.address.city, trip.clientId.address.pincode].filter(Boolean).join(', ')
+                                : (trip.clientId.address || 'Address Unspecified')}
+                        </p>
                     </div>
                 </div>
 
                 <div className="space-y-4">
-                    {/* Client Info */}
+                    {/* Item List Summary */}
+                    <div className="p-3 bg-black/20 rounded-2xl border border-white/5">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2">Package Contents</p>
+                        <ul className="space-y-2 custom-scrollbar max-h-40 overflow-y-auto pr-2">
+                            {trip.jobCards.map(jc => (
+                                <li 
+                                    key={jc._id} 
+                                    className="flex gap-3 items-center group/item cursor-pointer"
+                                    onClick={() => onViewJobCard(jc._id)}
+                                >
+                                    <div className="size-8 rounded-lg bg-black overflow-hidden shrink-0 border border-white/10 group-hover/item:border-emerald-500/50 transition-colors">
+                                        {jc.photo ? (
+                                            <img src={jc.photo} className="size-full object-cover" alt={jc.title} />
+                                        ) : (
+                                            <div className="size-full flex items-center justify-center bg-white/5">
+                                                <Package className="size-3 text-white/20" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-[11px] font-bold text-white/80 group-hover/item:text-emerald-400 transition-colors truncate">
+                                                {jc.title}
+                                            </p>
+                                            <ChevronRight className="size-3 text-white/20 group-hover/item:text-emerald-500 transition-transform group-hover/item:translate-x-1" />
+                                        </div>
+                                        <p className="text-[9px] font-mono text-emerald-500/60 leading-none">
+                                            {jc.jobCardNumber}
+                                        </p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3">
                         <div className="p-3 rounded-2xl bg-white/5 flex flex-col gap-1">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Client</span>
-                            <span className="text-[11px] font-bold truncate">{job.clientId.name}</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Scheduled</span>
+                            <span className="text-[11px] font-bold">
+                                {trip.scheduledDate ? format(new Date(trip.scheduledDate), 'dd MMM yyyy') : 'Not Set'}
+                            </span>
                         </div>
                         <div className="p-3 rounded-2xl bg-white/5 flex flex-col gap-1">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Delivery Due</span>
-                            <span className="text-[11px] font-bold">
-                                {job.expectedDelivery ? format(new Date(job.expectedDelivery), 'dd MMM') : 'Not Set'}
-                            </span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Time</span>
+                            <span className="text-[11px] font-bold">{trip.timeSlot || 'Any time'}</span>
                         </div>
                     </div>
 
@@ -381,37 +435,46 @@ function JobDeliveryCard({ job, activeTab, currentDispatcher }: { job: JobCard, 
                             <Button 
                                 className="w-full h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-widest text-xs gap-3 shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all"
                                 onClick={() => setIsPhotoModalOpen(true)}
-                                disabled={isUpdating}
+                                disabled={completeMutation.isPending}
                             >
-                                {isUpdating ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-5" strokeWidth={2.5} />}
+                                {completeMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-5" strokeWidth={2.5} />}
                                 Capture Proof & Deliver
                             </Button>
                         ) : (
                             <div className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/30 font-black uppercase tracking-widest text-[10px] gap-2">
                                 <Lock className="size-3.5 opacity-50" />
-                                Assigned to {job.dispatchStageId?.deliveryTeam?.[0]?.name || 'Another Team'}
+                                Assigned to {trip.deliveryTeam?.[0]?.name || 'Another Team'}
                             </div>
                         )
                     ) : (
-                        <div className="flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
-                            {job.dispatchStageId?.proofOfDelivery?.photo ? (
-                                <img 
-                                    src={job.dispatchStageId.proofOfDelivery.photo} 
-                                    className="size-10 rounded-xl object-cover bg-black" 
-                                    alt="POD"
-                                />
+                        <div className="flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 overflow-x-auto custom-scrollbar flex-nowrap">
+                            {trip.proofOfDelivery?.photos?.length ? (
+                                trip.proofOfDelivery.photos.map((photoUrl, idx) => (
+                                    <img 
+                                        key={idx}
+                                        src={photoUrl} 
+                                        className="size-10 rounded-xl object-cover bg-black shrink-0" 
+                                        alt={`POD ${idx + 1}`}
+                                    />
+                                ))
                             ) : (
-                                <div className="size-10 rounded-xl bg-white/5 flex items-center justify-center">
+                                <div className="size-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
                                     <ImageIcon className="size-4 text-white/20" />
                                 </div>
                             )}
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-[100px]">
                                 <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Delivered on</p>
                                 <p className="text-xs font-bold text-white/60">
-                                    {job.dispatchStageId?.proofOfDelivery?.capturedAt 
-                                        ? format(new Date(job.dispatchStageId.proofOfDelivery.capturedAt), 'dd MMM, hh:mm a')
+                                    {trip.proofOfDelivery?.capturedAt 
+                                        ? format(new Date(trip.proofOfDelivery.capturedAt), 'dd MMM, hh:mm a')
                                         : 'Unknown Date'
                                     }
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">By</p>
+                                <p className="text-xs font-bold text-white/60 truncate max-w-[80px]">
+                                    {trip.deliveredByName || 'Driver'}
                                 </p>
                             </div>
                         </div>
@@ -425,7 +488,9 @@ function JobDeliveryCard({ job, activeTab, currentDispatcher }: { job: JobCard, 
                     <PODUploadModal 
                         onClose={() => setIsPhotoModalOpen(false)}
                         onComplete={handleMarkDelivered}
-                        jobTitle={job.title}
+                        title={`Deliver ${trip.jobCards.length} Items to ${trip.clientId.name}`}
+                        isUploading={completeMutation.isPending}
+                        jobCards={trip.jobCards}
                     />
                 )}
             </AnimatePresence>
@@ -433,53 +498,171 @@ function JobDeliveryCard({ job, activeTab, currentDispatcher }: { job: JobCard, 
     );
 }
 
+// ── Job Card Detail Modal ───────────────────────────────────────────────────
+
+function JobCardDetailModal({ id, onClose }: { id: string, onClose: () => void }) {
+    const { data: jobCardRes, isLoading } = useJobCard(id) as any;
+    const jc = jobCardRes?.data;
+
+    return (
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-110 bg-[#0a0a0b]/90 backdrop-blur-xl flex items-center justify-center p-4"
+            onClick={onClose}
+        >
+            <motion.div 
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="w-full max-w-lg bg-[#1a1a1c] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl"
+                onClick={e => e.stopPropagation()}
+            >
+                {isLoading ? (
+                    <div className="h-96 flex flex-col items-center justify-center gap-4">
+                        <Loader2 className="size-10 text-emerald-500 animate-spin" />
+                        <p className="text-sm font-bold text-white/40 uppercase tracking-widest">Loading Specs...</p>
+                    </div>
+                ) : !jc ? (
+                    <div className="h-96 flex flex-col items-center justify-center gap-4">
+                        <AlertCircle className="size-10 text-red-500" />
+                        <p className="text-sm font-bold text-white/40 uppercase tracking-widest">Job Card Not Found</p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col h-full max-h-[90vh]">
+                        {/* Header */}
+                        <div className="p-6 flex items-center justify-between border-b border-white/5">
+                            <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">{jc.jobCardNumber}</h4>
+                                <h2 className="text-xl font-black text-white">{jc.title}</h2>
+                            </div>
+                            <Button variant="ghost" size="icon" className="rounded-xl bg-white/5" onClick={onClose}>
+                                <X className="size-5" />
+                            </Button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
+                            {/* Main Image */}
+                            <div className="aspect-video w-full rounded-3xl bg-black overflow-hidden border border-white/5 shadow-2xl relative group">
+                                {jc.items?.[0]?.photo ? (
+                                    <img src={jc.items[0].photo} className="size-full object-cover" alt={jc.title} />
+                                ) : (
+                                    <div className="size-full flex flex-col items-center justify-center gap-4">
+                                        <ImageIcon className="size-12 text-white/5" />
+                                        <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">No Design Image</p>
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                            </div>
+
+                            {/* Specifications Grid */}
+                            <div className="grid grid-cols-2 gap-4">
+                                {[
+                                    { label: 'Size', value: jc.items?.[0]?.specifications?.size },
+                                    { label: 'Polish', value: jc.items?.[0]?.specifications?.polish },
+                                    { label: 'Fabric', value: jc.items?.[0]?.specifications?.fabric || jc.items?.[0]?.specifications?.fabrics?.[0] },
+                                    { label: 'Material', value: jc.items?.[0]?.specifications?.material },
+                                    { label: 'Finish', value: jc.items?.[0]?.specifications?.finish },
+                                    { label: 'Hardware', value: jc.items?.[0]?.specifications?.hardware },
+                                ].map((spec, i) => spec.value && (
+                                    <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-1">{spec.label}</p>
+                                        <p className="text-sm font-bold text-white/80">{spec.value}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Production Notes */}
+                            {jc.items?.[0]?.specifications?.notes && (
+                                <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-emerald-500 mb-2">Special Instructions</p>
+                                    <p className="text-xs font-medium text-white/60 leading-relaxed italic">
+                                        "{jc.items[0].specifications.notes}"
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 bg-white/5 border-t border-white/5 mt-auto">
+                            <Button 
+                                className="w-full h-14 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-black uppercase tracking-widest text-xs transition-all"
+                                onClick={onClose}
+                            >
+                                Close Details
+                            </Button>
+                        </div>
+                    </div>
+                ) }
+            </motion.div>
+        </motion.div>
+    );
+}
+
 // ── POD Upload Modal ──────────────────────────────────────────────────────────
 
-function PODUploadModal({ onClose, onComplete, jobTitle }: { onClose: () => void, onComplete: (url: string) => void, jobTitle: string }) {
-    const [preview, setPreview] = useState<string | null>(null);
-    const [file, setFile] = useState<File | null>(null);
-    const [isUploading, setIsUploading] = useState(false);
+function PODUploadModal({ onClose, onComplete, title, isUploading, jobCards }: { 
+    onClose: () => void, 
+    onComplete: (files: File[]) => void, 
+    title: string, 
+    isUploading: boolean,
+    jobCards: Array<{ _id: string; title: string; jobCardNumber: string; photo?: string }>
+}) {
+    const [itemPhotos, setItemPhotos] = useState<Record<string, { file: File, preview: string }>>({});
+    const [activeItemId, setActiveItemId] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selected = e.target.files?.[0];
-        if (selected) {
-            setFile(selected);
-            // Zero-copy, zero-memory preview pointer (prevents OOM crashes)
-            const url = URL.createObjectURL(selected);
-            setPreview(url);
+        if (!activeItemId) return;
+
+        const file = e.target.files?.[0];
+        if (file) {
+            // Revoke old preview if exists
+            if (itemPhotos[activeItemId]) {
+                URL.revokeObjectURL(itemPhotos[activeItemId].preview);
+            }
+
+            const preview = URL.createObjectURL(file);
+            setItemPhotos(prev => ({
+                ...prev,
+                [activeItemId]: { file, preview }
+            }));
+        }
+        setActiveItemId(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const triggerCapture = (id: string) => {
+        setActiveItemId(id);
+        fileInputRef.current?.click();
+    };
+
+    const removePhoto = (id: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (itemPhotos[id]) {
+            URL.revokeObjectURL(itemPhotos[id].preview);
+            const next = { ...itemPhotos };
+            delete next[id];
+            setItemPhotos(next);
         }
     };
 
-    // Cleanup object URLs to prevent memory leaks
     useEffect(() => {
         return () => {
-            if (preview) URL.revokeObjectURL(preview);
+            Object.values(itemPhotos).forEach(p => URL.revokeObjectURL(p.preview));
         };
-    }, [preview]);
+    }, [itemPhotos]);
 
-    const handleConfirm = async (e?: React.MouseEvent) => {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        
-        if (!file) {
-            toast.error('Please capture a photo first');
+    const handleConfirm = async () => {
+        const files = Object.values(itemPhotos).map(p => p.file);
+        if (files.length !== jobCards.length) {
+            toast.error(`Please capture photos for all ${jobCards.length} items`);
             return;
         }
-
-        setIsUploading(true);
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            const result: any = await apiUpload('/jobcards/upload-pod-photo', formData);
-            onComplete(result.url);
-        } catch (e) {
-            toast.error('Photo upload failed');
-        } finally {
-            setIsUploading(false);
-        }
+        onComplete(files);
     };
 
     return (
@@ -487,91 +670,108 @@ function PODUploadModal({ onClose, onComplete, jobTitle }: { onClose: () => void
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-60 bg-[#0a0a0b] flex flex-col"
+            className="fixed inset-0 z-100 bg-[#0a0a0b] flex flex-col md:p-12 items-center justify-center p-0"
         >
-            <div className="p-6 h-20 flex items-center justify-between border-b border-white/5">
-                <div>
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-white/40">Proof of Delivery</h4>
-                    <p className="text-sm font-bold truncate max-w-[200px]">{jobTitle}</p>
-                </div>
-                <Button variant="ghost" size="icon" className="rounded-xl bg-white/5" onClick={onClose}>
-                    <X className="size-5" />
-                </Button>
-            </div>
-
-            <div 
-                className="flex-1 p-6 flex flex-col gap-6 overflow-hidden"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Form Shield: Prevents ANY default button behavior from bubbles */}
-                <form 
-                    onSubmit={(e) => e.preventDefault()} 
-                    className="flex-1 flex flex-col gap-6 overflow-hidden"
-                >
-                    <div className="flex-1 relative rounded-[2.5rem] bg-white/5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden">
-                    {preview ? (
-                        <>
-                            <img src={preview} className="absolute inset-0 size-full object-cover" alt="Preview" />
-                            <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-black/40" />
-                            <Button 
-                                type="button"
-                                variant="ghost" 
-                                className="absolute top-6 right-6 size-12 rounded-2xl bg-black/40 backdrop-blur-md text-white border border-white/10"
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPreview(null); setFile(null); }}
-                            >
-                                <X className="size-6" />
-                            </Button>
-                        </>
-                    ) : (
-                        <div 
-                            onClick={() => fileInputRef.current?.click()}
-                            className="flex flex-col items-center gap-4 cursor-pointer active:scale-95 transition-all group"
-                        >
-                            <div className="size-24 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-xl shadow-emerald-500/5 group-hover:bg-emerald-500/20 transition-all">
-                                <Camera className="size-10" strokeWidth={2.5} />
-                            </div>
-                            <div className="text-center">
-                                <p className="text-lg font-black uppercase tracking-tight">Tap to Open Camera</p>
-                                <p className="text-xs text-white/40 font-bold uppercase tracking-widest mt-1">Capture items at location</p>
-                            </div>
-                            <input 
-                                ref={fileInputRef}
-                                id="hub-camera-input"
-                                type="file" 
-                                accept="image/*" 
-                                className="sr-only" 
-                                onChange={handleFileChange}
-                            />
-                        </div>
-                    )}
+            <div className="w-full h-full md:h-auto md:max-h-[90vh] md:max-w-lg bg-[#0a0a0b] md:bg-[#1a1a1c] md:border md:border-white/10 md:rounded-[3rem] flex flex-col md:shadow-2xl overflow-hidden relative">
+                <div className="p-6 shrink-0 flex items-center justify-between border-b border-white/5">
+                    <div>
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Capture Proof</h4>
+                        <p className="text-sm font-bold text-white max-w-[280px] truncate">{title}</p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="rounded-xl bg-white/5" onClick={onClose} disabled={isUploading}>
+                        <X className="size-5" />
+                    </Button>
                 </div>
 
-                <div className="space-y-4">
-                    <div className="p-5 rounded-3xl bg-emerald-500/5 border border-emerald-500/10 flex items-start gap-3">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+                    <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-start gap-3 mb-2">
                         <AlertCircle className="size-5 text-emerald-500 shrink-0" />
                         <p className="text-[11px] font-bold text-white/60 leading-relaxed uppercase tracking-wide">
-                            Ensure the photo clearly shows the <span className="text-emerald-400">installed furniture</span> or signed challan.
+                            One photo per product required. <span className="text-emerald-400">Capture {jobCards.length} unique proofs.</span>
                         </p>
                     </div>
 
+                    {jobCards.map((jc) => {
+                        const hasPhoto = !!itemPhotos[jc._id];
+                        return (
+                            <div key={jc._id} className={cn(
+                                "p-4 rounded-[2rem] border transition-all flex items-center gap-4",
+                                hasPhoto ? "bg-emerald-500/10 border-emerald-500/50" : "bg-white/5 border-white/5"
+                            )}>
+                                {/* Design Reference */}
+                                <div className="size-14 rounded-2xl bg-black border border-white/10 overflow-hidden shrink-0">
+                                    {jc.photo ? (
+                                        <img src={jc.photo} className="size-full object-cover opacity-50" alt={jc.title} />
+                                    ) : (
+                                        <div className="size-full flex items-center justify-center opacity-20">
+                                            <Package className="size-5" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-black text-white/90 truncate">{jc.title}</p>
+                                    <p className="text-[10px] font-mono text-white/30 truncate">{jc.jobCardNumber}</p>
+                                </div>
+
+                                {/* Capture Action */}
+                                <div className="shrink-0">
+                                    {hasPhoto ? (
+                                        <div className="relative group">
+                                            <div className="size-14 rounded-2xl overflow-hidden border-2 border-emerald-500 shadow-lg shadow-emerald-500/20">
+                                                <img src={itemPhotos[jc._id].preview} className="size-full object-cover" alt="POD" />
+                                            </div>
+                                            <button 
+                                                onClick={(e) => removePhoto(jc._id, e)}
+                                                className="absolute -top-2 -right-2 size-6 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+                                            >
+                                                <X className="size-3" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <Button 
+                                            size="icon" 
+                                            className="size-14 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black shadow-lg shadow-emerald-500/10 active:scale-95 transition-all"
+                                            onClick={() => triggerCapture(jc._id)}
+                                            disabled={isUploading}
+                                        >
+                                            <Camera className="size-6" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div className="p-6 border-t border-white/5 bg-white/2px">
                     <Button 
-                        type="button"
-                        className="w-full h-16 rounded-[2rem] bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-emerald-500/20 active:scale-95 transition-all disabled:opacity-50"
-                        disabled={!file || isUploading}
+                        className="w-full h-16 rounded-[2rem] bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-emerald-500/20 active:scale-[0.98] transition-all disabled:opacity-20 translate-z-0"
                         onClick={handleConfirm}
+                        disabled={Object.keys(itemPhotos).length !== jobCards.length || isUploading}
                     >
                         {isUploading ? (
                             <div className="flex items-center gap-3">
                                 <Loader2 className="size-5 animate-spin" />
-                                <span>Uploading...</span>
+                                <span>Uploading Proofs...</span>
                             </div>
                         ) : (
-                            "Confirm Delivery"
+                            `Complete Delivery (${Object.keys(itemPhotos).length}/${jobCards.length})`
                         )}
                     </Button>
                 </div>
-            </form>
-        </div>
-    </motion.div>
+            </div>
+
+            <input 
+                ref={fileInputRef}
+                type="file" 
+                accept="image/*" 
+                capture="environment"
+                className="hidden" 
+                onChange={handleFileChange}
+            />
+        </motion.div>
     );
 }
+
+// ── POD Upload Modal Legacy (REMOVE) ──────────────────────────────────────────────────────────

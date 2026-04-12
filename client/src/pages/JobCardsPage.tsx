@@ -13,6 +13,8 @@ import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScheduleBatchDeliveryModal } from '@/components/ScheduleBatchDeliveryModal';
+import { useState } from 'react';
 
 import {
     Plus, Search, LayoutGrid, List, Clock, FilterX,
@@ -46,6 +48,14 @@ export default function JobCardsPage() {
     const [searchParams] = useSearchParams();
     const urlClientId = searchParams.get('clientId');
     const { filters, setFilter, resetFilters, viewMode, setViewMode } = useJobCardStore();
+
+    const [selectedForBatch, setSelectedForBatch] = useState<string[]>([]);
+    const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+
+    const toggleSelection = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        setSelectedForBatch(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
 
     const { data: raw, isLoading } = useJobCards({
         status: filters.status,
@@ -221,6 +231,9 @@ export default function JobCardsPage() {
                                 <Table>
                                     <TableHeader className="bg-muted/30">
                                         <TableRow className="border-border/40 hover:bg-transparent">
+                                            {filters.status === 'qc_passed' && canSeeAll && (
+                                                <TableHead className="px-6 py-5 w-12"></TableHead>
+                                            )}
                                             <TableHead className="px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Job Identity</TableHead>
                                             <TableHead className="px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Client Name</TableHead>
                                             <TableHead className="px-8 py-5 text-muted-foreground/60 text-[11px] font-black uppercase tracking-[0.15em]">Factory Manager</TableHead>
@@ -238,8 +251,15 @@ export default function JobCardsPage() {
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     transition={{ delay: idx * 0.03 }}
-                                                    className="group hover:bg-muted/40 transition-all cursor-pointer border-border/30"
+                                                    className={cn("group hover:bg-muted/40 transition-all cursor-pointer border-border/30", selectedForBatch.includes(jc._id) && "bg-primary/5")}
                                                 >
+                                                    {filters.status === 'qc_passed' && canSeeAll && (
+                                                        <TableCell className="px-6 py-5" onClick={(e) => toggleSelection(e, jc._id)}>
+                                                            <div className={cn("size-5 rounded border-2 flex items-center justify-center transition-all", selectedForBatch.includes(jc._id) ? "border-primary bg-primary text-white" : "border-muted-foreground/30")}>
+                                                                {selectedForBatch.includes(jc._id) && <CheckCircle size={14} strokeWidth={3} />}
+                                                            </div>
+                                                        </TableCell>
+                                                    )}
                                                     <TableCell className="px-6 py-5">
                                                         <Link to={`/jobcards/${jc._id}`} className="flex items-center gap-4">
                                                             {jc.items?.[0]?.photo ? (
@@ -462,6 +482,40 @@ export default function JobCardsPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            
+            <AnimatePresence>
+                {selectedForBatch.length > 0 && filters.status === 'qc_passed' && canSeeAll && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 50 }}
+                        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-6 bg-card border border-primary/20 shadow-2xl p-4 pr-6 rounded-[24px] backdrop-blur-xl"
+                    >
+                        <div className="flex items-center gap-4 px-4 border-r border-border/40">
+                            <span className="flex items-center justify-center size-10 rounded-full bg-primary/10 text-primary font-black text-lg">{selectedForBatch.length}</span>
+                            <div>
+                                <p className="text-foreground font-black text-sm tracking-tight">Units Selected</p>
+                                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Ready for dispatch</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3">
+                            <Button variant="ghost" onClick={() => setSelectedForBatch([])} className="rounded-xl px-6 font-bold uppercase text-[11px] tracking-widest text-muted-foreground hover:text-foreground">Clear</Button>
+                            <Button onClick={() => setIsBatchModalOpen(true)} className="rounded-xl px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase text-[11px] tracking-widest shadow-lg shadow-primary/20 gap-2">
+                                <Truck size={16} strokeWidth={3} /> Schedule Trip
+                            </Button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <ScheduleBatchDeliveryModal 
+                open={isBatchModalOpen} 
+                onOpenChange={setIsBatchModalOpen}
+                selectedJobCardIds={selectedForBatch}
+                onSuccess={() => {
+                    setSelectedForBatch([]);
+                }}
+            />
         </div>
     );
 }

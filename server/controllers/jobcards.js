@@ -66,9 +66,8 @@ export const createJobCard = async (req, res, next) => {
     });
 
     // Send WhatsApp notification to the group
+    /* WhatsApp notification disabled
     if (project.whatsapp?.groupId) {
-      // In practice, you'd send to all assigned staff phones
-      // Here we enqueue the notification
       createNotification({
         companyId: req.user.companyId,
         recipientId: req.user.userId,
@@ -82,6 +81,7 @@ export const createJobCard = async (req, res, next) => {
         deliveryStatus: 'pending',
       });
     }
+    */
 
     res.status(201).json({ success: true, data: jobCard });
 
@@ -374,6 +374,7 @@ export const getJobCardById = async (req, res, next) => {
       .populate('assignedTo.qc', 'name role')
       .populate('assignedTo.dispatch', 'name role')
       .populate('assignedTo.accounts', 'name role')
+      .populate('deliveryTripId')
       .lean();
 
     if (!jobCard) return res.status(404).json({ success: false, message: 'Job card not found' });

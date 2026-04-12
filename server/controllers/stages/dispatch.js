@@ -12,8 +12,44 @@ import { emitNotification, emitJobCardStatus } from '../../socket/socket.js';
 /** GET /api/jobcards/:id/dispatch */
 export const getDispatch = async (req, res, next) => {
   try {
-    const stage = await DispatchStage.findOne({ jobCardId: req.params.id }).lean();
-    if (!stage) return res.status(404).json({ success: false, message: 'Dispatch stage not found' });
+    const jobCard = await JobCard.findById(req.params.id).populate('deliveryTripId').lean();
+    let stage = null;
+
+    // 1. Prefer DeliveryTrip (Modern Batch flow)
+    if (jobCard?.deliveryTripId) {
+      const trip = jobCard.deliveryTripId;
+      stage = {
+        _id: trip._id,
+        jobCardId: req.params.id,
+        status: trip.status,
+        scheduledDate: trip.scheduledDate,
+        timeSlot: trip.timeSlot,
+        deliveryTeam: trip.deliveryTeam,
+        deliveredAt: trip.actualDelivery,
+        deliveredBy: trip.deliveredBy,
+        deliveredByName: trip.deliveredByName,
+        isBatch: true,
+        proofOfDelivery: {
+          signature: trip.proofOfDelivery?.signature,
+          gpsLocation: trip.proofOfDelivery?.gpsLocation,
+          capturedAt: trip.proofOfDelivery?.capturedAt,
+        }
+      };
+
+      if (trip.jobCards && trip.proofOfDelivery?.photos) {
+        const index = trip.jobCards.indexOf(req.params.id);
+        if (index !== -1 && trip.proofOfDelivery.photos[index]) {
+          stage.proofOfDelivery.photo = trip.proofOfDelivery.photos[index];
+        }
+      }
+    } 
+    
+    // 2. Fallback to DispatchStage (Legacy or Standalone flow)
+    if (!stage) {
+      stage = await DispatchStage.findOne({ jobCardId: req.params.id }).lean();
+    }
+
+    if (!stage) return res.status(404).json({ success: false, message: 'Dispatch information not found' });
     res.status(200).json({ success: true, data: stage });
   } catch (err) { next(err); }
 };
@@ -23,6 +59,14 @@ export const scheduleDispatch = async (req, res, next) => {
   try {
     const { scheduledDate, timeSlot, deliveryTeam, itemsDispatched } = req.body;
 
+    const jobCard = await JobCard.findById(req.params.id);
+    if (jobCard?.deliveryTripId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'This Job Card is part of a Batch Delivery Trip. Please manage scheduling through the Global Dispatch Hub.' 
+      });
+    }
+
     const stage = await DispatchStage.findOneAndUpdate(
       { jobCardId: req.params.id },
       { scheduledDate, timeSlot, deliveryTeam, itemsDispatched, status: 'scheduled' },
@@ -31,10 +75,12 @@ export const scheduleDispatch = async (req, res, next) => {
     if (!stage) return res.status(404).json({ success: false, message: 'Dispatch stage not found' });
 
     // Notify client directly (not group) via WhatsApp
-    const jobCard = await JobCard.findById(req.params.id).populate('clientId', 'whatsappNumber name').lean();
-    if (jobCard?.clientId?.whatsappNumber) {
+    /* WhatsApp notification disabled
+    /* WhatsApp notification disabled
+    const jobCardWithClient = await JobCard.findById(req.params.id).populate('clientId', 'whatsappNumber name').lean();
+    if (jobCardWithClient?.clientId?.whatsappNumber) {
       await sendWhatsApp(
-        jobCard.clientId.whatsappNumber,
+        jobCardWithClient.clientId.whatsappNumber,
         WA_TEMPLATES.DELIVERY_SCHEDULED,
         [
           jobCard.jobCardNumber,
@@ -45,6 +91,7 @@ export const scheduleDispatch = async (req, res, next) => {
         ]
       );
     }
+    */
 
     // Update JC status
     await JobCard.findByIdAndUpdate(req.params.id, {
@@ -69,6 +116,14 @@ export const scheduleDispatch = async (req, res, next) => {
 export const markDelivered = async (req, res, next) => {
   try {
     const { gpsLocation, clientSignature, podPhotoUrl, deliveredByName } = req.body;
+
+    const jobCard = await JobCard.findById(req.params.id);
+    if (jobCard?.deliveryTripId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'This Job Card is part of a Batch Delivery Trip. Please capture proof and mark as delivered through the Global Dispatch Hub.' 
+      });
+    }
 
     // Upload POD photo if attached (fallback for direct uploads)
     let finalPodPhoto = podPhotoUrl || null;
@@ -105,15 +160,18 @@ export const markDelivered = async (req, res, next) => {
     });
 
     // Notify group + client
-    const jobCard = await JobCard.findById(req.params.id).populate('clientId', 'whatsappNumber').lean();
+    // Notify group + client
+    const jobCardWithClient = await JobCard.findById(req.params.id).populate('clientId', 'whatsappNumber').lean();
     
     // Safety fallback: Default to JobCard's designated company, preventing cross-company broadcast leaks from dispatched user context
-    const targetCompanyId = jobCard?.companyId || req.user.companyId;
+    const targetCompanyId = jobCardWithClient?.companyId || req.user.companyId;
 
-    emitJobCardStatus(targetCompanyId.toString(), { jobCardId: req.params.id, status: 'delivered', jobCardNumber: jobCard?.jobCardNumber || req.params.id });
-    if (jobCard?.clientId?.whatsappNumber) {
-      await sendWhatsApp(jobCard.clientId.whatsappNumber, WA_TEMPLATES.JOB_DELIVERED, [jobCard.jobCardNumber]);
+    emitJobCardStatus(targetCompanyId.toString(), { jobCardId: req.params.id, status: 'delivered', jobCardNumber: jobCardWithClient?.jobCardNumber || req.params.id });
+    /* WhatsApp to Client disabled
+    if (jobCardWithClient?.clientId?.whatsappNumber) {
+      await sendWhatsApp(jobCardWithClient.clientId.whatsappNumber, WA_TEMPLATES.JOB_DELIVERED, [jobCardWithClient.jobCardNumber]);
     }
+    */
 
     // Notify admins and sales team in-app at target company
     const notifyStaff = await User.find({
@@ -129,7 +187,7 @@ export const markDelivered = async (req, res, next) => {
         jobCardId: req.params.id,
         type: 'delivered',
         title: 'Delivery Completed',
-        message: `Job Card ${jobCard?.jobCardNumber || req.params.id} has been successfully delivered.`,
+        message: `Job Card ${jobCardWithClient?.jobCardNumber || req.params.id} has been successfully delivered.`,
         channel: 'in_app'
       }));
       const inserted = await Notification.insertMany(notifications);
@@ -140,7 +198,7 @@ export const markDelivered = async (req, res, next) => {
       action: 'update',
       resourceType: 'JobCard',
       resourceId: req.params.id,
-      resourceLabel: jobCard?.jobCardNumber || req.params.id,
+      resourceLabel: jobCardWithClient?.jobCardNumber || req.params.id,
       changes: { status: { from: 'dispatched', to: 'delivered' } },
       metadata: { action: 'delivered', podPhoto: !!podPhotoUrl, gpsLocation: !!gpsLocation },
     });

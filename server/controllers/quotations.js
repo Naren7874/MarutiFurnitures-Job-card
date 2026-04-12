@@ -352,6 +352,7 @@ export const sendQuotationPDF = async (req, res, next) => {
       });
     }
 
+    /* WhatsApp disabled
     if (client?.whatsappNumber) {
       await sendWhatsApp(client.whatsappNumber, WA_TEMPLATES.JOB_CARD_CREATED, [
         quotation.quotationNumber,
@@ -359,6 +360,7 @@ export const sendQuotationPDF = async (req, res, next) => {
         pdfUrl,
       ]);
     }
+    */
 
     auditLog(req, {
       action: 'update',

@@ -37,6 +37,7 @@ export const QK = {
     architectProject: (uid: string, id: string) => ['architect', uid, 'projects', id],
     architectJobCards: (uid: string, params?: object) => ['architect', uid, 'jobcards', params],
     architectJobCard: (uid: string, id: string) => ['architect', uid, 'jobcards', id],
+    deliveries: (cid: string, params?: object) => ['deliveries', cid, params],
 };
 
 // ─── Users & Roles ────────────────────────────────────────────────────────────
@@ -857,5 +858,57 @@ export const useArchitectJobCardById = (id: string) => {
         queryKey: QK.architectJobCard(uid, id),
         queryFn: () => apiGet(`/architect/jobcards/${id}`),
         enabled: !!uid && !!id,
+    });
+};
+
+// ─── Deliveries (Dispatch Batches) ────────────────────────────────────────────
+
+export const useDeliveryTrips = (params: object = {}) => {
+    const { company } = useAuthStore();
+    return useQuery({
+        queryKey: QK.deliveries(company?.id || '', params),
+        queryFn: () => apiGet('/deliveries', params),
+        enabled: !!company?.id
+    });
+};
+
+export const useScheduleDelivery = () => {
+    const qc = useQueryClient();
+    const { company } = useAuthStore();
+    const cid = company?.id || '';
+    
+    return useMutation({
+        mutationFn: (data: any) => apiPost('/deliveries', data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['deliveries', cid] });
+            qc.invalidateQueries({ queryKey: ['jobcards', cid] });
+            import('sonner').then(({ toast }) => toast.success('Batch Delivery Scheduled successfully'));
+        },
+        onError: (err: any) => import('sonner').then(({ toast }) => toast.error(err?.response?.data?.message || 'Failed to schedule delivery')),
+    });
+};
+
+export const useCompleteDelivery = (id: string) => {
+    const qc = useQueryClient();
+    const { company } = useAuthStore();
+    const cid = company?.id || '';
+    return useMutation({
+        mutationFn: async (data: any) => {
+            const formData = new FormData();
+            if (data.gpsLocation) formData.append('gpsLocation', data.gpsLocation);
+            if (data.clientSignature) formData.append('clientSignature', data.clientSignature);
+            if (data.deliveredByName) formData.append('deliveredByName', data.deliveredByName);
+            if (data.podPhotos) {
+                Array.from(data.podPhotos).forEach((f: any) => formData.append('files', f));
+            }
+            const { apiPatchUpload } = await import('../lib/axios');
+            return apiPatchUpload(`/deliveries/${id}/complete`, formData);
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['deliveries', cid] });
+            qc.invalidateQueries({ queryKey: ['jobcards', cid] });
+            import('sonner').then(({ toast }) => toast.success('Batch Delivery Completed!'));
+        },
+        onError: (err: any) => import('sonner').then(({ toast }) => toast.error(err?.response?.data?.message || 'Failed to complete delivery')),
     });
 };

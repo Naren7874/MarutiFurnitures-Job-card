@@ -11,31 +11,33 @@ const WA_API_TOKEN = process.env.WHATSAPP_API_TOKEN;
  * @param {Array}  variables    - Template variable values in order: ['MF-26-011', 'Ram Tiwari']
  */
 export const sendWhatsApp = async (phone, templateName, variables = []) => {
-  try {
-    const payload = {
-      countryCode: '+91',
-      phoneNumber: phone,
-      callbackData: 'callback_data',
-      type: 'Template',
-      template: {
-        name: templateName,
-        languageCode: 'en',
-        bodyValues: variables,
-      },
-    };
-
-    const res = await axios.post(WA_API_URL, payload, {
-      headers: {
-        Authorization: `Bearer ${WA_API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    return res.data;
-  } catch (err) {
-    console.error(`WhatsApp send failed [${templateName}] to ${phone}:`, err?.response?.data || err.message);
-    // Don't throw — notification failure should not break the core flow
-    return null;
-  }
+  // try {
+  //   const payload = {
+  //     countryCode: '+91',
+  //     phoneNumber: phone,
+  //     callbackData: 'callback_data',
+  //     type: 'Template',
+  //     template: {
+  //       name: templateName,
+  //       languageCode: 'en',
+  //       bodyValues: variables,
+  //     },
+  //   };
+  //
+  //   const res = await axios.post(WA_API_URL, payload, {
+  //     headers: {
+  //       Authorization: `Bearer ${WA_API_TOKEN}`,
+  //       'Content-Type': 'application/json',
+  //     },
+  //   });
+  //   return res.data;
+  // } catch (err) {
+  //   console.error(`WhatsApp send failed [${templateName}] to ${phone}:`, err?.response?.data || err.message);
+  //   // Don't throw — notification failure should not break the core flow
+  //   return null;
+  // }
+  console.log(`[WhatsApp Disabled] Template: ${templateName} to ${phone}`);
+  return null;
 };
 
 /**

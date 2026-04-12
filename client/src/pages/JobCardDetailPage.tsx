@@ -9,7 +9,7 @@ import {
     Package, Loader2, Clock, CheckCheck,
     Truck, Shield, Wrench, TriangleAlert, User,
     CalendarCheck, MapPin, Camera, FileText, MessageSquare, Download,
-    ShieldCheck, Zap, Maximize2, Fingerprint, Wind, History, Layers,
+    ShieldCheck, Zap, Maximize2, Fingerprint, Wind, History, Layers, Phone,
     Archive, ArchiveRestore, AlertCircle, Sparkles, PackageCheck, X
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -307,6 +307,7 @@ export default function JobCardDetailPage() {
                         { label: 'Sales Executive', value: jc.salesperson?.name },
                         { label: 'Factory Manager', value: jc.assignedTo?.production?.map((u: any) => u.name).join(', ') },
                         { label: 'QC Officer', value: jc.assignedTo?.qc?.map((u: any) => u.name).join(', ') },
+                        { label: 'Dispatch Team', value: jc.assignedTo?.dispatch?.map((u: any) => u.name).join(', ') },
                         { label: 'Accountant', value: jc.assignedTo?.accounts?.map((u: any) => u.name).join(', ') },
                     ].map(({ label, value }) => (
                         <div key={label} className="space-y-1">
@@ -378,10 +379,13 @@ function AssignedStaffList({ users, roleLabel, color = 'bg-primary' }: { users: 
     return (
         <div>
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">{roleLabel}</p>
-            <div className="flex -space-x-2">
+            <div className="flex flex-wrap gap-2">
                 {users.map((u: any) => (
-                    <div key={u._id || u} className={cn("w-7 h-7 rounded-full border-2 border-card flex items-center justify-center text-[10px] font-bold text-white uppercase ring-2", color, color === 'bg-primary' ? 'ring-primary/10' : 'ring-current/10')} title={u.name}>
-                        {u.name?.charAt(0) || <User size={12} />}
+                    <div key={u._id || u} className="flex items-center gap-2">
+                        <div className={cn("w-7 h-7 rounded-full border-2 border-card flex items-center justify-center text-[10px] font-bold text-white uppercase ring-2", color, color === 'bg-primary' ? 'ring-primary/10' : 'ring-current/10')} title={u.name}>
+                            {u.name?.charAt(0) || <User size={12} />}
+                        </div>
+                        <span className="text-[11px] font-bold text-foreground">{u.name || 'Anonymous'}</span>
                     </div>
                 ))}
             </div>
@@ -467,6 +471,48 @@ function OverviewTab({ jc }: any) {
                                         <Wind size={14} className="text-emerald-500/60" />
                                         <p className="text-[11px] font-black text-foreground/70 uppercase tracking-tight leading-tight">{item?.specifications?.polish || 'N/A'}</p>
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Client & Project Details Column */}
+                            <div className="space-y-4">
+                                <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] pl-0.5">Contact & Logistics</p>
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3 p-3.5 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
+                                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-600">
+                                            <Phone size={14} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[8px] font-black text-indigo-600/50 uppercase tracking-widest">Client Phone</p>
+                                            <p className="text-xs font-black">{jc.clientId?.phone || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    {jc.projectId?.whatsapp && (
+                                        <div className="flex items-center gap-3 p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                                                <MessageSquare size={14} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[8px] font-black text-emerald-600/50 uppercase tracking-widest">Project WhatsApp</p>
+                                                <p className="text-xs font-black">{jc.projectId.whatsapp}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {jc.clientId?.address && (
+                                        <div className="flex items-start gap-3 p-3.5 rounded-xl bg-muted/20 border border-border/10">
+                                            <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center text-muted-foreground mt-0.5">
+                                                <MapPin size={14} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-widest">Full Address</p>
+                                                <p className="text-[10px] font-bold text-foreground/60 leading-relaxed italic">
+                                                    {(typeof jc.clientId.address === 'object') 
+                                                        ? [jc.clientId.address.houseNumber, jc.clientId.address.line1, jc.clientId.address.line2, jc.clientId.address.city, jc.clientId.address.pincode].filter(Boolean).join(', ')
+                                                        : jc.clientId.address}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -1300,9 +1346,14 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 relative z-10">
                     <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1.5">Target Delivery</p>
-                        <p className={cn('text-xs font-black', !jc.expectedDelivery ? 'text-muted-foreground/30 italic' : new Date(jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground')}>
-                            {jc.expectedDelivery ? new Date(jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pending assignment'}
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1.5">
+                            {stage?.scheduledDate ? 'Scheduled Delivery' : 'Target Delivery'}
+                        </p>
+                        <p className={cn('text-xs font-black', 
+                            !(stage?.scheduledDate || jc.expectedDelivery) ? 'text-muted-foreground/30 italic' : 
+                            new Date(stage?.scheduledDate || jc.expectedDelivery) < new Date() ? 'text-rose-500' : 'text-foreground'
+                        )}>
+                            {(stage?.scheduledDate || jc.expectedDelivery) ? new Date(stage?.scheduledDate || jc.expectedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pending assignment'}
                         </p>
                     </div>
                     <AssignedStaffList users={jc.assignedTo?.dispatch} roleLabel="Dispatch Team" color="bg-cyan-500" />
@@ -1348,81 +1399,117 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
                                 <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest mb-0.5">Driver / Lead</p>
                                 <p className="text-xs font-black">{stage.deliveryTeam?.[0]?.name || 'Assigned'}</p>
                             </div>
+                            <div>
+                                <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest mb-0.5">Team Contact</p>
+                                <p className="text-xs font-black">{stage.deliveryTeam?.[0]?.phone || stage.driverPhone || '—'}</p>
+                            </div>
                         </div>
+
+                        {jc.clientId?.address && (
+                            <div className="mt-5 pt-5 border-t border-cyan-500/10 relative z-10">
+                                <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest mb-2">Delivery Destination</p>
+                                <div className="flex items-start gap-3 p-3.5 rounded-xl bg-cyan-500/5 border border-cyan-500/10">
+                                    <MapPin size={14} className="text-cyan-600 mt-0.5" />
+                                    <p className="text-[11px] font-medium text-foreground/70 leading-relaxed italic">
+                                        {(typeof jc.clientId.address === 'object') 
+                                            ? [jc.clientId.address.houseNumber, jc.clientId.address.line1, jc.clientId.address.line2, jc.clientId.address.city, jc.clientId.address.pincode].filter(Boolean).join(', ')
+                                            : jc.clientId.address}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
                 )}
 
                 {/* Schedule form */}
                 {effectiveCanEdit && ['qc_passed', 'dispatched'].includes(jc.status) && !stage?.deliveredAt && (
                     <div className="space-y-4 p-5 rounded-[28px] bg-card/40 border border-border/20 shadow-xl shadow-black/5 backdrop-blur-sm">
-                        <div className="flex items-center gap-2.5 mb-1">
-                            <div className="w-8 h-8 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
-                                <CalendarCheck size={14} className="text-cyan-600" />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80 leading-none mb-0.5">
-                                    {stage?.scheduledDate ? 'Modify Delivery Schedule' : 'Initialize Dispatch'}
-                                </p>
-                                <p className="text-[8px] font-bold text-muted-foreground/50 uppercase tracking-widest">Logistic Operations</p>
-                            </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                            <div className="space-y-1.5">
-                                <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Desired Delivery Date</Label>
-                                <div className={cn(!effectiveCanEdit && "opacity-50 pointer-events-none")}>
-                                    <DatePicker 
-                                        date={form.scheduledDate ? parseISO(form.scheduledDate) : undefined} 
-                                        setDate={(date) => setForm(f => ({ ...f, scheduledDate: date ? format(date, 'yyyy-MM-dd') : '' }))} 
-                                        className="h-10 rounded-xl border-border/30 bg-background/50 focus:ring-cyan-500/10 font-bold px-4 text-xs" 
-                                    />
+                        <div className="flex items-center justify-between gap-4 mb-2">
+                            <div className="flex items-center gap-2.5 mb-1">
+                                <div className="w-8 h-8 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                                    <CalendarCheck size={14} className="text-cyan-600" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80 leading-none mb-0.5">
+                                        {stage?.scheduledDate ? 'Modify Delivery Schedule' : 'Initialize Dispatch'}
+                                    </p>
+                                    <p className="text-[8px] font-bold text-muted-foreground/50 uppercase tracking-widest">Logistic Operations</p>
                                 </div>
                             </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Arrival Slot</Label>
-                                <Select value={form.timeSlot} onValueChange={val => setForm(f => ({ ...f, timeSlot: val }))} disabled={!effectiveCanEdit}>
-                                    <SelectTrigger className="w-full h-10 rounded-xl border-border/30 bg-background/50 px-4 text-xs font-bold focus:ring-cyan-500/10">
-                                        <SelectValue placeholder="Select Slot" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-xl border-border/30 bg-background/95 backdrop-blur-md">
-                                        <SelectItem value="morning" className="rounded-lg font-bold py-2 text-xs">Morning (9am–12pm)</SelectItem>
-                                        <SelectItem value="afternoon" className="rounded-lg font-bold py-2 text-xs">Afternoon (12pm–4pm)</SelectItem>
-                                        <SelectItem value="evening" className="rounded-lg font-bold py-2 text-xs">Evening (4pm–8pm)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                             <div className="space-y-1.5">
-                                <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Delivery Person</Label>
-                                <SearchableSelect 
-                                    options={dispatchOptions}
-                                    value={dispatchMembers.find((m: any) => m.name === form.driverName)?._id || ''}
-                                    onChange={(val) => {
-                                        const member = dispatchMembers.find((m: any) => m._id === val);
-                                        if (member) {
-                                            setForm(f => ({ 
-                                                ...f, 
-                                                driverName: member.name, 
-                                                driverPhone: member.phone || '' 
-                                            }));
-                                        }
-                                    }}
-                                    placeholder="Search Delivery Person"
-                                    searchPlaceholder="Type name..."
-                                    disabled={!effectiveCanEdit}
-                                    className="h-10 rounded-xl border-border/30 bg-background/50 text-xs font-bold focus:ring-cyan-500/10"
-                                />
-                            </div>
-                            <div className="space-y-1.5 md:col-span-1">
-                                <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Contact Phone</Label>
-                                <Input value={form.driverPhone} onChange={e => setForm(f => ({ ...f, driverPhone: e.target.value }))} placeholder="Phone number" disabled={!effectiveCanEdit} className="rounded-xl h-10 bg-background/50 border-border/30 font-bold text-xs px-4 focus:ring-cyan-500/10" />
-                            </div>
+                            {jc.deliveryTripId && (
+                                <Badge variant="outline" className="bg-cyan-500/10 text-cyan-600 border-cyan-500/20 text-[9px] font-black uppercase tracking-widest px-3">
+                                    Batch Managed
+                                </Badge>
+                            )}
                         </div>
-                        
-                        <Button onClick={() => scheduleMut.mutate()} disabled={!form.scheduledDate || scheduleMut.isPending}
-                            className="w-full h-12 rounded-xl font-black gap-3 bg-linear-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300">
-                            {scheduleMut.isPending ? <Loader2 size={16} className="animate-spin" /> : <Truck size={16} />}
-                            {stage?.scheduledDate ? 'Save Schedule Changes' : 'Confirm & Schedule Dispatch'}
-                        </Button>
+
+                        {jc.deliveryTripId ? (
+                            <div className="p-4 rounded-xl bg-cyan-500/5 border border-cyan-500/10 flex items-center gap-3">
+                                <AlertCircle size={14} className="text-cyan-600 shrink-0" />
+                                <p className="text-[11px] font-medium text-cyan-700/70 leading-relaxed italic">
+                                    This job card is part of a consolidated batch delivery trip. Scheduling and routing are managed globally for all items in this shipment.
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Desired Delivery Date</Label>
+                                        <div className={cn(!effectiveCanEdit && "opacity-50 pointer-events-none")}>
+                                            <DatePicker 
+                                                date={form.scheduledDate ? parseISO(form.scheduledDate) : undefined} 
+                                                setDate={(date) => setForm(f => ({ ...f, scheduledDate: date ? format(date, 'yyyy-MM-dd') : '' }))} 
+                                                className="h-10 rounded-xl border-border/30 bg-background/50 focus:ring-cyan-500/10 font-bold px-4 text-xs" 
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Arrival Slot</Label>
+                                        <Select value={form.timeSlot} onValueChange={val => setForm(f => ({ ...f, timeSlot: val }))} disabled={!effectiveCanEdit}>
+                                            <SelectTrigger className="w-full h-10 rounded-xl border-border/30 bg-background/50 px-4 text-xs font-bold focus:ring-cyan-500/10">
+                                                <SelectValue placeholder="Select Slot" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl border-border/30 bg-background/95 backdrop-blur-md">
+                                                <SelectItem value="morning" className="rounded-lg font-bold py-2 text-xs">Morning (9am–12pm)</SelectItem>
+                                                <SelectItem value="afternoon" className="rounded-lg font-bold py-2 text-xs">Afternoon (12pm–4pm)</SelectItem>
+                                                <SelectItem value="evening" className="rounded-lg font-bold py-2 text-xs">Evening (4pm–8pm)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Delivery Person</Label>
+                                        <SearchableSelect 
+                                            options={dispatchOptions}
+                                            value={dispatchMembers.find((m: any) => m.name === form.driverName)?._id || ''}
+                                            onChange={(val) => {
+                                                const member = dispatchMembers.find((m: any) => m._id === val);
+                                                if (member) {
+                                                    setForm(f => ({ 
+                                                        ...f, 
+                                                        driverName: member.name, 
+                                                        driverPhone: member.phone || '' 
+                                                    }));
+                                                }
+                                            }}
+                                            placeholder="Search Delivery Person"
+                                            searchPlaceholder="Type name..."
+                                            disabled={!effectiveCanEdit}
+                                            className="h-10 rounded-xl border-border/30 bg-background/50 text-xs font-bold focus:ring-cyan-500/10"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5 md:col-span-1">
+                                        <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Contact Phone</Label>
+                                        <Input value={form.driverPhone} onChange={e => setForm(f => ({ ...f, driverPhone: e.target.value }))} placeholder="Phone number" disabled={!effectiveCanEdit} className="rounded-xl h-10 bg-background/50 border-border/30 font-bold text-xs px-4 focus:ring-cyan-500/10" />
+                                    </div>
+                                </div>
+                                
+                                <Button onClick={() => scheduleMut.mutate()} disabled={!form.scheduledDate || scheduleMut.isPending}
+                                    className="w-full h-12 rounded-xl font-black gap-3 bg-linear-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300">
+                                    {scheduleMut.isPending ? <Loader2 size={16} className="animate-spin" /> : <Truck size={16} />}
+                                    {stage?.scheduledDate ? 'Save Schedule Changes' : 'Confirm & Schedule Dispatch'}
+                                </Button>
+                            </>
+                        )}
                     </div>
                 )}
 
@@ -1431,17 +1518,32 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
                     <div className="space-y-4 p-5 rounded-[28px] bg-emerald-500/5 border border-emerald-500/20 shadow-xl shadow-emerald-500/5 backdrop-blur-sm relative z-10 overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
                         
-                        <div className="flex items-center gap-3 mb-1 relative z-10">
-                            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-inner">
-                                <PackageCheck size={14} className="text-emerald-600" />
+                        <div className="flex items-center justify-between gap-4 mb-1 relative z-10">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-inner">
+                                    <PackageCheck size={14} className="text-emerald-600" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 leading-none mb-0.5">Mark as Delivered</p>
+                                    <p className="text-[8px] font-bold text-muted-foreground/50 uppercase tracking-widest">Final Step in Lifecycle</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 leading-none mb-0.5">Mark as Delivered</p>
-                                <p className="text-[8px] font-bold text-muted-foreground/50 uppercase tracking-widest">Final Step in Lifecycle</p>
-                            </div>
+                            {jc.deliveryTripId && (
+                                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[9px] font-black uppercase tracking-widest px-3">
+                                    Trip Managed
+                                </Badge>
+                            )}
                         </div>
 
-                        <div className="space-y-4 relative z-10">
+                        {jc.deliveryTripId ? (
+                            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-3 relative z-10">
+                                <AlertCircle size={14} className="text-emerald-600 shrink-0" />
+                                <p className="text-[11px] font-medium text-emerald-700/70 leading-relaxed italic">
+                                    This item is currently out for delivery as part of a batch shipment. Please use the <strong>Global Dispatch Hub</strong> to capture proof and complete the delivery for all items in this trip.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4 relative z-10">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <Label className="text-[9px] font-black uppercase tracking-widest opacity-70 ml-1">Client Name / Signature</Label>
@@ -1520,18 +1622,19 @@ function DispatchTab({ id, jc, qcClient, canEdit }: any) {
                                     )}
                                 </div>
                             </div>
-                        </div>
 
-                        <Button 
-                            type="button"
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); deliverMut.mutate(); }} 
-                            disabled={deliverMut.isPending || uploadingPod || !clientSignature || (!podUrl && !stage?.proofOfDelivery?.photo)}
-                            className="w-full h-12 rounded-xl font-black gap-3 bg-linear-to-r from-emerald-600 to-green-600 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 relative z-10">
-                            {deliverMut.isPending ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
-                            Confirm & Complete Delivery
-                        </Button>
-                    </div>
-                )}
+                            <Button 
+                                type="button"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); deliverMut.mutate(); }} 
+                                disabled={deliverMut.isPending || uploadingPod || !clientSignature || (!podUrl && !stage?.proofOfDelivery?.photo)}
+                                className="w-full h-12 rounded-xl font-black gap-3 bg-linear-to-r from-emerald-600 to-green-600 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 relative z-10">
+                                {deliverMut.isPending ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
+                                Confirm & Complete Delivery
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            )}
 
                 {/* Delivered state */}
                 {stage?.deliveredAt && (

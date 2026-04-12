@@ -112,6 +112,7 @@ const jobCardSchema = new mongoose.Schema(
     productionStageId: { type: mongoose.Schema.Types.ObjectId, ref: "ProductionStage" },
     qcStageId:         { type: mongoose.Schema.Types.ObjectId, ref: "QcStage" },
     dispatchStageId:   { type: mongoose.Schema.Types.ObjectId, ref: "DispatchStage" },
+    deliveryTripId:    { type: mongoose.Schema.Types.ObjectId, ref: "DeliveryTrip" },
 
     reworkCount: { type: Number, default: 0 },
 

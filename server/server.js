@@ -81,6 +81,7 @@ import privilegeRoutes     from './routes/privileges.js';
 import notificationRoutes  from './routes/notifications.js';
 import architectRoutes     from './routes/architect.js';
 import dispatchTeamRoutes   from './routes/dispatchTeam.js';
+import deliveryRoutes       from './routes/deliveries.js';
 
 // ── API Routes ───────────────────────────────────────────────────────────────
 app.use('/api/auth',            authRoutes);
@@ -99,6 +100,7 @@ app.use('/api/privileges',      privilegeRoutes);
 app.use('/api/notifications',   notificationRoutes);
 app.use('/api/architect',       architectRoutes);
 app.use('/api/dispatch-team',   dispatchTeamRoutes);
+app.use('/api/deliveries',      deliveryRoutes);
 
 // ── Health Check ──────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
