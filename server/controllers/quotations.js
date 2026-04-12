@@ -971,7 +971,7 @@ export const toggleQuotationHold = async (req, res, next) => {
       // Propagate to Job Cards (Production Gate: Hold any status before 'in_production')
       const jobCards = await JobCard.find({ quotationId, companyId: req.user.companyId });
       for (const jc of jobCards) {
-        const holdableStatuses = ['active', 'in_store', 'material_ready'];
+        const holdableStatuses = ['active'];
         if (holdableStatuses.includes(jc.status)) {
           jc.previousStatus = jc.status;
           jc.status = 'on_hold';
