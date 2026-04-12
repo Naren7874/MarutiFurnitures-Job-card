@@ -17,7 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '../../lib/axios';
 import {
     useCreateQuotation, useUpdateQuotation,
-    useClients, useQuotation, useClient, useCompany
+    useClients, useQuotation, useClient
 } from '../../hooks/useApi';
 import { useAuthStore } from '../../stores/authStore';
 import CreateClientModal from '../clients/CreateClientModal';
@@ -111,7 +111,7 @@ const dbItemToLocal = (dbItem: any): Item => ({
 export default function QuotationForm({ quotationId }: QuotationFormProps) {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { user, company: authCompany } = useAuthStore();
+    const { user } = useAuthStore();
     const isSuperAdmin = user?.role === 'super_admin' || user?.isSuperAdmin;
     const urlClientId = searchParams.get('clientId');
     const isEditMode = !!quotationId;
@@ -122,10 +122,8 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
     const { data: raw, isLoading: loadingQuotation } = useQuotation(quotationId ?? '');
     const { data: preRaw } = useClient(urlClientId ?? '');
-    const { data: companyRaw } = useCompany(authCompany?.id ?? '');
     const existingQ: any = (raw as any)?.data;
     const preClient: any = (preRaw as any)?.data;
-    const companyData: any = (companyRaw as any)?.data;
 
     // ── Client search ─────────────────────────────────────────────────────────
     const [clientSearch, setClientSearch] = useState('');
